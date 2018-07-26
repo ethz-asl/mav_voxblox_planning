@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# I own a mac
+.DS_Store
