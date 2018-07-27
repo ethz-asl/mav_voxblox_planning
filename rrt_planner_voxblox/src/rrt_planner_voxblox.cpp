@@ -212,30 +212,23 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
   if (!do_smoothing_) {
     last_trajectory_valid_ = true;
   } else {
-    mav_msgs::EigenTrajectoryPointVector poly_path, opt_path;
+    mav_msgs::EigenTrajectoryPointVector poly_path;
     mav_trajectory_generation::timing::Timer poly_timer("plan/poly");
-    generateFeasibleTrajectory(waypoints, 1, &poly_path, &opt_path);
+    generateFeasibleTrajectory(waypoints, 1, &poly_path);
     poly_timer.Stop();
 
     // Check all the paths.
-    bool poly_has_collisions = checkPathForCollisions(poly_path);
-    bool opt_has_collisions = checkPathForCollisions(opt_path);
+    bool poly_has_collisions = checkPathForCollisions(poly_path, NULL);
+    ROS_INFO("Smoothed path has collisions? %d", poly_has_collisions);
 
     if (!poly_has_collisions) {
       last_trajectory_valid_ = true;
     }
 
-    ROS_WARN("Poly collisions: %d Opt collisions: %d", poly_has_collisions,
-             opt_has_collisions);
-
     if (visualize_) {
-      if (/*!poly_has_collisions*/true) {
+      if (!poly_has_collisions) {
         marker_array.markers.push_back(createMarkerForPath(
             poly_path, mav_visualization::Color::Orange(), "poly", 0.075));
-      }
-      if (/*!opt_has_collisions*/true) {
-        marker_array.markers.push_back(createMarkerForPath(
-            opt_path, mav_visualization::Color::Yellow(), "poly_opt", 0.075));
       }
     }
   }
@@ -253,51 +246,6 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
                   << start_pose.position_W.transpose()
                   << " and goal point: " << goal_pose.position_W.transpose());
   return success;
-}
-
-visualization_msgs::Marker RrtPlannerVoxblox::createMarkerForCoordinatePath(
-    voxblox::AlignedVector<voxblox::Point>& path,
-    const std_msgs::ColorRGBA& color, const std::string& name, double scale) {
-  visualization_msgs::Marker path_marker;
-
-  const int kMaxSamples = 1000;
-  const int num_samples = path.size();
-  int subsample = 1;
-  while (num_samples / subsample > kMaxSamples) {
-    subsample *= 10;
-  }
-  const double kMaxMagnitude = 1.0e4;
-
-  path_marker.header.frame_id = frame_id_;
-
-  path_marker.header.stamp = ros::Time::now();
-  path_marker.type = visualization_msgs::Marker::LINE_STRIP;
-  path_marker.color = color;
-  path_marker.color.a = 0.75;
-  path_marker.ns = name;
-  path_marker.scale.x = scale;
-  path_marker.scale.y = scale;
-  path_marker.scale.z = scale;
-
-  path_marker.points.reserve(path.size() / subsample);
-  int i = 0;
-  for (const voxblox::Point& point : path) {
-    i++;
-    if (i % subsample != 0) {
-      continue;
-    }
-    // Check that we're in some reasonable bounds.
-    // Makes rviz stop crashing.
-    if (point.maxCoeff() > kMaxMagnitude || point.minCoeff() < -kMaxMagnitude) {
-      continue;
-    }
-
-    geometry_msgs::Point point_msg;
-    Eigen::Vector3d point_double = point.cast<double>();
-    tf::pointKindrToMsg(point_double, &point_msg);
-    path_marker.points.push_back(point_msg);
-  }
-  return path_marker;
 }
 
 visualization_msgs::Marker RrtPlannerVoxblox::createMarkerForPath(
@@ -348,8 +296,7 @@ visualization_msgs::Marker RrtPlannerVoxblox::createMarkerForPath(
 
 void RrtPlannerVoxblox::generateFeasibleTrajectory(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
-    int vertex_subsample, mav_msgs::EigenTrajectoryPointVector* path,
-    mav_msgs::EigenTrajectoryPointVector* optimized_path) {
+    int vertex_subsample, mav_msgs::EigenTrajectoryPointVector* path) {
   // Ok first create a polynomial trajectory through some subset of the
   // vertices.
   constexpr int N = 10;
@@ -386,9 +333,9 @@ void RrtPlannerVoxblox::generateFeasibleTrajectory(
   ROS_INFO("V max: %f A max: %f Vertices: %zu", constraints_.v_max,
            constraints_.a_max, vertices.size());
 
-  std::vector<double> segment_times =
-      mav_trajectory_generation::estimateSegmentTimes(
-          vertices, constraints_.v_max, constraints_.a_max);
+  std::vector<double> segment_times;
+  mav_trajectory_generation::estimateSegmentTimesVelocityRamp(
+      vertices, constraints_.v_max, constraints_.a_max, 1, &segment_times);
 
   std::cout << "Segment times: ";
   for (double time : segment_times) {
@@ -407,37 +354,33 @@ void RrtPlannerVoxblox::generateFeasibleTrajectory(
   double dt = 0.1;
   mav_trajectory_generation::sampleWholeTrajectory(trajectory, dt, path);
 
-  // Part 2...
-  /* if (optimized_path != nullptr) {
-    lcto::LocalContinuousOptimization<N> lcto(K);
-    lcto.setSoftGoalConstraint(false);
-    lcto.setDistanceFunction(std::bind(&RrtPlannerVoxblox::getMapDistance,
-  this,
-                                       std::placeholders::_1));
-    constexpr double kCollisionCheckingInflation = 1.0;
-    lcto.setEpsilon(robot_radius_ * kCollisionCheckingInflation);
+  // Check if it's in collision.
+  double t = 0.0;
+  bool path_in_collision = checkPathForCollisions(*path, &t);
 
-    // Remove the constraints from all but the first and last vertices.
-    for (size_t i = 2; i < vertices.size() - 1; ++i) {
-      vertices[i].removeConstraint(
-          mav_trajectory_generation::derivative_order::POSITION);
+  const int kMaxNumberOfAdditionalVertices = 10;
+  int num_added = 0;
+  while (path_in_collision) {
+    addVertex(t, trajectory, &vertices, &segment_times);
+    poly_opt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
+    poly_opt.solveLinear();
+    poly_opt.getTrajectory(&trajectory);
+    mav_trajectory_generation::sampleWholeTrajectory(trajectory, dt, path);
+    bool path_in_collision = checkPathForCollisions(*path, &t);
+    num_added++;
+    if (num_added > kMaxNumberOfAdditionalVertices) {
+      break;
     }
-
-    lcto.setupFromInitialSolution(vertices, segment_times, trajectory);
-    lcto.solveProblem();
-    mav_trajectory_generation::Trajectory optimized_trajectory;
-
-    lcto.getSolution(&optimized_trajectory);
-
-    mav_trajectory_generation::sampleWholeTrajectory(optimized_trajectory, dt,
-                                                     optimized_path);
-  } */
+  }
 }
 
 bool RrtPlannerVoxblox::checkPathForCollisions(
-    const mav_msgs::EigenTrajectoryPointVector& path) const {
+    const mav_msgs::EigenTrajectoryPointVector& path, double* t) const {
   for (const mav_msgs::EigenTrajectoryPoint& point : path) {
     if (getMapDistance(point.position_W) < constraints_.robot_radius) {
+      if (t != NULL) {
+        *t = mav_msgs::nanosecondsToSeconds(point.time_from_start_ns);
+      }
       return true;
     }
   }
@@ -455,6 +398,96 @@ double RrtPlannerVoxblox::getMapDistance(
     return 0.0;
   }
   return distance;
+}
+
+void RrtPlannerVoxblox::addVertex(
+    double t, const mav_trajectory_generation::Trajectory& trajectory,
+    mav_trajectory_generation::Vertex::Vector* vertices,
+    std::vector<double>* segment_times) {
+  ROS_INFO("===== Vertices At Start: ======");
+  size_t ind = 0;
+  for (const mav_trajectory_generation::Vertex& vertex : *vertices) {
+    Eigen::VectorXd pos;
+    vertex.getConstraint(mav_trajectory_generation::derivative_order::POSITION,
+                         &pos);
+    ROS_INFO_STREAM("Vertex " << ind << " pos: " << pos.transpose());
+    if (ind > 0) {
+      ROS_INFO_STREAM("Segment time: " << (*segment_times)[ind - 1]);
+    }
+    ind++;
+  }
+
+  // First, go through the trajectory segments and figure out between which two
+  // segments the new vertex will lie.
+  const mav_trajectory_generation::Segment::Vector& segments =
+      trajectory.segments();
+
+  double time_so_far = 0.0;
+  size_t seg_ind = 0;
+  for (seg_ind = 0; seg_ind < segments.size(); ++seg_ind) {
+    time_so_far += segments[seg_ind].getTime();
+    if (time_so_far > t) {
+      break;
+    }
+  }
+
+  // Relative time within the segment.
+  double seg_max_time = segments[seg_ind].getTime();
+  double rel_time_sec = t - time_so_far + seg_max_time;
+  // Get the start and goal positions of those segments.
+  Eigen::VectorXd start_pos = segments[seg_ind].evaluate(0.0);
+  Eigen::VectorXd end_pos = segments[seg_ind].evaluate(seg_max_time);
+
+  // Get the relative time of the new vertex (relative to the start vertex),
+  // and make sure it's not too close to the start or end to avoid numerical
+  // issues.
+  double rel_time_scaled = (rel_time_sec / seg_max_time);
+  constexpr double kRelativeTimeMargin = 0.1;
+  constexpr double kMinTimeSec = 0.1;
+  rel_time_scaled =
+      std::max(std::min(rel_time_scaled, 1.0 - kRelativeTimeMargin),
+               kRelativeTimeMargin);
+  ROS_INFO(
+      "Total segments: %zu, Segment index: %zu, Time so far: %f, t: %f, Rel "
+      "time sec: %f",
+      segments.size(), seg_ind, time_so_far, t, rel_time_sec);
+  Eigen::VectorXd new_pos =
+      (-start_pos + end_pos) * rel_time_scaled + start_pos;
+
+  if (getMapDistance(new_pos.head<3>()) < constraints_.robot_radius) {
+    ROS_ERROR("Uhhh straight line is occupied, WTF.");
+  }
+
+  rel_time_sec = std::max(rel_time_scaled * seg_max_time, kMinTimeSec);
+
+  // Add the vertex with the correct constraints.
+  mav_trajectory_generation::Vertex new_vertex = (*vertices)[seg_ind];
+  new_vertex.addConstraint(
+      mav_trajectory_generation::derivative_order::POSITION, new_pos);
+  vertices->insert(vertices->begin() + seg_ind + 1, new_vertex);
+
+  // Add the segment time in.
+  segment_times->insert(segment_times->begin() + seg_ind, rel_time_sec);
+  (*segment_times)[seg_ind + 1] =
+      std::max(seg_max_time - rel_time_sec, kMinTimeSec);
+
+  ROS_INFO_STREAM("Adding vertex at time " << rel_time_sec << " and position "
+                                           << new_pos.transpose() << " between "
+                                           << start_pos.transpose() << " and "
+                                           << end_pos.transpose());
+
+  ROS_INFO("===== Vertices At End: ======");
+  ind = 0;
+  for (const mav_trajectory_generation::Vertex& vertex : *vertices) {
+    Eigen::VectorXd pos;
+    vertex.getConstraint(mav_trajectory_generation::derivative_order::POSITION,
+                         &pos);
+    ROS_INFO_STREAM("Vertex " << ind << " pos: " << pos.transpose());
+    if (ind > 0) {
+      ROS_INFO_STREAM("Segment time: " << (*segment_times)[ind - 1]);
+    }
+    ind++;
+  }
 }
 
 }  // namespace mav_planning

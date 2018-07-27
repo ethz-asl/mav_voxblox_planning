@@ -36,11 +36,6 @@ class RrtPlannerVoxblox {
   bool publishPathCallback(std_srvs::EmptyRequest& request,
                            std_srvs::EmptyResponse& response);
 
-  visualization_msgs::Marker createMarkerForCoordinatePath(
-      voxblox::AlignedVector<voxblox::Point>& path,
-      const std_msgs::ColorRGBA& color, const std::string& name,
-      double scale = 0.05);
-
   visualization_msgs::Marker createMarkerForPath(
       mav_msgs::EigenTrajectoryPointVector& path,
       const std_msgs::ColorRGBA& color, const std::string& name,
@@ -48,13 +43,12 @@ class RrtPlannerVoxblox {
 
   void generateFeasibleTrajectory(
       const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
-      int vertex_subsample, mav_msgs::EigenTrajectoryPointVector* path,
-      mav_msgs::EigenTrajectoryPointVector* optimized_path);
+      int vertex_subsample, mav_msgs::EigenTrajectoryPointVector* path);
 
   double getMapDistance(const Eigen::Vector3d& position) const;
 
-  bool checkPathForCollisions(
-      const mav_msgs::EigenTrajectoryPointVector& path) const;
+  bool checkPathForCollisions(const mav_msgs::EigenTrajectoryPointVector& path,
+                              double* t) const;
 
  private:
   void inferValidityCheckingResolution(const Eigen::Vector3d& bounding_box);
@@ -67,6 +61,12 @@ class RrtPlannerVoxblox {
 
   void computeMapBounds(Eigen::Vector3d* lower_bound,
                         Eigen::Vector3d* upper_bound) const;
+
+  // Adds a vertex on the straight-line at time t.
+  void addVertex(double t,
+                 const mav_trajectory_generation::Trajectory& trajectory,
+                 mav_trajectory_generation::Vertex::Vector* vertices,
+                 std::vector<double>* segment_times);
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;

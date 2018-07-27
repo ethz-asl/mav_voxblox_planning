@@ -3,7 +3,7 @@
 namespace mav_planning {
 
 OmplRrtVoxblox::OmplRrtVoxblox(const ros::NodeHandle& nh,
-                                           const ros::NodeHandle& nh_private)
+                               const ros::NodeHandle& nh_private)
     : nh_(nh),
       nh_private_(nh_private),
       num_seconds_to_plan_(2.5),
@@ -24,7 +24,7 @@ OmplRrtVoxblox::OmplRrtVoxblox(const ros::NodeHandle& nh,
 }
 
 void OmplRrtVoxblox::setBounds(const Eigen::Vector3d& lower_bound,
-                                     const Eigen::Vector3d& upper_bound) {
+                               const Eigen::Vector3d& upper_bound) {
   lower_bound_ = lower_bound;
   upper_bound_ = upper_bound;
 }
@@ -56,7 +56,13 @@ void OmplRrtVoxblox::setupProblem() {
 
   // This is a fraction of the space extent! Not actual metric units. For
   // mysterious reasons. Thanks OMPL!
-  problem_setup_.setStateValidityCheckingResolution(0.001);
+  double validity_checking_resolution = 0.01;
+  if ((upper_bound_ - lower_bound_).norm() > 1e-3) {
+    // If bounds are set, set this to approximately one voxel.
+    validity_checking_resolution =
+        voxel_size_ / (upper_bound_ - lower_bound_).norm();
+  }
+  problem_setup_.setStateValidityCheckingResolution(0.01);
 }
 
 bool OmplRrtVoxblox::getPathBetweenWaypoints(
