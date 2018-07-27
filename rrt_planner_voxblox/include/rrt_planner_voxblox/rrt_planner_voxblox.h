@@ -74,7 +74,6 @@ class RrtPlannerVoxblox {
   ros::Publisher path_marker_pub_;
   ros::Publisher polynomial_trajectory_pub_;
   ros::Publisher path_pub_;
-  ros::Publisher free_pts_pub_;
   ros::Publisher waypoint_list_pub_;
 
   ros::ServiceServer planner_srv_;

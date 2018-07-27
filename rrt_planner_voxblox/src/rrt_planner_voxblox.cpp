@@ -30,8 +30,6 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
   polynomial_trajectory_pub_ =
       nh_.advertise<planning_msgs::PolynomialTrajectory4D>(
           "polynomial_trajectory", 1);
-  free_pts_pub_ = nh_private_.advertise<pcl::PointCloud<pcl::PointXYZI> >(
-      "free_pts", 1, true);
 
   waypoint_list_pub_ =
       nh_.advertise<geometry_msgs::PoseArray>("waypoint_list", 1);
@@ -70,13 +68,8 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxel_size(),
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxels_per_side());
 
-  // lcto_planner_.setEsdfMap(voxblox_server_.getEsdfMapPtr());
-
-  // Figure out whether to use optimistic or pessimistic here!!!
-  // TODO!!!!!!
-
+  // TODO(helenol): figure out what to do with optimistic/pessimistic here.
   rrt_.setRobotRadius(constraints_.robot_radius);
-  // We'll use the TSDF for collision checks to begin with.
   rrt_.setOptimistic(false);
 
   rrt_.setTsdfLayer(voxblox_server_.getTsdfMapPtr()->getTsdfLayerPtr());
@@ -94,16 +87,13 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
                                                 kBoundInflationMeters, 0.0));
   rrt_.setupProblem();
 
+  voxblox_server_.setTraversabilityRadius(constraints_.robot_radius);
+
   if (visualize_) {
     voxblox_server_.generateMesh();
     voxblox_server_.publishSlices();
     voxblox_server_.publishPointclouds();
-
-    pcl::PointCloud<pcl::PointXYZI> pointcloud;
-    voxblox::createFreePointcloudFromEsdfLayer(
-        esdf_map_->getEsdfLayer(), constraints_.robot_radius, &pointcloud);
-    pointcloud.header.frame_id = frame_id_;
-    free_pts_pub_.publish(pointcloud);
+    voxblox_server_.publishTraversable();
   }
 }
 
@@ -404,19 +394,6 @@ void RrtPlannerVoxblox::addVertex(
     double t, const mav_trajectory_generation::Trajectory& trajectory,
     mav_trajectory_generation::Vertex::Vector* vertices,
     std::vector<double>* segment_times) {
-  ROS_INFO("===== Vertices At Start: ======");
-  size_t ind = 0;
-  for (const mav_trajectory_generation::Vertex& vertex : *vertices) {
-    Eigen::VectorXd pos;
-    vertex.getConstraint(mav_trajectory_generation::derivative_order::POSITION,
-                         &pos);
-    ROS_INFO_STREAM("Vertex " << ind << " pos: " << pos.transpose());
-    if (ind > 0) {
-      ROS_INFO_STREAM("Segment time: " << (*segment_times)[ind - 1]);
-    }
-    ind++;
-  }
-
   // First, go through the trajectory segments and figure out between which two
   // segments the new vertex will lie.
   const mav_trajectory_generation::Segment::Vector& segments =
@@ -447,15 +424,13 @@ void RrtPlannerVoxblox::addVertex(
   rel_time_scaled =
       std::max(std::min(rel_time_scaled, 1.0 - kRelativeTimeMargin),
                kRelativeTimeMargin);
-  ROS_INFO(
-      "Total segments: %zu, Segment index: %zu, Time so far: %f, t: %f, Rel "
-      "time sec: %f",
-      segments.size(), seg_ind, time_so_far, t, rel_time_sec);
   Eigen::VectorXd new_pos =
       (-start_pos + end_pos) * rel_time_scaled + start_pos;
 
   if (getMapDistance(new_pos.head<3>()) < constraints_.robot_radius) {
-    ROS_ERROR("Uhhh straight line is occupied, WTF.");
+    ROS_ERROR(
+        "Point along the straight line is occupied. Polynomial won't be "
+        "collision-free.");
   }
 
   rel_time_sec = std::max(rel_time_scaled * seg_max_time, kMinTimeSec);
@@ -470,24 +445,6 @@ void RrtPlannerVoxblox::addVertex(
   segment_times->insert(segment_times->begin() + seg_ind, rel_time_sec);
   (*segment_times)[seg_ind + 1] =
       std::max(seg_max_time - rel_time_sec, kMinTimeSec);
-
-  ROS_INFO_STREAM("Adding vertex at time " << rel_time_sec << " and position "
-                                           << new_pos.transpose() << " between "
-                                           << start_pos.transpose() << " and "
-                                           << end_pos.transpose());
-
-  ROS_INFO("===== Vertices At End: ======");
-  ind = 0;
-  for (const mav_trajectory_generation::Vertex& vertex : *vertices) {
-    Eigen::VectorXd pos;
-    vertex.getConstraint(mav_trajectory_generation::derivative_order::POSITION,
-                         &pos);
-    ROS_INFO_STREAM("Vertex " << ind << " pos: " << pos.transpose());
-    if (ind > 0) {
-      ROS_INFO_STREAM("Segment time: " << (*segment_times)[ind - 1]);
-    }
-    ind++;
-  }
 }
 
 }  // namespace mav_planning
