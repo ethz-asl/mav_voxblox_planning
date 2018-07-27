@@ -229,11 +229,11 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
              opt_has_collisions);
 
     if (visualize_) {
-      if (!poly_has_collisions) {
+      if (/*!poly_has_collisions*/true) {
         marker_array.markers.push_back(createMarkerForPath(
             poly_path, mav_visualization::Color::Orange(), "poly", 0.075));
       }
-      if (!opt_has_collisions) {
+      if (/*!opt_has_collisions*/true) {
         marker_array.markers.push_back(createMarkerForPath(
             opt_path, mav_visualization::Color::Yellow(), "poly_opt", 0.075));
       }
