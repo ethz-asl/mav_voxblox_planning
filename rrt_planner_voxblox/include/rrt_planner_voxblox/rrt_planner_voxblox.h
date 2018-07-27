@@ -81,8 +81,8 @@ class RrtPlannerVoxblox {
   ros::ServiceServer path_pub_srv_;
 
   std::string frame_id_;
-  bool plan_yaw_;
   bool visualize_;
+  bool do_smoothing_;
 
   // Robot parameters -- v max, a max, radius, etc.
   PhysicalConstraints constraints_;
