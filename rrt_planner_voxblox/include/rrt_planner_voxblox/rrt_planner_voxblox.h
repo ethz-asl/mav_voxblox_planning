@@ -41,7 +41,7 @@ class RrtPlannerVoxblox {
       const std_msgs::ColorRGBA& color, const std::string& name,
       double scale = 0.05);
 
-  void generateFeasibleTrajectory(
+  bool generateFeasibleTrajectory(
       const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
       int vertex_subsample, mav_msgs::EigenTrajectoryPointVector* path);
 
@@ -49,6 +49,8 @@ class RrtPlannerVoxblox {
 
   bool checkPathForCollisions(const mav_msgs::EigenTrajectoryPointVector& path,
                               double* t) const;
+  bool checkPhysicalConstraints(
+      const mav_trajectory_generation::Trajectory& trajectory);
 
  private:
   void inferValidityCheckingResolution(const Eigen::Vector3d& bounding_box);

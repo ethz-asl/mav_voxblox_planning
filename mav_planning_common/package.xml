@@ -6,6 +6,8 @@
     Common planning utilities.
   </description>
 
+  <author email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</author>
+
   <maintainer email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</maintainer>
 
   <license>BSD</license>

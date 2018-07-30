@@ -1,6 +1,8 @@
-#include <mav_trajectory_generation/timing.h>
 #include <geometry_msgs/PoseArray.h>
 #include <mav_planning_common/utils.h>
+#include <mav_trajectory_generation/timing.h>
+#include <mav_trajectory_generation_ros/feasibility_analytic.h>
+#include <mav_trajectory_generation/polynomial_optimization_nonlinear.h>
 
 #include "rrt_planner_voxblox/rrt_planner_voxblox.h"
 
@@ -216,10 +218,8 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
     }
 
     if (visualize_) {
-      if (!poly_has_collisions) {
-        marker_array.markers.push_back(createMarkerForPath(
-            poly_path, mav_visualization::Color::Orange(), "poly", 0.075));
-      }
+      marker_array.markers.push_back(createMarkerForPath(
+          poly_path, mav_visualization::Color::Orange(), "poly", 0.075));
     }
   }
 
@@ -284,9 +284,11 @@ visualization_msgs::Marker RrtPlannerVoxblox::createMarkerForPath(
   return path_marker;
 }
 
-void RrtPlannerVoxblox::generateFeasibleTrajectory(
+bool RrtPlannerVoxblox::generateFeasibleTrajectory(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     int vertex_subsample, mav_msgs::EigenTrajectoryPointVector* path) {
+  mav_trajectory_generation::timing::Timer linear_timer("plan/poly/linear");
+
   // Ok first create a polynomial trajectory through some subset of the
   // vertices.
   constexpr int N = 10;
@@ -327,11 +329,6 @@ void RrtPlannerVoxblox::generateFeasibleTrajectory(
   mav_trajectory_generation::estimateSegmentTimesVelocityRamp(
       vertices, constraints_.v_max, constraints_.a_max, 1, &segment_times);
 
-  std::cout << "Segment times: ";
-  for (double time : segment_times) {
-    std::cout << time << " ";
-  }
-
   poly_opt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
   poly_opt.solveLinear();
   mav_trajectory_generation::Trajectory trajectory;
@@ -348,6 +345,10 @@ void RrtPlannerVoxblox::generateFeasibleTrajectory(
   double t = 0.0;
   bool path_in_collision = checkPathForCollisions(*path, &t);
 
+  linear_timer.Stop();
+
+  mav_trajectory_generation::timing::Timer extend_timer("plan/poly/extend");
+
   const int kMaxNumberOfAdditionalVertices = 10;
   int num_added = 0;
   while (path_in_collision) {
@@ -356,12 +357,53 @@ void RrtPlannerVoxblox::generateFeasibleTrajectory(
     poly_opt.solveLinear();
     poly_opt.getTrajectory(&trajectory);
     mav_trajectory_generation::sampleWholeTrajectory(trajectory, dt, path);
-    bool path_in_collision = checkPathForCollisions(*path, &t);
+    path_in_collision = checkPathForCollisions(*path, &t);
     num_added++;
     if (num_added > kMaxNumberOfAdditionalVertices) {
       break;
     }
   }
+
+  bool feasible = checkPhysicalConstraints(trajectory);
+
+  ROS_INFO("Linear optimization... Feasible? %d In collision? %d", feasible,
+           path_in_collision);
+
+  extend_timer.Stop();
+
+  mav_trajectory_generation::timing::Timer nonlinear_timer(
+      "plan/poly/nonlinear");
+
+  if (!feasible) {
+    mav_trajectory_generation::NonlinearOptimizationParameters nlopt_parameters;
+    nlopt_parameters.algorithm = nlopt::LD_LBFGS;
+    nlopt_parameters.time_alloc_method = mav_trajectory_generation::
+        NonlinearOptimizationParameters::kMellingerOuterLoop;
+    nlopt_parameters.print_debug_info_time_allocation = true;
+    mav_trajectory_generation::PolynomialOptimizationNonLinear<N> nlopt(
+        K, nlopt_parameters);
+    nlopt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
+    nlopt.addMaximumMagnitudeConstraint(
+        mav_trajectory_generation::derivative_order::VELOCITY,
+        constraints_.v_max);
+    nlopt.addMaximumMagnitudeConstraint(
+        mav_trajectory_generation::derivative_order::ACCELERATION,
+        constraints_.a_max);
+    nlopt.optimize();
+    nlopt.getTrajectory(&trajectory);
+    mav_trajectory_generation::sampleWholeTrajectory(trajectory, dt, path);
+    path_in_collision = checkPathForCollisions(*path, &t);
+
+    feasible = checkPhysicalConstraints(trajectory);
+    ROS_INFO("Re-did nonlinearly... Feasible? %d In collision? %d", feasible,
+             path_in_collision);
+  }
+  nonlinear_timer.Stop();
+
+  if (path_in_collision) {
+    return false;
+  }
+  return true;
 }
 
 bool RrtPlannerVoxblox::checkPathForCollisions(
@@ -445,6 +487,55 @@ void RrtPlannerVoxblox::addVertex(
   segment_times->insert(segment_times->begin() + seg_ind, rel_time_sec);
   (*segment_times)[seg_ind + 1] =
       std::max(seg_max_time - rel_time_sec, kMinTimeSec);
+}
+
+bool RrtPlannerVoxblox::checkPhysicalConstraints(
+    const mav_trajectory_generation::Trajectory& trajectory) {
+  // Check min/max manually.
+  // Evaluate min/max extrema
+
+  std::vector<int> dimensions = {0, 1, 2};  // Evaluate dimensions in x, y and z
+  mav_trajectory_generation::Extremum v_min, v_max, a_min, a_max;
+  trajectory.computeMinMaxMagnitude(
+      mav_trajectory_generation::derivative_order::VELOCITY, dimensions, &v_min,
+      &v_max);
+  trajectory.computeMinMaxMagnitude(
+      mav_trajectory_generation::derivative_order::ACCELERATION, dimensions,
+      &a_min, &a_max);
+
+  ROS_INFO("V min/max: %f/%f, A min/max: %f/%f", v_min.value, v_max.value,
+           a_min.value, a_max.value);
+
+  // Create input constraints.
+  // TODO(helenol): just store these as members...
+  typedef mav_trajectory_generation::InputConstraintType ICT;
+  mav_trajectory_generation::InputConstraints input_constraints;
+  input_constraints.addConstraint(
+      ICT::kFMin, (mav_msgs::kGravity -
+                   constraints_.a_max));  // maximum acceleration in [m/s/s].
+  input_constraints.addConstraint(
+      ICT::kFMax, (mav_msgs::kGravity +
+                   constraints_.a_max));  // maximum acceleration in [m/s/s].
+  input_constraints.addConstraint(
+      ICT::kVMax, constraints_.v_max);  // maximum velocity in [m/s].
+
+  // Create feasibility object of choice (FeasibilityAnalytic,
+  // FeasibilitySampling, FeasibilityRecursive).
+  mav_trajectory_generation::FeasibilityAnalytic feasibility_check(
+      input_constraints);
+  feasibility_check.settings_.setMinSectionTimeS(0.01);
+
+  mav_trajectory_generation::InputFeasibilityResult feasibility =
+      feasibility_check.checkInputFeasibilityTrajectory(trajectory);
+  if (feasibility !=
+      mav_trajectory_generation::InputFeasibilityResult::kInputFeasible) {
+    ROS_ERROR_STREAM(
+        "Trajectory is input infeasible: "
+        << mav_trajectory_generation::getInputFeasibilityResultName(
+            feasibility));
+    return false;
+  }
+  return true;
 }
 
 }  // namespace mav_planning
