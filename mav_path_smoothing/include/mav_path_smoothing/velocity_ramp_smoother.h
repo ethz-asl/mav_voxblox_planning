@@ -7,8 +7,8 @@ namespace mav_planning {
 
 class VelocityRampSmoother : public PathSmootherBase {
  public:
-  VelocityRampSmoother() : PathSmootherBase() {}
-  virtual ~VelocityRampSmoother {}
+  VelocityRampSmoother() : PathSmootherBase(), verbose_(false) {}
+  virtual ~VelocityRampSmoother() {}
 
   virtual void setParametersFromRos(const ros::NodeHandle& nh);
 
