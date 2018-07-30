@@ -9,10 +9,10 @@ void VelocityRampSmoother::setParametersFromRos(const ros::NodeHandle& nh) {
   nh.param("verbose", verbose_, verbose_);
 }
 
-bool VelocityRampSmoother::getPathBetweenWaypoints(
+bool VelocityRampSmoother::getPathBetweenTwoPoints(
     const mav_msgs::EigenTrajectoryPoint& start,
     const mav_msgs::EigenTrajectoryPoint& goal,
-    mav_msgs::EigenTrajectoryPointVector* path) const {
+    mav_msgs::EigenTrajectoryPoint::Vector* path) const {
   path->clear();
 
   Eigen::Vector3d path_direction =

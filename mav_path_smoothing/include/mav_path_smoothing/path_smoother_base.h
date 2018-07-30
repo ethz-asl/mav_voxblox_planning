@@ -10,22 +10,33 @@ namespace mav_planning {
 
 class PathSmootherBase {
  public:
-  PathSmootherBase() {}
+  PathSmootherBase() : verbose_(false) {}
   virtual ~PathSmootherBase() {}
 
   virtual void setParametersFromRos(const ros::NodeHandle& nh);
   void setPhysicalConstraints(const PhysicalConstraints& constraints);
   const PhysicalConstraints& getPhysicalConstraints() const;
 
+  void setVerbose(bool verbose) { verbose_ = verbose; }
+  bool getVerbose() const { return verbose_; }
+
+  // By default, getPathBetweenWaypoints just calls getPathBetweenTwoPoints
+  // on consecutive waypoints.
   virtual bool getPathBetweenWaypoints(
+      const mav_msgs::EigenTrajectoryPoint::Vector& waypoints,
+      mav_msgs::EigenTrajectoryPoint::Vector* path) const;
+
+  virtual bool getPathBetweenTwoPoints(
       const mav_msgs::EigenTrajectoryPoint& start,
       const mav_msgs::EigenTrajectoryPoint& goal,
-      mav_msgs::EigenTrajectoryPointVector* path) const {
+      mav_msgs::EigenTrajectoryPoint::Vector* path) const {
     return false;
   }
 
  protected:
   PhysicalConstraints constraints_;
+
+  bool verbose_;
 };
 
 }  // namespace mav_planning

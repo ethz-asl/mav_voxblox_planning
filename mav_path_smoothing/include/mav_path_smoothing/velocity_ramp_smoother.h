@@ -7,18 +7,16 @@ namespace mav_planning {
 
 class VelocityRampSmoother : public PathSmootherBase {
  public:
-  VelocityRampSmoother() : PathSmootherBase(), verbose_(false) {}
+  VelocityRampSmoother() : PathSmootherBase() {}
   virtual ~VelocityRampSmoother() {}
 
   virtual void setParametersFromRos(const ros::NodeHandle& nh);
 
-  virtual bool getPathBetweenWaypoints(
+
+  virtual bool getPathBetweenTwoPoints(
       const mav_msgs::EigenTrajectoryPoint& start,
       const mav_msgs::EigenTrajectoryPoint& goal,
-      mav_msgs::EigenTrajectoryPointVector* path) const;
-
- protected:
-  bool verbose_;
+      mav_msgs::EigenTrajectoryPoint::Vector* path) const;
 };
 
 }  // namespace mav_planning
