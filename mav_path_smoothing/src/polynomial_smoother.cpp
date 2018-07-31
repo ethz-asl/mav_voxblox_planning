@@ -7,6 +7,20 @@
 
 namespace mav_planning {
 
+PolynomialSmoother::PolynomialSmoother()
+    : PathSmootherBase(),
+      optimize_time_(true),
+      split_at_collisions_(false),
+      min_col_check_resolution_(0.1) {}
+
+void PolynomialSmoother::setParametersFromRos(const ros::NodeHandle& nh) {
+  PathSmootherBase::setParametersFromRos(nh);
+  nh.param("optimize_time", optimize_time_, optimize_time_);
+  nh.param("split_at_collisions", split_at_collisions_, split_at_collisions_);
+  nh.param("min_col_check_resolution", min_col_check_resolution_,
+           min_col_check_resolution_);
+}
+
 bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
     const mav_msgs::EigenTrajectoryPoint::Vector& waypoints,
     mav_trajectory_generation::Trajectory* trajectory) const {

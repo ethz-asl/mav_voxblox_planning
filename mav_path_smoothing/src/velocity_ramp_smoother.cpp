@@ -6,7 +6,6 @@ namespace mav_planning {
 
 void VelocityRampSmoother::setParametersFromRos(const ros::NodeHandle& nh) {
   PathSmootherBase::setParametersFromRos(nh);
-  nh.param("verbose", verbose_, verbose_);
 }
 
 bool VelocityRampSmoother::getPathBetweenTwoPoints(

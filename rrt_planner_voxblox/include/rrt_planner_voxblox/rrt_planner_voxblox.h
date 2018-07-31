@@ -7,6 +7,7 @@
 #include <string>
 
 #include <mav_msgs/conversions.h>
+#include <mav_path_smoothing/polynomial_smoother.h>
 #include <mav_planning_common/physical_constraints.h>
 #include <mav_trajectory_generation/polynomial_optimization_linear.h>
 #include <mav_trajectory_generation/trajectory_sampling.h>
@@ -110,7 +111,10 @@ class RrtPlannerVoxblox {
   voxblox::TsdfMap::Ptr tsdf_map_;
 
   // Planners!
-  mav_planning::OmplRrtVoxblox rrt_;
+  OmplRrtVoxblox rrt_;
+
+  // Smoothing!
+  PolynomialSmoother smoother_;
 };
 
 }  // namespace mav_planning

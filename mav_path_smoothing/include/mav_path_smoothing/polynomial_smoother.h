@@ -9,7 +9,7 @@ namespace mav_planning {
 
 class PolynomialSmoother : public PathSmootherBase {
  public:
-  PolynomialSmoother() : PathSmootherBase() {}
+  PolynomialSmoother();
   virtual ~PolynomialSmoother() {}
 
   virtual void setParametersFromRos(const ros::NodeHandle& nh);
