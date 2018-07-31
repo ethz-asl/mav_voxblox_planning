@@ -44,7 +44,7 @@ class RrtPlannerVoxblox {
 
   bool generateFeasibleTrajectory(
       const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
-      int vertex_subsample, mav_msgs::EigenTrajectoryPointVector* path);
+      mav_msgs::EigenTrajectoryPointVector* path);
 
   double getMapDistance(const Eigen::Vector3d& position) const;
 

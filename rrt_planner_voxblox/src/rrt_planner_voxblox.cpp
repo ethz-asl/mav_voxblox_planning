@@ -92,8 +92,8 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
   voxblox_server_.setTraversabilityRadius(constraints_.robot_radius);
 
   // Set up the path smoother as well.
-  smoother_.setMapDistanceCallback(
-      std::bind(getMapDistance, this, std::placeholders::_1));
+  smoother_.setMapDistanceCallback(std::bind(&RrtPlannerVoxblox::getMapDistance,
+                                             this, std::placeholders::_1));
 
   if (visualize_) {
     voxblox_server_.generateMesh();
@@ -210,7 +210,7 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
   } else {
     mav_msgs::EigenTrajectoryPointVector poly_path;
     mav_trajectory_generation::timing::Timer poly_timer("plan/poly");
-    generateFeasibleTrajectory(waypoints, 1, &poly_path);
+    generateFeasibleTrajectory(waypoints, &poly_path);
     poly_timer.Stop();
 
     // Check all the paths.
@@ -290,119 +290,10 @@ visualization_msgs::Marker RrtPlannerVoxblox::createMarkerForPath(
 
 bool RrtPlannerVoxblox::generateFeasibleTrajectory(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
-    int vertex_subsample, mav_msgs::EigenTrajectoryPointVector* path) {
-  mav_trajectory_generation::timing::Timer linear_timer("plan/poly/linear");
+    mav_msgs::EigenTrajectoryPointVector* path) {
+  smoother_.getPathBetweenWaypoints(coordinate_path, path);
 
-  // Ok first create a polynomial trajectory through some subset of the
-  // vertices.
-  constexpr int N = 10;
-  constexpr int K = 3;
-  mav_trajectory_generation::PolynomialOptimization<N> poly_opt(K);
-
-  int num_vertices = coordinate_path.size();
-
-  int derivative_to_optimize =
-      mav_trajectory_generation::derivative_order::JERK;
-
-  mav_trajectory_generation::Vertex::Vector vertices(
-      num_vertices, mav_trajectory_generation::Vertex(K));
-
-  // Add the first and last.
-  vertices.front().makeStartOrEnd(0, derivative_to_optimize);
-  vertices.front().addConstraint(
-      mav_trajectory_generation::derivative_order::POSITION,
-      coordinate_path.front().position_W);
-  vertices.back().makeStartOrEnd(0, derivative_to_optimize);
-  vertices.back().addConstraint(
-      mav_trajectory_generation::derivative_order::POSITION,
-      coordinate_path.back().position_W);
-
-  // Now do the middle bits.
-  size_t j = 1;
-  for (size_t i = 1; i < coordinate_path.size() - 1; i += 1) {
-    vertices[j].addConstraint(
-        mav_trajectory_generation::derivative_order::POSITION,
-        coordinate_path[i].position_W);
-    j++;
-  }
-
-  ROS_INFO("V max: %f A max: %f Vertices: %zu", constraints_.v_max,
-           constraints_.a_max, vertices.size());
-
-  std::vector<double> segment_times;
-  mav_trajectory_generation::estimateSegmentTimesVelocityRamp(
-      vertices, constraints_.v_max, constraints_.a_max, 1, &segment_times);
-
-  poly_opt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
-  poly_opt.solveLinear();
-  mav_trajectory_generation::Trajectory trajectory;
-  poly_opt.getTrajectory(&trajectory);
-
-  last_trajectory_ = trajectory;
-  last_trajectory_valid_ = false;
-
-  // Sample it!
-  double dt = 0.1;
-  mav_trajectory_generation::sampleWholeTrajectory(trajectory, dt, path);
-
-  // Check if it's in collision.
-  double t = 0.0;
-  bool path_in_collision = checkPathForCollisions(*path, &t);
-
-  linear_timer.Stop();
-
-  mav_trajectory_generation::timing::Timer extend_timer("plan/poly/extend");
-
-  const int kMaxNumberOfAdditionalVertices = 10;
-  int num_added = 0;
-  while (path_in_collision) {
-    addVertex(t, trajectory, &vertices, &segment_times);
-    poly_opt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
-    poly_opt.solveLinear();
-    poly_opt.getTrajectory(&trajectory);
-    mav_trajectory_generation::sampleWholeTrajectory(trajectory, dt, path);
-    path_in_collision = checkPathForCollisions(*path, &t);
-    num_added++;
-    if (num_added > kMaxNumberOfAdditionalVertices) {
-      break;
-    }
-  }
-
-  bool feasible = checkPhysicalConstraints(trajectory);
-
-  ROS_INFO("Linear optimization... Feasible? %d In collision? %d", feasible,
-           path_in_collision);
-
-  extend_timer.Stop();
-
-  mav_trajectory_generation::timing::Timer nonlinear_timer(
-      "plan/poly/nonlinear");
-
-  if (!feasible) {
-    mav_trajectory_generation::NonlinearOptimizationParameters nlopt_parameters;
-    nlopt_parameters.algorithm = nlopt::LD_LBFGS;
-    nlopt_parameters.time_alloc_method = mav_trajectory_generation::
-        NonlinearOptimizationParameters::kMellingerOuterLoop;
-    nlopt_parameters.print_debug_info_time_allocation = true;
-    mav_trajectory_generation::PolynomialOptimizationNonLinear<N> nlopt(
-        K, nlopt_parameters);
-    nlopt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
-    nlopt.addMaximumMagnitudeConstraint(
-        mav_trajectory_generation::derivative_order::VELOCITY,
-        constraints_.v_max);
-    nlopt.addMaximumMagnitudeConstraint(
-        mav_trajectory_generation::derivative_order::ACCELERATION,
-        constraints_.a_max);
-    nlopt.optimize();
-    nlopt.getTrajectory(&trajectory);
-    mav_trajectory_generation::sampleWholeTrajectory(trajectory, dt, path);
-    path_in_collision = checkPathForCollisions(*path, &t);
-
-    feasible = checkPhysicalConstraints(trajectory);
-    ROS_INFO("Re-did nonlinearly... Feasible? %d In collision? %d", feasible,
-             path_in_collision);
-  }
-  nonlinear_timer.Stop();
+  bool path_in_collision = checkPathForCollisions(*path, NULL);
 
   if (path_in_collision) {
     return false;

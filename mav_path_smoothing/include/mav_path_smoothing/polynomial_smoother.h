@@ -35,10 +35,13 @@ class PolynomialSmoother : public PathSmootherBase {
 
   // If using splitting at collisions, one of these needs to be set.
   // Map distance is compared against the radius in the physical constraints.
-  void setMapDistanceCallback(const MapDistanceFunctionType& function);
-
+  void setMapDistanceCallback(const MapDistanceFunctionType& function) {
+    map_distance_func_ = function;
+  }
   // Function should return true if the position is in collision.
-  void setInCollisionCallback(const InCollisionFunctionType& function);
+  void setInCollisionCallback(const InCollisionFunctionType& function) {
+    in_collision_func_ = function;
+  }
 
   // Uses whichever collision checking method is set to check for collisions.
   virtual bool isPositionInCollision(const Eigen::Vector3d& pos) const;
