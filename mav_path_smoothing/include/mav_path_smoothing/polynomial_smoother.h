@@ -27,9 +27,39 @@ class PolynomialSmoother : public PathSmootherBase {
       const mav_msgs::EigenTrajectoryPoint& goal,
       mav_msgs::EigenTrajectoryPoint::Vector* path) const;
 
+  // Below are methods that are only needed if doing collision checking.
+  typedef std::function<double(const Eigen::Vector3d& position)>
+      MapDistanceFunctionType;
+  typedef std::function<bool(const Eigen::Vector3d& position)>
+      InCollisionFunctionType;
+
+  // If using splitting at collisions, one of these needs to be set.
+  // Map distance is compared against the radius in the physical constraints.
+  void setMapDistanceCallback(const MapDistanceFunctionType& function);
+
+  // Function should return true if the position is in collision.
+  void setInCollisionCallback(const InCollisionFunctionType& function);
+
  protected:
+  // Uses whichever collision checking method is set to check for collisions.
+  virtual bool isPositionInCollision(const Eigen::Vector3d& pos) const;
+
   // Figure out what kind of polynomial smoothing to do...
-  // Method maybe?
+
+  // Wether to optimize the segment times to better meet the dynamic
+  // constraints.
+  bool optimize_time_;
+
+  // Whether to add new vertices on the straight-line path if collisions with
+  // the map are found.
+  bool split_at_collisions_;
+
+  // Minimum distance between collision checks.
+  double min_col_check_resolution_;
+
+  // Functions for collision checking.
+  MapDistanceFunctionType map_distance_func_;
+  InCollisionFunctionType in_collision_func_;
 };
 
 }  // namespace mav_planning

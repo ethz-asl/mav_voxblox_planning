@@ -55,9 +55,23 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
   poly_opt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
   if (poly_opt.solveLinear()) {
     poly_opt.getTrajectory(trajectory);
-    return true;
+  } else {
+    return false;
   }
-  return false;
+  linear_timer.Stop();
+
+  // Ok now do more stuff, if the method requires.
+  if (split_at_collisions_) {
+    mav_trajectory_generation::timing::Timer split_timer(
+        "smoothing/poly_split");
+  }
+
+  if (optimize_time_) {
+    mav_trajectory_generation::timing::Timer time_opt_timer(
+        "smoothing/poly_time_opt");
+  }
+
+  return true;
 }
 
 bool PolynomialSmoother::getPathBetweenWaypoints(
