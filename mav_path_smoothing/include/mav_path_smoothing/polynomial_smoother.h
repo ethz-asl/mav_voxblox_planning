@@ -40,9 +40,19 @@ class PolynomialSmoother : public PathSmootherBase {
   // Function should return true if the position is in collision.
   void setInCollisionCallback(const InCollisionFunctionType& function);
 
- protected:
   // Uses whichever collision checking method is set to check for collisions.
   virtual bool isPositionInCollision(const Eigen::Vector3d& pos) const;
+  // Try to do the minimum number of lookups in the map based on
+  // min_col_check_resolution. Returns time of collision in t, if not null.
+  virtual bool isPathInCollision(
+      const mav_msgs::EigenTrajectoryPoint::Vector& path, double* t) const;
+
+ protected:
+  // Add intermediate vertex for splitting.
+  bool addVertex(double t,
+                 const mav_trajectory_generation::Trajectory& trajectory,
+                 mav_trajectory_generation::Vertex::Vector* vertices,
+                 std::vector<double>* segment_times) const;
 
   // Figure out what kind of polynomial smoothing to do...
 

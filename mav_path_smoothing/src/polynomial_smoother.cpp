@@ -1,6 +1,7 @@
 #include <mav_trajectory_generation/trajectory_sampling.h>
 #include <mav_trajectory_generation/timing.h>
 #include <mav_trajectory_generation/polynomial_optimization_nonlinear.h>
+#include <mav_trajectory_generation_ros/feasibility_analytic.h>
 
 #include "mav_path_smoothing/polynomial_smoother.h"
 
@@ -64,11 +65,56 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
   if (split_at_collisions_) {
     mav_trajectory_generation::timing::Timer split_timer(
         "smoothing/poly_split");
+
+    mav_msgs::EigenTrajectoryPoint::Vector path;
+
+    // Sample it!
+    double dt = constraints_.sampling_dt;
+    mav_trajectory_generation::sampleWholeTrajectory(*trajectory, dt, &path);
+
+    // Check if it's in collision.
+    double t = 0.0;
+    bool path_in_collision = isPathInCollision(path, &t);
+
+    const int kMaxNumberOfAdditionalVertices = 10;
+    int num_added = 0;
+    while (path_in_collision) {
+      if (!addVertex(t, *trajectory, &vertices, &segment_times)) {
+        // Well this isn't going anywhere.
+        return false;
+      }
+      poly_opt.setupFromVertices(vertices, segment_times,
+                                 derivative_to_optimize);
+      poly_opt.solveLinear();
+      poly_opt.getTrajectory(trajectory);
+      mav_trajectory_generation::sampleWholeTrajectory(*trajectory, dt, &path);
+      path_in_collision = isPathInCollision(path, &t);
+      num_added++;
+      if (num_added > kMaxNumberOfAdditionalVertices) {
+        break;
+      }
+    }
   }
 
   if (optimize_time_) {
     mav_trajectory_generation::timing::Timer time_opt_timer(
         "smoothing/poly_time_opt");
+    mav_trajectory_generation::NonlinearOptimizationParameters nlopt_parameters;
+    nlopt_parameters.algorithm = nlopt::LD_LBFGS;
+    nlopt_parameters.time_alloc_method = mav_trajectory_generation::
+        NonlinearOptimizationParameters::kMellingerOuterLoop;
+    nlopt_parameters.print_debug_info_time_allocation = verbose_;
+    mav_trajectory_generation::PolynomialOptimizationNonLinear<N> nlopt(
+        K, nlopt_parameters);
+    nlopt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
+    nlopt.addMaximumMagnitudeConstraint(
+        mav_trajectory_generation::derivative_order::VELOCITY,
+        constraints_.v_max);
+    nlopt.addMaximumMagnitudeConstraint(
+        mav_trajectory_generation::derivative_order::ACCELERATION,
+        constraints_.a_max);
+    nlopt.optimize();
+    nlopt.getTrajectory(trajectory);
   }
 
   return true;
@@ -96,6 +142,102 @@ bool PolynomialSmoother::getPathBetweenTwoPoints(
   waypoints.push_back(goal);
 
   return getPathBetweenWaypoints(waypoints, path);
+}
+
+bool PolynomialSmoother::addVertex(
+    double t, const mav_trajectory_generation::Trajectory& trajectory,
+    mav_trajectory_generation::Vertex::Vector* vertices,
+    std::vector<double>* segment_times) const {
+  // First, go through the trajectory segments and figure out between which two
+  // segments the new vertex will lie.
+  const mav_trajectory_generation::Segment::Vector& segments =
+      trajectory.segments();
+
+  double time_so_far = 0.0;
+  size_t seg_ind = 0;
+  for (seg_ind = 0; seg_ind < segments.size(); ++seg_ind) {
+    time_so_far += segments[seg_ind].getTime();
+    if (time_so_far > t) {
+      break;
+    }
+  }
+
+  // Relative time within the segment.
+  double seg_max_time = segments[seg_ind].getTime();
+  double rel_time_sec = t - time_so_far + seg_max_time;
+  // Get the start and goal positions of those segments.
+  Eigen::VectorXd start_pos = segments[seg_ind].evaluate(0.0);
+  Eigen::VectorXd end_pos = segments[seg_ind].evaluate(seg_max_time);
+
+  // Get the relative time of the new vertex (relative to the start vertex),
+  // and make sure it's not too close to the start or end to avoid numerical
+  // issues.
+  double rel_time_scaled = (rel_time_sec / seg_max_time);
+  constexpr double kRelativeTimeMargin = 0.1;
+  constexpr double kMinTimeSec = 0.1;
+  rel_time_scaled =
+      std::max(std::min(rel_time_scaled, 1.0 - kRelativeTimeMargin),
+               kRelativeTimeMargin);
+  Eigen::VectorXd new_pos =
+      (-start_pos + end_pos) * rel_time_scaled + start_pos;
+
+  if (isPositionInCollision(new_pos.head<3>())) {
+    ROS_ERROR(
+        "Point along the straight line is occupied. Polynomial won't be "
+        "collision-free.");
+    return false;
+  }
+
+  rel_time_sec = std::max(rel_time_scaled * seg_max_time, kMinTimeSec);
+
+  // Add the vertex with the correct constraints.
+  mav_trajectory_generation::Vertex new_vertex = (*vertices)[seg_ind];
+  new_vertex.addConstraint(
+      mav_trajectory_generation::derivative_order::POSITION, new_pos);
+  vertices->insert(vertices->begin() + seg_ind + 1, new_vertex);
+
+  // Add the segment time in.
+  segment_times->insert(segment_times->begin() + seg_ind, rel_time_sec);
+  (*segment_times)[seg_ind + 1] =
+      std::max(seg_max_time - rel_time_sec, kMinTimeSec);
+
+  return true;
+}
+
+// Uses whichever collision checking method is set to check for collisions.
+bool PolynomialSmoother::isPositionInCollision(
+    const Eigen::Vector3d& pos) const {
+  if (map_distance_func_) {
+    return map_distance_func_(pos) < constraints_.robot_radius;
+  }
+  if (in_collision_func_) {
+    return in_collision_func_(pos);
+  }
+  return false;
+}
+
+bool PolynomialSmoother::isPathInCollision(
+    const mav_msgs::EigenTrajectoryPoint::Vector& path, double* t) const {
+  if (path.size() < 1) {
+    return true;
+  }
+  double distance_since_last_check = 0.0;
+  Eigen::Vector3d last_pos = path[0].position_W;
+
+  for (const mav_msgs::EigenTrajectoryPoint& point : path) {
+    distance_since_last_check += (point.position_W - last_pos).norm();
+    if (distance_since_last_check > min_col_check_resolution_) {
+      if (isPositionInCollision(point.position_W)) {
+        if (t != NULL) {
+          *t = mav_msgs::nanosecondsToSeconds(point.time_from_start_ns);
+        }
+        return true;
+      }
+      last_pos = point.position_W;
+      distance_since_last_check = 0.0;
+    }
+  }
+  return false;
 }
 
 }  // namespace mav_planning
