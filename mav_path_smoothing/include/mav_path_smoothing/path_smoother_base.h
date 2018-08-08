@@ -10,7 +10,7 @@ namespace mav_planning {
 
 class PathSmootherBase {
  public:
-  PathSmootherBase() : verbose_(false) {}
+  PathSmootherBase() : verbose_(true) {}
   virtual ~PathSmootherBase() {}
 
   virtual void setParametersFromRos(const ros::NodeHandle& nh);

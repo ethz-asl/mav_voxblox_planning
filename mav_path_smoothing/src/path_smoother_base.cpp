@@ -4,7 +4,7 @@ namespace mav_planning {
 
 void PathSmootherBase::setParametersFromRos(const ros::NodeHandle& nh) {
   constraints_.setParametersFromRos(nh);
-    nh.param("verbose", verbose_, verbose_);
+  nh.param("verbose", verbose_, verbose_);
 }
 
 void PathSmootherBase::setPhysicalConstraints(

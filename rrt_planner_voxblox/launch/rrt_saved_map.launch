@@ -18,7 +18,7 @@
       <param name="world_frame" value="$(arg frame_id)" />
       <param name="trust_approx_solution" value="true" />
       <param name="publish_traversible" value="true" />
-      <param name="verbose" value="false" />
+      <param name="verbose" value="true" />
     </node>
 
     <!-- Visualization -->

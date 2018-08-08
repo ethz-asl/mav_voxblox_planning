@@ -65,7 +65,7 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
 
   std::vector<double> segment_times;
   mav_trajectory_generation::estimateSegmentTimesVelocityRamp(
-      vertices, constraints_.v_max, constraints_.a_max, 1, &segment_times);
+      vertices, constraints_.v_max, constraints_.a_max, 0.001, &segment_times);
 
   poly_opt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
   if (poly_opt.solveLinear()) {
@@ -117,7 +117,7 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
     nlopt_parameters.algorithm = nlopt::LD_LBFGS;
     nlopt_parameters.time_alloc_method = mav_trajectory_generation::
         NonlinearOptimizationParameters::kMellingerOuterLoop;
-    nlopt_parameters.print_debug_info_time_allocation = verbose_;
+    nlopt_parameters.print_debug_info_time_allocation = true;
     mav_trajectory_generation::PolynomialOptimizationNonLinear<N> nlopt(
         K, nlopt_parameters);
     nlopt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
@@ -130,6 +130,18 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
     nlopt.optimize();
     nlopt.getTrajectory(trajectory);
   }
+
+  std::vector<int> dimensions = {0, 1, 2};  // Evaluate dimensions in x, y and z
+  mav_trajectory_generation::Extremum v_min, v_max, a_min, a_max;
+  trajectory->computeMinMaxMagnitude(
+      mav_trajectory_generation::derivative_order::VELOCITY, dimensions, &v_min,
+      &v_max);
+  trajectory->computeMinMaxMagnitude(
+      mav_trajectory_generation::derivative_order::ACCELERATION, dimensions,
+      &a_min, &a_max);
+
+  ROS_INFO("V max/limit: %f/%f, A max/limit: %f/%f", v_max.value,
+           constraints_.v_max, a_max.value, constraints_.a_max);
 
   return true;
 }
