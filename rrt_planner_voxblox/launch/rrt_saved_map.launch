@@ -1,0 +1,54 @@
+<launch>
+  <arg name="mav_name" default="jay" />
+   <!-- <arg name="voxblox_path" default="/Users/helen/data/arche/day4/flight10_new/_2_opt/voxblox/tsdf.0.10.vxblx" /> -->
+   <arg name="voxblox_path" default="/Users/helen/data/arche/arche_week/flight_6_raw_voxblox/esdf.0.10.vxblx" />r
+   <!--<arg name="voxblox_path" default="/Users/helen/data/arche/day5/indoor_flight1_voxblox/tsdf.0.10.vxblx" /> -->
+  <arg name="frame_id" default="map" />
+
+  <group ns="$(arg mav_name)">
+    <node name="rrt_planner_voxblox" pkg="rrt_planner_voxblox" type="rrt_planner_voxblox_node" output="screen">
+      <param name="voxblox_path" value="$(arg voxblox_path)" />
+      <param name="visualize" value="true" />
+      <param name="robot_radius" value="1.0" />
+      <param name="tsdf_voxel_size" value="0.10" />
+      <param name="tsdf_voxels_per_side" value="16" />
+      <param name="update_mesh_every_n_sec" value="0.0" />
+      <param name="num_seconds_to_plan" value="5.0" />
+      <param name="frame_id" value="$(arg frame_id)" />
+      <param name="world_frame" value="$(arg frame_id)" />
+      <param name="trust_approx_solution" value="true" />
+      <param name="publish_traversible" value="true" />
+      <param name="verbose" value="false" />
+    </node>
+
+    <!-- Visualization -->
+    <node name="mav_interactive_marker" pkg="mav_interactive_viz" type="interactive_heli" output="screen">
+      <remap from="pose" to="msf_core/odometry" />
+      <param name="tf_parent_frame_id" value="$(arg frame_id)" />
+      <remap from="planner/plan" to="rrt_planner_voxblox/plan" />
+      <remap from="planner/publish_path" to="rrt_planner_voxblox/publish_path" />
+      <!--
+      <remap from="local_planner/start" to="lcto_planner/start" />
+      <remap from="local_planner/stop" to="lcto_planner/stop" />
+      <remap from="local_planner/pause" to="lcto_planner/pause" /> -->
+      <param name="capability_group" value="Visualization" />
+    </node>
+
+    <!-- Planning -->
+    <node name="local_planner" pkg="mav_local_planner" type="local_planner_node" output="screen">
+      <remap from="odometry" to="msf_core/odometry" />
+      <remap from="path_segments" to="polynomial_trajectory" />
+      <remap from="T_G_L" to="T_G_I" />
+      <param name="autostart" value="true" />
+      <param name="plan_to_start" value="true" />
+      <param name="waypoint_planner_type" value="polynomial" />
+      <param name="local_frame_id" value="world" />
+      <param name="yaw_policy" value="velocity_vector" />
+      <param name="global_frame_id" value="map" />
+      <param name="local_frame_id" value="odom" />
+
+      <param name="capability_group" value="Planning" />
+    </node>
+  </group>
+
+</launch>
