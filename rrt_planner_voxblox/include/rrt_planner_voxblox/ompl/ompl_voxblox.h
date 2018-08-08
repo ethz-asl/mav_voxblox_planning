@@ -148,9 +148,7 @@ class EsdfVoxbloxValidityChecker : public base::StateValidityChecker {
   inline bool checkCollisionWithRobot(
       const Eigen::Vector3d& robot_position) const {
     voxblox::Point robot_point = robot_position.cast<voxblox::FloatingPoint>();
-    // Proper way would be to use the interpolator...
-    // Actually ok let's do this.
-    constexpr bool interpolate = false;
+    constexpr bool interpolate = true;
     voxblox::FloatingPoint distance;
     bool success = interpolator_.getDistance(
         robot_position.cast<voxblox::FloatingPoint>(), &distance, interpolate);
