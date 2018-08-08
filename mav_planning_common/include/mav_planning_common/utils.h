@@ -5,7 +5,7 @@
 
 namespace mav_planning {
 
-double computePathLength(mav_msgs::EigenTrajectoryPointVector& path) {
+double computePathLength(const mav_msgs::EigenTrajectoryPointVector& path) {
   Eigen::Vector3d last_point;
   double distance = 0;
   for (int i = 0; i < path.size(); ++i) {
