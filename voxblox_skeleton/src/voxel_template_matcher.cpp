@@ -1,4 +1,4 @@
-#include "voxblox/skeletons/voxel_template_matcher.h"
+#include "voxblox_skeleton/voxel_template_matcher.h"
 
 namespace voxblox {
 

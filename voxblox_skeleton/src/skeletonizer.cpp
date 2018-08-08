@@ -11,7 +11,6 @@
 #include "voxblox_skeleton/skeleton_generator.h"
 #include "voxblox_skeleton/ros/skeleton_vis.h"
 
-
 namespace voxblox {
 
 class SkeletonizerNode {

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(skeleton_voxblox)
+project(voxblox_skeleton)
 
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)

@@ -1,5 +1,4 @@
 #include "voxblox_skeleton/nanoflann_interface.h"
-
 #include "voxblox_skeleton/skeleton_generator.h"
 
 namespace voxblox {

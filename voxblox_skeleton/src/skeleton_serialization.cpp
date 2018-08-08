@@ -64,5 +64,4 @@ void Block<SkeletonVoxel>::serializeToIntegers(
   CHECK_EQ(num_voxels_ * kNumDataPacketsPerVoxel, data->size());
 }
 
-
 }  // namespace voxblox

@@ -1,4 +1,4 @@
-#include "voxblox/skeletons/sparse_graph_planner.h"
+#include "voxblox_skeleton/sparse_graph_planner.h"
 
 #include <map>
 #include <set>

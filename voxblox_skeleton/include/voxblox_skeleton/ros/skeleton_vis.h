@@ -1,3 +1,6 @@
+#ifndef VOXBLOX_SKELETON_ROS_SKELETON_VIS_H_
+#define VOXBLOX_SKELETON_ROS_SKELETON_VIS_H_
+
 #include <visualization_msgs/MarkerArray.h>
 #include <eigen_conversions/eigen_msg.h>
 
@@ -105,3 +108,5 @@ inline void visualizeSkeletonGraph(
 }
 
 }  // namespace voxblox
+
+#endif  // VOXBLOX_SKELETON_ROS_SKELETON_VIS_H_

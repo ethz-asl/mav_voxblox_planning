@@ -2,6 +2,7 @@
 #define VOXBLOX_SKELETON_SKELETON_VOXEL_H_
 
 #include <voxblox/core/common.h>
+#include <voxblox/core/voxel.h>
 
 namespace voxblox {
 

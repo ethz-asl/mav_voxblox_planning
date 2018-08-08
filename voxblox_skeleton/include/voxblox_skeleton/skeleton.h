@@ -5,7 +5,7 @@
 
 #include <voxblox/core/common.h>
 
-#include "skeleton_voxblox/skeleton_voxel.h"
+#include "voxblox_skeleton/skeleton_voxel.h"
 
 namespace voxblox {
 
