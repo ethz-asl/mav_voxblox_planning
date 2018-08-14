@@ -383,7 +383,7 @@ bool SkeletonAStar::getPathToNearestDiagramPt(
     AlignedVector<VoxelKey> neighbors;
     AlignedVector<float> distances;
     AlignedVector<Eigen::Vector3i> directions;
-    neighbor_tools_.getNeighborIndicesAndDistances(
+    neighbor_tools_.getNeighborIndexesAndDistances(
         block_index, voxel_index, Connectivity::kTwentySix, &neighbors,
         &distances, &directions);
     for (size_t i = 0; i < neighbors.size(); ++i) {

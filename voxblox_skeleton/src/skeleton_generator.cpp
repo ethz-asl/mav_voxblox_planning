@@ -127,7 +127,7 @@ void SkeletonGenerator::generateSkeleton() {
       AlignedVector<VoxelKey> neighbors;
       AlignedVector<float> distances;
       AlignedVector<Eigen::Vector3i> directions;
-      neighbor_tools_.getNeighborIndicesAndDistances(
+      neighbor_tools_.getNeighborIndexesAndDistances(
           block_index, voxel_index, Connectivity::kSix, &neighbors, &distances,
           &directions);
 
@@ -254,7 +254,7 @@ void SkeletonGenerator::generateEdgesByLayerNeighbors() {
     AlignedVector<VoxelKey> neighbors;
     AlignedVector<float> distances;
     AlignedVector<Eigen::Vector3i> directions;
-    neighbor_tools_.getNeighborIndicesAndDistances(
+    neighbor_tools_.getNeighborIndexesAndDistances(
         block_index, voxel_index, Connectivity::kTwentySix, &neighbors,
         &distances, &directions);
 
@@ -316,7 +316,7 @@ size_t SkeletonGenerator::pruneDiagramEdges() {
     AlignedVector<VoxelKey> neighbors;
     AlignedVector<float> distances;
     AlignedVector<Eigen::Vector3i> directions;
-    neighbor_tools_.getNeighborIndicesAndDistances(
+    neighbor_tools_.getNeighborIndexesAndDistances(
         block_index, voxel_index, Connectivity::kTwentySix, &neighbors,
         &distances, &directions);
 
@@ -454,7 +454,7 @@ void SkeletonGenerator::generateVerticesByLayerNeighbors() {
     AlignedVector<VoxelKey> neighbors;
     AlignedVector<float> distances;
     AlignedVector<Eigen::Vector3i> directions;
-    neighbor_tools_.getNeighborIndicesAndDistances(
+    neighbor_tools_.getNeighborIndexesAndDistances(
         block_index, voxel_index, Connectivity::kTwentySix, &neighbors,
         &distances, &directions);
 
@@ -536,7 +536,7 @@ void SkeletonGenerator::generateSparseGraph() {
     AlignedVector<VoxelKey> neighbors;
     AlignedVector<float> distances;
     AlignedVector<Eigen::Vector3i> directions;
-    neighbor_tools_.getNeighborIndicesAndDistances(
+    neighbor_tools_.getNeighborIndexesAndDistances(
         block_index, voxel_index, Connectivity::kTwentySix, &neighbors,
         &distances, &directions);
 
@@ -653,7 +653,7 @@ bool SkeletonGenerator::followEdge(const BlockIndex& start_block_index,
     AlignedVector<float> distances;
     AlignedVector<Eigen::Vector3i> directions;
 
-    neighbor_tools_.getNeighborIndicesAndDistances(
+    neighbor_tools_.getNeighborIndexesAndDistances(
         block_index, voxel_index, Connectivity::kTwentySix, &neighbors,
         &distances, &directions);
     still_got_neighbors = false;
