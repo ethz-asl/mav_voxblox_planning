@@ -214,10 +214,10 @@ bool SkeletonAStar::getPathUsingEsdfAndDiagram(
   BlockIndex diagram_start_block_index, diagram_end_block_index;
   VoxelIndex diagram_start_voxel_index, diagram_end_voxel_index;
   // Get the block and voxel index of this guy.
-  neighbor_tools_.getNeighbor(
+  neighbor_tools_.getNeighborIndex(
       start_block_index, start_voxel_index, voxel_path_to_start.back(),
       &diagram_start_block_index, &diagram_start_voxel_index);
-  neighbor_tools_.getNeighbor(
+  neighbor_tools_.getNeighborIndex(
       end_block_index, end_voxel_index, voxel_path_from_end.back(),
       &diagram_end_block_index, &diagram_end_voxel_index);
 
@@ -364,7 +364,7 @@ bool SkeletonAStar::getPathToNearestDiagramPt(
     closed_set.insert(current_voxel_offset);
 
     // Get the block and voxel index of this guy.
-    neighbor_tools_.getNeighbor(start_block_index, start_voxel_index,
+    neighbor_tools_.getNeighborIndex(start_block_index, start_voxel_index,
                                 current_voxel_offset, &block_index,
                                 &voxel_index);
     block_ptr = getBlockPtrByIndex<EsdfVoxel>(block_index);
@@ -383,7 +383,7 @@ bool SkeletonAStar::getPathToNearestDiagramPt(
     AlignedVector<VoxelKey> neighbors;
     AlignedVector<float> distances;
     AlignedVector<Eigen::Vector3i> directions;
-    neighbor_tools_.getNeighborsAndDistances(
+    neighbor_tools_.getNeighborIndicesAndDistances(
         block_index, voxel_index, Connectivity::kTwentySix, &neighbors,
         &distances, &directions);
     for (size_t i = 0; i < neighbors.size(); ++i) {

@@ -169,14 +169,14 @@ bool SkeletonAStar::getPathInVoxels(
     closed_set.insert(current_voxel_offset);
 
     // Get the block and voxel index of this guy.
-    neighbor_tools_.getNeighbor(start_block_index, start_voxel_index,
+    neighbor_tools_.getNeighborIndex(start_block_index, start_voxel_index,
                                 current_voxel_offset, &block_index,
                                 &voxel_index);
     block_ptr = getBlockPtrByIndex<VoxelType>(block_index);
     AlignedVector<VoxelKey> neighbors;
     AlignedVector<float> distances;
     AlignedVector<Eigen::Vector3i> directions;
-    neighbor_tools_.getNeighborsAndDistances(
+    neighbor_tools_.getNeighborIndicesAndDistances(
         block_index, voxel_index, Connectivity::kTwentySix, &neighbors,
         &distances, &directions);
     for (size_t i = 0; i < neighbors.size(); ++i) {
