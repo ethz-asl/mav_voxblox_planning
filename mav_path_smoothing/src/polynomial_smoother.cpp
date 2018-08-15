@@ -17,6 +17,7 @@ void PolynomialSmoother::setParametersFromRos(const ros::NodeHandle& nh) {
   PathSmootherBase::setParametersFromRos(nh);
   nh.param("optimize_time", optimize_time_, optimize_time_);
   nh.param("split_at_collisions", split_at_collisions_, split_at_collisions_);
+  ROS_INFO("Split at collisions: %d", split_at_collisions_);
   nh.param("min_col_check_resolution", min_col_check_resolution_,
            min_col_check_resolution_);
 }

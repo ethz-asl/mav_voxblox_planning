@@ -92,7 +92,7 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
   voxblox_server_.setTraversabilityRadius(constraints_.robot_radius);
 
   // Set up the path smoother as well.
-  smoother_.setParametersFromRos(nh);
+  smoother_.setParametersFromRos(nh_private_);
   smoother_.setMapDistanceCallback(std::bind(&RrtPlannerVoxblox::getMapDistance,
                                              this, std::placeholders::_1));
 

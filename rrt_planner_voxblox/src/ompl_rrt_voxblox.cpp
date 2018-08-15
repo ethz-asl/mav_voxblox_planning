@@ -46,10 +46,10 @@ void OmplRrtVoxblox::setEsdfLayer(
 void OmplRrtVoxblox::setupProblem() {
   if (optimistic_) {
     CHECK_NOTNULL(tsdf_layer_);
-    problem_setup_.setTsdfVoxbloxCollisionChecking(tsdf_layer_, robot_radius_);
+    problem_setup_.setTsdfVoxbloxCollisionChecking(robot_radius_, tsdf_layer_);
   } else {
     CHECK_NOTNULL(esdf_layer_);
-    problem_setup_.setEsdfVoxbloxCollisionChecking(esdf_layer_, robot_radius_);
+    problem_setup_.setEsdfVoxbloxCollisionChecking(robot_radius_, esdf_layer_);
   }
   problem_setup_.setDefaultObjective();
   problem_setup_.setRRTStar();
