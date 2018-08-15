@@ -60,6 +60,9 @@ class MavSetup : public geometric::SimpleSetup {
                                        tsdf_layer));
 
     setStateValidityChecker(base::StateValidityCheckerPtr(validity_checker));
+    si_->setMotionValidator(
+        base::MotionValidatorPtr(new VoxbloxMotionValidator<voxblox::TsdfVoxel>(
+            getSpaceInformation(), validity_checker)));
   }
 
   void setEsdfVoxbloxCollisionChecking(
@@ -69,6 +72,9 @@ class MavSetup : public geometric::SimpleSetup {
                                        esdf_layer));
 
     setStateValidityChecker(base::StateValidityCheckerPtr(validity_checker));
+    si_->setMotionValidator(
+        base::MotionValidatorPtr(new VoxbloxMotionValidator<voxblox::EsdfVoxel>(
+            getSpaceInformation(), validity_checker)));
   }
 
   // Uses the path simplifier WITHOUT using B-spline smoothing which leads to
