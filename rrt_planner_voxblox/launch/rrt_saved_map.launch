@@ -17,7 +17,7 @@
       <param name="frame_id" value="$(arg frame_id)" />
       <param name="world_frame" value="$(arg frame_id)" />
       <param name="trust_approx_solution" value="true" />
-      <param name="publish_traversible" value="true" />
+      <param name="publish_traversable" value="true" />
       <param name="split_at_collisions" value="true" />
       <param name="optimize_time" value="false" />
       <param name="verbose" value="true" />
