@@ -164,6 +164,31 @@ class VoxbloxMotionValidator : public base::MotionValidator {
   // a valid state.
   virtual bool checkMotion(const base::State* s1, const base::State* s2,
                            std::pair<base::State*, double>& last_valid) const {
+    Eigen::Vector3d start = omplToEigen(s1);
+    Eigen::Vector3d goal = omplToEigen(s2);
+    double voxel_size = validity_checker_->voxel_size();
+    Eigen::Vector3d direction = (goal - start).normalized();
+    double total_distance = (goal - start).norm();
+
+    for (double travelled_distance = 0.0; travelled_distance < total_distance;
+         travelled_distance += voxel_size) {
+      Eigen::Vector3d pos = start + travelled_distance * direction;
+      bool collision = validity_checker_->checkCollisionWithRobot(pos);
+
+      if (collision) {
+        ompl::base::ScopedState<ompl::mav::StateSpace> last_valid_state(
+            si_->getStateSpace());
+        last_valid_state->values[0] = pos.x();
+        last_valid_state->values[1] = pos.y();
+        last_valid_state->values[2] = pos.z();
+
+        si_->copyState(last_valid.first, last_valid_state.get());
+
+        last_valid.second = travelled_distance / total_distance;
+        return false;
+      }
+    }
+
     return true;
   }
 

@@ -62,7 +62,8 @@ void OmplRrtVoxblox::setupProblem() {
     validity_checking_resolution =
         voxel_size_ / (upper_bound_ - lower_bound_).norm() / 2.0;
   }
-  problem_setup_.setStateValidityCheckingResolution(0.01);
+  problem_setup_.setStateValidityCheckingResolution(
+      validity_checking_resolution);
 }
 
 bool OmplRrtVoxblox::getPathBetweenWaypoints(
