@@ -202,6 +202,9 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
   if (visualize_) {
     marker_array.markers.push_back(createMarkerForPath(
         waypoints, mav_visualization::Color::Green(), "rrt_star", 0.075));
+    marker_array.markers.push_back(
+        createMarkerForWaypoints(waypoints, mav_visualization::Color::Green(),
+                                 "rrt_star_waypoints", 0.15));
   }
 
   last_waypoints_ = waypoints;
@@ -245,7 +248,8 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
 
 visualization_msgs::Marker RrtPlannerVoxblox::createMarkerForPath(
     mav_msgs::EigenTrajectoryPointVector& path,
-    const std_msgs::ColorRGBA& color, const std::string& name, double scale) {
+    const std_msgs::ColorRGBA& color, const std::string& name,
+    double scale) const {
   visualization_msgs::Marker path_marker;
 
   const int kMaxSamples = 1000;
@@ -281,6 +285,33 @@ visualization_msgs::Marker RrtPlannerVoxblox::createMarkerForPath(
       continue;
     }
 
+    geometry_msgs::Point point_msg;
+    tf::pointKindrToMsg(point.position_W, &point_msg);
+    path_marker.points.push_back(point_msg);
+  }
+
+  return path_marker;
+}
+
+visualization_msgs::Marker RrtPlannerVoxblox::createMarkerForWaypoints(
+    mav_msgs::EigenTrajectoryPointVector& path,
+    const std_msgs::ColorRGBA& color, const std::string& name,
+    double scale) const {
+  visualization_msgs::Marker path_marker;
+
+  path_marker.header.frame_id = frame_id_;
+
+  path_marker.header.stamp = ros::Time::now();
+  path_marker.type = visualization_msgs::Marker::SPHERE_LIST;
+  path_marker.color = color;
+  path_marker.color.a = 0.75;
+  path_marker.ns = name;
+  path_marker.scale.x = scale;
+  path_marker.scale.y = scale;
+  path_marker.scale.z = scale;
+
+  path_marker.points.reserve(path.size());
+  for (const mav_msgs::EigenTrajectoryPoint& point : path) {
     geometry_msgs::Point point_msg;
     tf::pointKindrToMsg(point.position_W, &point_msg);
     path_marker.points.push_back(point_msg);
@@ -326,63 +357,6 @@ double RrtPlannerVoxblox::getMapDistance(
     return 0.0;
   }
   return distance;
-}
-
-void RrtPlannerVoxblox::addVertex(
-    double t, const mav_trajectory_generation::Trajectory& trajectory,
-    mav_trajectory_generation::Vertex::Vector* vertices,
-    std::vector<double>* segment_times) {
-  // First, go through the trajectory segments and figure out between which two
-  // segments the new vertex will lie.
-  const mav_trajectory_generation::Segment::Vector& segments =
-      trajectory.segments();
-
-  double time_so_far = 0.0;
-  size_t seg_ind = 0;
-  for (seg_ind = 0; seg_ind < segments.size(); ++seg_ind) {
-    time_so_far += segments[seg_ind].getTime();
-    if (time_so_far > t) {
-      break;
-    }
-  }
-
-  // Relative time within the segment.
-  double seg_max_time = segments[seg_ind].getTime();
-  double rel_time_sec = t - time_so_far + seg_max_time;
-  // Get the start and goal positions of those segments.
-  Eigen::VectorXd start_pos = segments[seg_ind].evaluate(0.0);
-  Eigen::VectorXd end_pos = segments[seg_ind].evaluate(seg_max_time);
-
-  // Get the relative time of the new vertex (relative to the start vertex),
-  // and make sure it's not too close to the start or end to avoid numerical
-  // issues.
-  double rel_time_scaled = (rel_time_sec / seg_max_time);
-  constexpr double kRelativeTimeMargin = 0.1;
-  constexpr double kMinTimeSec = 0.1;
-  rel_time_scaled =
-      std::max(std::min(rel_time_scaled, 1.0 - kRelativeTimeMargin),
-               kRelativeTimeMargin);
-  Eigen::VectorXd new_pos =
-      (-start_pos + end_pos) * rel_time_scaled + start_pos;
-
-  if (getMapDistance(new_pos.head<3>()) < constraints_.robot_radius) {
-    ROS_ERROR(
-        "Point along the straight line is occupied. Polynomial won't be "
-        "collision-free.");
-  }
-
-  rel_time_sec = std::max(rel_time_scaled * seg_max_time, kMinTimeSec);
-
-  // Add the vertex with the correct constraints.
-  mav_trajectory_generation::Vertex new_vertex = (*vertices)[seg_ind];
-  new_vertex.addConstraint(
-      mav_trajectory_generation::derivative_order::POSITION, new_pos);
-  vertices->insert(vertices->begin() + seg_ind + 1, new_vertex);
-
-  // Add the segment time in.
-  segment_times->insert(segment_times->begin() + seg_ind, rel_time_sec);
-  (*segment_times)[seg_ind + 1] =
-      std::max(seg_max_time - rel_time_sec, kMinTimeSec);
 }
 
 bool RrtPlannerVoxblox::checkPhysicalConstraints(

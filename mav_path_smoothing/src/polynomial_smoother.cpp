@@ -1,6 +1,6 @@
-#include <mav_trajectory_generation/trajectory_sampling.h>
-#include <mav_trajectory_generation/timing.h>
 #include <mav_trajectory_generation/polynomial_optimization_nonlinear.h>
+#include <mav_trajectory_generation/timing.h>
+#include <mav_trajectory_generation/trajectory_sampling.h>
 #include <mav_trajectory_generation_ros/feasibility_analytic.h>
 
 #include "mav_path_smoothing/polynomial_smoother.h"
@@ -76,6 +76,27 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
   }
   linear_timer.Stop();
 
+  if (optimize_time_) {
+    mav_trajectory_generation::timing::Timer time_opt_timer(
+        "smoothing/poly_time_opt");
+    mav_trajectory_generation::NonlinearOptimizationParameters nlopt_parameters;
+    nlopt_parameters.algorithm = nlopt::LD_LBFGS;
+    nlopt_parameters.time_alloc_method = mav_trajectory_generation::
+        NonlinearOptimizationParameters::kMellingerOuterLoop;
+    nlopt_parameters.print_debug_info_time_allocation = true;
+    mav_trajectory_generation::PolynomialOptimizationNonLinear<N> nlopt(
+        K, nlopt_parameters);
+    nlopt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
+    nlopt.addMaximumMagnitudeConstraint(
+        mav_trajectory_generation::derivative_order::VELOCITY,
+        constraints_.v_max);
+    nlopt.addMaximumMagnitudeConstraint(
+        mav_trajectory_generation::derivative_order::ACCELERATION,
+        constraints_.a_max);
+    nlopt.optimize();
+    nlopt.getTrajectory(trajectory);
+  }
+
   // Ok now do more stuff, if the method requires.
   if (split_at_collisions_) {
     mav_trajectory_generation::timing::Timer split_timer(
@@ -109,27 +130,26 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
         break;
       }
     }
-  }
+    ROS_INFO("[SPLIT SMOOTHING] Added %d additional vertices.", num_added);
 
-  if (optimize_time_) {
-    mav_trajectory_generation::timing::Timer time_opt_timer(
-        "smoothing/poly_time_opt");
-    mav_trajectory_generation::NonlinearOptimizationParameters nlopt_parameters;
-    nlopt_parameters.algorithm = nlopt::LD_LBFGS;
-    nlopt_parameters.time_alloc_method = mav_trajectory_generation::
-        NonlinearOptimizationParameters::kMellingerOuterLoop;
-    nlopt_parameters.print_debug_info_time_allocation = true;
-    mav_trajectory_generation::PolynomialOptimizationNonLinear<N> nlopt(
-        K, nlopt_parameters);
-    nlopt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
-    nlopt.addMaximumMagnitudeConstraint(
-        mav_trajectory_generation::derivative_order::VELOCITY,
-        constraints_.v_max);
-    nlopt.addMaximumMagnitudeConstraint(
-        mav_trajectory_generation::derivative_order::ACCELERATION,
-        constraints_.a_max);
-    nlopt.optimize();
-    nlopt.getTrajectory(trajectory);
+    // If we had to do this, let's scale the times back to make sure we're
+    // still within constraints.
+    if (optimize_time_) {
+      mav_trajectory_generation::NonlinearOptimizationParameters
+          nlopt_parameters;
+      mav_trajectory_generation::PolynomialOptimizationNonLinear<N> nlopt(
+          K, nlopt_parameters);
+      nlopt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
+      nlopt.addMaximumMagnitudeConstraint(
+          mav_trajectory_generation::derivative_order::VELOCITY,
+          constraints_.v_max);
+      nlopt.addMaximumMagnitudeConstraint(
+          mav_trajectory_generation::derivative_order::ACCELERATION,
+          constraints_.a_max);
+      nlopt.solveLinear();
+      nlopt.scaleSegmentTimesWithViolation();
+      nlopt.getTrajectory(trajectory);
+    }
   }
 
   std::vector<int> dimensions = {0, 1, 2};  // Evaluate dimensions in x, y and z
@@ -141,7 +161,7 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
       mav_trajectory_generation::derivative_order::ACCELERATION, dimensions,
       &a_min, &a_max);
 
-  ROS_INFO("V max/limit: %f/%f, A max/limit: %f/%f", v_max.value,
+  ROS_INFO("[SMOOTHING] V max/limit: %f/%f, A max/limit: %f/%f", v_max.value,
            constraints_.v_max, a_max.value, constraints_.a_max);
 
   return true;

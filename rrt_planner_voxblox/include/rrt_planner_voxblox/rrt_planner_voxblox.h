@@ -1,22 +1,22 @@
 #ifndef RRT_PLANNER_VOXBLOX_RRT_PLANNER_VOXBLOX_H
 #define RRT_PLANNER_VOXBLOX_RRT_PLANNER_VOXBLOX_H
 
-#include <ros/ros.h>
 #include <ros/package.h>
+#include <ros/ros.h>
 #include <memory>
 #include <string>
 
 #include <mav_msgs/conversions.h>
 #include <mav_path_smoothing/polynomial_smoother.h>
 #include <mav_planning_common/physical_constraints.h>
+#include <mav_planning_msgs/PlannerService.h>
+#include <mav_planning_msgs/PolynomialTrajectory4D.h>
 #include <mav_trajectory_generation/polynomial_optimization_linear.h>
 #include <mav_trajectory_generation/trajectory_sampling.h>
 #include <mav_trajectory_generation_ros/ros_conversions.h>
 #include <mav_trajectory_generation_ros/ros_visualization.h>
 #include <mav_visualization/helpers.h>
 #include <minkindr_conversions/kindr_msg.h>
-#include <mav_planning_msgs/PlannerService.h>
-#include <mav_planning_msgs/PolynomialTrajectory4D.h>
 #include <voxblox_ros/esdf_server.h>
 
 #include "rrt_planner_voxblox/ompl_rrt_voxblox.h"
@@ -31,27 +31,32 @@ class RrtPlannerVoxblox {
                     const ros::NodeHandle& nh_private);
   virtual ~RrtPlannerVoxblox() {}
 
-  bool plannerServiceCallback(mav_planning_msgs::PlannerServiceRequest& request,
-                              mav_planning_msgs::PlannerServiceResponse& response);
+  bool plannerServiceCallback(
+      mav_planning_msgs::PlannerServiceRequest& request,
+      mav_planning_msgs::PlannerServiceResponse& response);
 
   bool publishPathCallback(std_srvs::EmptyRequest& request,
                            std_srvs::EmptyResponse& response);
 
-  visualization_msgs::Marker createMarkerForPath(
-      mav_msgs::EigenTrajectoryPointVector& path,
-      const std_msgs::ColorRGBA& color, const std::string& name,
-      double scale = 0.05);
-
+  // Tools for trajectory smoothing and checking.
   bool generateFeasibleTrajectory(
       const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
       mav_msgs::EigenTrajectoryPointVector* path);
-
   double getMapDistance(const Eigen::Vector3d& position) const;
-
   bool checkPathForCollisions(const mav_msgs::EigenTrajectoryPointVector& path,
                               double* t) const;
   bool checkPhysicalConstraints(
       const mav_trajectory_generation::Trajectory& trajectory);
+
+  // Visualization utilities.
+  visualization_msgs::Marker createMarkerForPath(
+      mav_msgs::EigenTrajectoryPointVector& path,
+      const std_msgs::ColorRGBA& color, const std::string& name,
+      double scale = 0.05) const;
+  visualization_msgs::Marker createMarkerForWaypoints(
+      mav_msgs::EigenTrajectoryPointVector& path,
+      const std_msgs::ColorRGBA& color, const std::string& name,
+      double scale = 0.05) const;
 
  private:
   void inferValidityCheckingResolution(const Eigen::Vector3d& bounding_box);
@@ -64,12 +69,6 @@ class RrtPlannerVoxblox {
 
   void computeMapBounds(Eigen::Vector3d* lower_bound,
                         Eigen::Vector3d* upper_bound) const;
-
-  // Adds a vertex on the straight-line at time t.
-  void addVertex(double t,
-                 const mav_trajectory_generation::Trajectory& trajectory,
-                 mav_trajectory_generation::Vertex::Vector* vertices,
-                 std::vector<double>* segment_times);
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;

@@ -19,7 +19,7 @@
       <param name="trust_approx_solution" value="true" />
       <param name="publish_traversable" value="true" />
       <param name="split_at_collisions" value="true" />
-      <param name="optimize_time" value="false" />
+      <param name="optimize_time" value="true" />
       <param name="verbose" value="true" />
     </node>
 
