@@ -1,7 +1,7 @@
 <launch>
   <arg name="mav_name" default="jay" />
    <!-- <arg name="voxblox_path" default="/Users/helen/data/arche/day4/flight10_new/_2_opt/voxblox/tsdf.0.10.vxblx" /> -->
-   <arg name="voxblox_path" default="/Users/helen/data/arche/arche_week/flight_6_raw_voxblox/esdf.0.10.vxblx" />r
+   <arg name="voxblox_path" default="/home/helen/data/arche/arche_week/flight_6_raw_voxblox/esdf.0.10.vxblx" />
    <!--<arg name="voxblox_path" default="/Users/helen/data/arche/day5/indoor_flight1_voxblox/tsdf.0.10.vxblx" /> -->
   <arg name="frame_id" default="map" />
 

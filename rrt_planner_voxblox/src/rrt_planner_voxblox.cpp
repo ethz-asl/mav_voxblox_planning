@@ -1,8 +1,8 @@
 #include <geometry_msgs/PoseArray.h>
 #include <mav_planning_common/utils.h>
+#include <mav_trajectory_generation/polynomial_optimization_nonlinear.h>
 #include <mav_trajectory_generation/timing.h>
 #include <mav_trajectory_generation_ros/feasibility_analytic.h>
-#include <mav_trajectory_generation/polynomial_optimization_nonlinear.h>
 
 #include "rrt_planner_voxblox/rrt_planner_voxblox.h"
 
@@ -30,7 +30,7 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
   path_marker_pub_ =
       nh_private_.advertise<visualization_msgs::MarkerArray>("path", 1, true);
   polynomial_trajectory_pub_ =
-      nh_.advertise<planning_msgs::PolynomialTrajectory4D>(
+      nh_.advertise<mav_planning_msgs::PolynomialTrajectory4D>(
           "polynomial_trajectory", 1);
 
   waypoint_list_pub_ =
@@ -59,9 +59,9 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
 
         const bool full_euclidean_distance = true;
         voxblox_server_.updateEsdfBatch(full_euclidean_distance);
+      } else {
+        ROS_ERROR("TSDF map also empty! Check voxel size!");
       }
-    } else {
-      ROS_ERROR("TSDF map also empty! Check voxel size!");
     }
   }
 
@@ -125,7 +125,7 @@ bool RrtPlannerVoxblox::publishPathCallback(std_srvs::EmptyRequest& request,
     pose_array.header.frame_id = frame_id_;
     waypoint_list_pub_.publish(pose_array);
   } else {
-    planning_msgs::PolynomialTrajectory4D msg;
+    mav_planning_msgs::PolynomialTrajectory4D msg;
     mav_trajectory_generation::trajectoryToPolynomialTrajectoryMsg(
         last_trajectory_, &msg);
 
@@ -165,8 +165,8 @@ void RrtPlannerVoxblox::computeMapBounds(Eigen::Vector3d* lower_bound,
 }
 
 bool RrtPlannerVoxblox::plannerServiceCallback(
-    planning_msgs::PlannerServiceRequest& request,
-    planning_msgs::PlannerServiceResponse& response) {
+    mav_planning_msgs::PlannerServiceRequest& request,
+    mav_planning_msgs::PlannerServiceResponse& response) {
   mav_msgs::EigenTrajectoryPoint start_pose, goal_pose;
 
   mav_msgs::eigenTrajectoryPointFromPoseMsg(request.start_pose, &start_pose);

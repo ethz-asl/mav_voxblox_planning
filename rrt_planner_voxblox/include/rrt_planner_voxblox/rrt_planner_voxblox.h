@@ -15,8 +15,8 @@
 #include <mav_trajectory_generation_ros/ros_visualization.h>
 #include <mav_visualization/helpers.h>
 #include <minkindr_conversions/kindr_msg.h>
-#include <planning_msgs/PlannerService.h>
-#include <planning_msgs/PolynomialTrajectory4D.h>
+#include <mav_planning_msgs/PlannerService.h>
+#include <mav_planning_msgs/PolynomialTrajectory4D.h>
 #include <voxblox_ros/esdf_server.h>
 
 #include "rrt_planner_voxblox/ompl_rrt_voxblox.h"
@@ -31,8 +31,8 @@ class RrtPlannerVoxblox {
                     const ros::NodeHandle& nh_private);
   virtual ~RrtPlannerVoxblox() {}
 
-  bool plannerServiceCallback(planning_msgs::PlannerServiceRequest& request,
-                              planning_msgs::PlannerServiceResponse& response);
+  bool plannerServiceCallback(mav_planning_msgs::PlannerServiceRequest& request,
+                              mav_planning_msgs::PlannerServiceResponse& response);
 
   bool publishPathCallback(std_srvs::EmptyRequest& request,
                            std_srvs::EmptyResponse& response);
