@@ -2,7 +2,7 @@
 <launch>
   <arg name="mav_name" default="jay"/>
   <arg name="namespace" default="$(arg mav_name)" />
-  <arg name="bag" default="/Users/helen/data/arche/2018_03_29_arche_test_1/flight_2.bag" />
+  <arg name="bag" default="/home/helen/data/arche/2018_03_29_arche_test_1/flight_2.bag" />
   <arg name="stereo_params_camchain" default="$(find arche_maplab_utils)/params/day1_jay/camchain_p23022.yaml"/>
   <arg name="scale" default="0.5" />
   <arg name="process_every_nth_frame" default="5" />
@@ -50,31 +50,30 @@
     <param name="capability_group" value="Planning" />
   </node>
 
-    <node name="voxblox_node" pkg="voxblox_ros" type="esdf_server" output="screen" args="-alsologtostderr" clear_params="true">
-      <remap from="pointcloud" to="dense_stereo/pointcloud"/>
-      <param name="publish_tsdf_map" value="false" />
-      <param name="publish_esdf_map" value="false" />
-      <param name="tsdf_voxel_size" value="0.20" />
-      <param name="tsdf_voxels_per_side" value="16" />
-      <param name="voxel_carving_enabled" value="true" />
-      <param name="color_mode" value="color" />
-      <param name="use_tf_transforms" value="true" />
-      <param name="update_mesh_every_n_sec" value="0.25" />
-      <param name="max_ray_length_m" value="6.0" />
-      <param name="slice_level" value="1.0" />
-      <param name="publish_slices" value="true"/>
-      <param name="publish_pointclouds" value="true"/>
+  <node name="voxblox_node" pkg="voxblox_ros" type="esdf_server" output="screen" args="-alsologtostderr" clear_params="true">
+    <remap from="pointcloud" to="dense_stereo/pointcloud"/>
+    <param name="publish_tsdf_map" value="false" />
+    <param name="tsdf_voxel_size" value="0.20" />
+    <param name="tsdf_voxels_per_side" value="16" />
+    <param name="voxel_carving_enabled" value="true" />
+    <param name="color_mode" value="color" />
+    <param name="use_tf_transforms" value="true" />
+    <param name="update_mesh_every_n_sec" value="0.25" />
+    <param name="max_ray_length_m" value="6.0" />
+    <param name="slice_level" value="1.0" />
+    <param name="publish_slices" value="true"/>
+    <param name="publish_pointclouds" value="true"/>
 
-      <param name="verbose" value="false" />
-      <param name="use_freespace_pointcloud" value="false" />
-      <param name="method" value="fast" />
-      <param name="world_frame" value="odom" />
-      <param name="publish_esdf_map" value="true" />
-      <remap from="voxblox_node/esdf_map_out" to="hello" />
+    <param name="verbose" value="true" />
+    <param name="use_freespace_pointcloud" value="false" />
+    <param name="method" value="fast" />
+    <param name="world_frame" value="odom" />
+    <param name="publish_esdf_map" value="true" />
+    <param name="publish_only_updated_blocks" value="true" />
+    <remap from="voxblox_node/esdf_map_out" to="hello" />
 
-      <param name="capability_group" value="Planning" />
-    </node>
-
+    <param name="capability_group" value="Planning" />
+  </node>
 
   </group>
 </launch>
