@@ -31,6 +31,7 @@ class PlanningPanel : public rviz::Panel {
   // topic name.
   virtual void load(const rviz::Config& config);
   virtual void save(rviz::Config config) const;
+  virtual void onInitialize();
 
   // All the settings to manage pose <-> edit mapping.
   void registerPoseWidget(PoseWidget* widget);

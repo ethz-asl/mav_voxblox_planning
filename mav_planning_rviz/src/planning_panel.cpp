@@ -24,11 +24,22 @@ namespace mav_planning_rviz {
 PlanningPanel::PlanningPanel(QWidget* parent)
     : rviz::Panel(parent), nh_(ros::NodeHandle()), interactive_markers_(nh_) {
   createLayout();
+}
 
+void PlanningPanel::onInitialize() {
   interactive_markers_.initialize();
   interactive_markers_.setPoseUpdatedCallback(
       std::bind(&PlanningPanel::updateInteractiveMarkerPose, this,
                 std::placeholders::_1));
+
+  ROS_INFO_STREAM("Fixed frame: " << vis_manager_->getFixedFrame().toStdString());
+  interactive_markers_.setFrameId(vis_manager_->getFixedFrame().toStdString());
+  // Initialize all the markers.
+  for (const auto& kv : pose_widget_map_) {
+    mav_msgs::EigenTrajectoryPoint pose;
+    kv.second->getPose(&pose);
+    interactive_markers_.enableMarker(kv.first, pose);
+  }
 }
 
 void PlanningPanel::createLayout() {
@@ -140,7 +151,8 @@ void PlanningPanel::startEditing(const std::string& id) {
   interactive_markers_.setFrameId(vis_manager_->getFixedFrame().toStdString());
   mav_msgs::EigenTrajectoryPoint pose;
   search->second->getPose(&pose);
-  interactive_markers_.enableSetPosetMarker(pose);
+  interactive_markers_.enableSetPoseMarker(pose);
+  interactive_markers_.disableMarker(id);
 }
 
 void PlanningPanel::finishEditing(const std::string& id) {
@@ -148,6 +160,14 @@ void PlanningPanel::finishEditing(const std::string& id) {
     currently_editing_.clear();
     interactive_markers_.disableSetPoseMarker();
   }
+  auto search = pose_widget_map_.find(id);
+  if (search == pose_widget_map_.end()) {
+    return;
+  }
+  ros::spinOnce();
+  mav_msgs::EigenTrajectoryPoint pose;
+  search->second->getPose(&pose);
+  interactive_markers_.enableMarker(id, pose);
 }
 
 void PlanningPanel::registerPoseWidget(PoseWidget* widget) {
@@ -204,6 +224,7 @@ void PlanningPanel::widgetPoseUpdated(const std::string& id,
   if (currently_editing_ == id) {
     interactive_markers_.setPose(pose);
   }
+  interactive_markers_.updateMarkerPose(id, pose);
 }
 
 void PlanningPanel::callPlannerService() {

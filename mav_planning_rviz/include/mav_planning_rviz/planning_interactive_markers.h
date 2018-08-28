@@ -28,13 +28,19 @@ class PlanningInteractiveMarkers {
   void initialize();
 
   // Functions to interface with the set_pose marker:
-  void enableSetPosetMarker(const mav_msgs::EigenTrajectoryPoint& pose);
+  void enableSetPoseMarker(const mav_msgs::EigenTrajectoryPoint& pose);
   void disableSetPoseMarker();
   void setPose(const mav_msgs::EigenTrajectoryPoint& pose);
 
+  // Functions to interact with markers from the marker map (no controls):
+  void enableMarker(const std::string& id,
+                    const mav_msgs::EigenTrajectoryPoint& pose);
+  void updateMarkerPose(const std::string& id,
+                        const mav_msgs::EigenTrajectoryPoint& pose);
+  void disableMarker(const std::string& id);
+
   void processSetPoseFeedback(
       const visualization_msgs::InteractiveMarkerFeedbackConstPtr& feedback);
-
 
  private:
   // Creates markers without adding them to the marker server.
@@ -50,7 +56,11 @@ class PlanningInteractiveMarkers {
   // State.
   bool initialized_;
   visualization_msgs::InteractiveMarker set_pose_marker_;
-  // Also have start, goal, and waypoints markers. :)
+
+  // This is map for waypoint visualization markers:
+  std::map<std::string, visualization_msgs::InteractiveMarker> marker_map_;
+  // This determines how the markers in the marker map will look:
+  visualization_msgs::InteractiveMarker marker_prototype_;
 
   // State:
   PoseUpdatedFunctionType pose_updated_function_;
