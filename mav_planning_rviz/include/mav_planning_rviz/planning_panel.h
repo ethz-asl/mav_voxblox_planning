@@ -4,9 +4,9 @@
 #ifndef Q_MOC_RUN
 #include <ros/ros.h>
 #include <rviz/panel.h>
-#endif
-
+#include "mav_planning_rviz/planning_interactive_markers.h"
 #include "mav_planning_rviz/pose_widget.h"
+#endif
 
 class QLineEdit;
 namespace mav_planning_rviz {
@@ -52,10 +52,14 @@ class PlanningPanel : public rviz::Panel {
 
   // QT stuff:
   QLineEdit* namespace_editor_;
-  PoseWidget* pose_widget_;
+  PoseWidget* start_pose_widget_;
+  PoseWidget* goal_pose_widget_;
 
   // QT state:
   QString namespace_;
+
+  // ROS state:
+  PlanningInteractiveMarkers interactive_markers_;
 };
 
 }  // end namespace mav_planning_rviz

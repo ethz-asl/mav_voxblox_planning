@@ -23,6 +23,7 @@
   <depend>tf</depend>
   <depend>visualization_msgs</depend>
   <depend>rviz</depend>
+  <depend>mav_visualization</depend>
 
   <export>
       <rviz plugin="${prefix}/plugin_description.xml"/>

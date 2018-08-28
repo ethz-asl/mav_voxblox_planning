@@ -3,10 +3,10 @@
 
 #ifndef Q_MOC_RUN
 #include <mav_msgs/eigen_mav_msgs.h>
+#include <QItemDelegate>
+#include <QLineEdit>
 #include <QStringList>
 #include <QTableWidget>
-#include <QLineEdit>
-#include <QItemDelegate>
 #endif
 
 class QLineEdit;
@@ -16,9 +16,10 @@ namespace mav_planning_rviz {
 class PoseWidget : public QWidget {
   Q_OBJECT
  public:
-  explicit PoseWidget(QWidget* parent = 0);
+  explicit PoseWidget(const std::string& id, QWidget* parent = 0);
 
   void getPose(mav_msgs::EigenTrajectoryPoint* point) const;
+  void setPose(const mav_msgs::EigenTrajectoryPoint& point);
 
  public Q_SLOTS:
  protected Q_SLOTS:
@@ -32,18 +33,16 @@ class PoseWidget : public QWidget {
 
   // QT state:
   QStringList table_headers_;
+
+  // Other state:
+  // This is the ID that binds the button to the pose widget.
+  std::string id_;
 };
 
 class DoubleTableDelegate : public QItemDelegate {
  public:
   QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option,
-                        const QModelIndex& index) const {
-    QLineEdit* line_edit = new QLineEdit(parent);
-    // Set validator
-    QDoubleValidator* validator = new QDoubleValidator(line_edit);
-    line_edit->setValidator(validator);
-    return line_edit;
-  }
+                        const QModelIndex& index) const;
 };
 
 }  // end namespace mav_planning_rviz

@@ -8,7 +8,10 @@
 
 namespace mav_planning_rviz {
 
-PoseWidget::PoseWidget(QWidget* parent) : QWidget(parent) { createTable(); }
+PoseWidget::PoseWidget(const std::string& id, QWidget* parent)
+    : QWidget(parent), id_(id) {
+  createTable();
+}
 
 void PoseWidget::createTable() {
   table_widget_ = new QTableWidget(this);
@@ -31,12 +34,16 @@ void PoseWidget::createTable() {
   table_widget_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   table_widget_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   table_widget_->resizeColumnsToContents();
+  // From:
+  // https://stackoverflow.com/questions/8766633/how-to-determine-the-correct-size-of-a-qtablewidget
   table_widget_->setFixedSize(table_widget_->horizontalHeader()->length(),
                               table_widget_->verticalHeader()->length() +
                                   table_widget_->horizontalHeader()->height());
 
   for (int i = 0; i < 4; i++) {
     table_widget_->setItem(0, i, new QTableWidgetItem("0.0"));
+    table_widget_->item(0, i)->setTextAlignment(Qt::AlignRight |
+                                                Qt::AlignVCenter);
   }
 
   // table_widget_->setStyleSheet("QTableView {selection-background-color:
@@ -52,7 +59,29 @@ void PoseWidget::getPose(mav_msgs::EigenTrajectoryPoint* point) const {
   point->position_W.x() = table_widget_->item(0, 0)->text().toDouble();
   point->position_W.y() = table_widget_->item(0, 1)->text().toDouble();
   point->position_W.z() = table_widget_->item(0, 2)->text().toDouble();
-  point->setFromYaw(table_widget_->item(0, 0)->text().toDouble());
+  point->setFromYaw(table_widget_->item(0, 3)->text().toDouble() * M_PI /
+                    180.0);
+}
+
+void PoseWidget::setPose(const mav_msgs::EigenTrajectoryPoint& point) {
+  table_widget_->item(0, 0)->setText(QString::number(point.position_W.x()));
+  table_widget_->item(0, 1)->setText(QString::number(point.position_W.x()));
+  table_widget_->item(0, 2)->setText(QString::number(point.position_W.x()));
+  table_widget_->item(0, 3)->setText(
+      QString::number(point.getYaw() * 180.0 / M_PI));
+}
+
+QWidget* DoubleTableDelegate::createEditor(QWidget* parent,
+                                           const QStyleOptionViewItem& option,
+                                           const QModelIndex& index) const {
+  // From:
+  // https://stackoverflow.com/questions/22708623/qtablewidget-only-numbers-permitted
+  QLineEdit* line_edit = new QLineEdit(parent);
+  // Set validator
+  QDoubleValidator* validator = new QDoubleValidator(line_edit);
+  line_edit->setValidator(validator);
+  line_edit->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+  return line_edit;
 }
 
 /*

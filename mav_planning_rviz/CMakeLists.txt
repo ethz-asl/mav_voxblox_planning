@@ -8,7 +8,20 @@ add_definitions(-std=c++11)
 
 # These settings all stolen from visualization_tutorials:
 # This setting causes Qt's "MOC" generation to happen automatically.
-set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOMOC OFF)
+
+set(HEADER_FILES_QT
+  include/mav_planning_rviz/pose_widget.h
+  include/mav_planning_rviz/planning_panel.h
+  include/mav_planning_rviz/edit_button.h
+)
+
+set(SRC_FILES
+  src/planning_panel.cpp
+  src/pose_widget.cpp
+  src/edit_button.cpp
+  src/planning_interactive_markers.cpp
+)
 
 # This plugin includes Qt widgets, so we must include Qt.
 # We'll use the version that rviz used so they are compatible.
@@ -18,7 +31,7 @@ if(rviz_QT_VERSION VERSION_LESS "5")
   # pull in all required include dirs, define QT_LIBRARIES, etc.
   include(${QT_USE_FILE})
   qt4_wrap_cpp(MOC_FILES
-    ${INCLUDE_FILES_QT}
+    ${HEADER_FILES_QT}
   )
 else()
   message(STATUS "Using Qt5 based on the rviz_QT_VERSION: ${rviz_QT_VERSION}")
@@ -26,7 +39,7 @@ else()
   # make target_link_libraries(${QT_LIBRARIES}) pull in all required dependencies
   set(QT_LIBRARIES Qt5::Widgets)
   QT5_WRAP_CPP(MOC_FILES
-    ${INCLUDE_FILES_QT}
+    ${HEADER_FILES_QT}
   )
 endif()
 # I prefer the Qt signals and slots to avoid defining "emit", "slots",
@@ -41,10 +54,7 @@ add_definitions(-DQT_NO_KEYWORDS)
 # LIBRARIES #
 #############
 cs_add_library(${PROJECT_NAME}
-  src/planning_panel.cpp
-  src/pose_widget.cpp
-  include/mav_planning_rviz/pose_widget.h
-  include/mav_planning_rviz/planning_panel.h # Has to be included for auto-MOC.
+  ${SRC_FILES}
   ${MOC_FILES}
 )
 target_link_libraries(${PROJECT_NAME} ${QT_LIBRARIES})
