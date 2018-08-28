@@ -1,24 +1,40 @@
 #ifndef MAV_PLANNING_RVIZ_PLANNING_INTERACTIVE_MARKERS_H_
 #define MAV_PLANNING_RVIZ_PLANNING_INTERACTIVE_MARKERS_H_
 
+#include <functional>
+
 #include <interactive_markers/interactive_marker_server.h>
-#include <ros/ros.h>
-#include <mav_msgs/eigen_mav_msgs.h>
 #include <mav_msgs/conversions.h>
+#include <mav_msgs/eigen_mav_msgs.h>
+#include <ros/ros.h>
 
 namespace mav_planning_rviz {
 
 class PlanningInteractiveMarkers {
  public:
+  typedef std::function<void(const mav_msgs::EigenTrajectoryPoint& pose)>
+      PoseUpdatedFunctionType;
+
   PlanningInteractiveMarkers(const ros::NodeHandle& nh);
   ~PlanningInteractiveMarkers() {}
 
   void setFrameId(const std::string& frame_id);
+  // Bind callback for whenever pose updates.
+
+  void setPoseUpdatedCallback(const PoseUpdatedFunctionType& function) {
+    pose_updated_function_ = function;
+  }
 
   void initialize();
 
+  // Functions to interface with the set_pose marker:
   void enableSetPosetMarker(const mav_msgs::EigenTrajectoryPoint& pose);
   void disableSetPoseMarker();
+  void setPose(const mav_msgs::EigenTrajectoryPoint& pose);
+
+  void processSetPoseFeedback(
+      const visualization_msgs::InteractiveMarkerFeedbackConstPtr& feedback);
+
 
  private:
   // Creates markers without adding them to the marker server.
@@ -35,6 +51,9 @@ class PlanningInteractiveMarkers {
   bool initialized_;
   visualization_msgs::InteractiveMarker set_pose_marker_;
   // Also have start, goal, and waypoints markers. :)
+
+  // State:
+  PoseUpdatedFunctionType pose_updated_function_;
 };
 
 }  // end namespace mav_planning_rviz

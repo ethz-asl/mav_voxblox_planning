@@ -13,7 +13,7 @@ PlanningInteractiveMarkers::PlanningInteractiveMarkers(
 
 void PlanningInteractiveMarkers::setFrameId(const std::string& frame_id) {
   frame_id_ = frame_id;
-  // TODO(helenol): also update all the markers!
+  set_pose_marker_.header.frame_id = frame_id_;
 }
 
 void PlanningInteractiveMarkers::initialize() {
@@ -28,12 +28,14 @@ void PlanningInteractiveMarkers::createMarkers() {
   set_pose_marker_.scale = 1.0;
   set_pose_marker_.controls.clear();
 
+  constexpr double kSqrt2Over2 = sqrt(2.0) / 2.0;
+
   // Set up controls: x, y, z, and yaw.
   visualization_msgs::InteractiveMarkerControl control;
   set_pose_marker_.controls.clear();
-  control.orientation.w = 1;
+  control.orientation.w = kSqrt2Over2;
   control.orientation.x = 0;
-  control.orientation.y = 1;
+  control.orientation.y = kSqrt2Over2;
   control.orientation.z = 0;
   control.name = "rotate_yaw";
   control.interaction_mode =
@@ -44,8 +46,8 @@ void PlanningInteractiveMarkers::createMarkers() {
   control.name = "move z";
   set_pose_marker_.controls.push_back(control);
 
-  control.orientation.w = 1;
-  control.orientation.x = 1;
+  control.orientation.w = kSqrt2Over2;
+  control.orientation.x = kSqrt2Over2;
   control.orientation.y = 0;
   control.orientation.z = 0;
   control.interaction_mode =
@@ -53,10 +55,10 @@ void PlanningInteractiveMarkers::createMarkers() {
   control.name = "move x";
   set_pose_marker_.controls.push_back(control);
 
-  control.orientation.w = 1;
+  control.orientation.w = kSqrt2Over2;
   control.orientation.x = 0;
   control.orientation.y = 0;
-  control.orientation.z = 1;
+  control.orientation.z = kSqrt2Over2;
   control.interaction_mode =
       visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
   control.name = "move y";
@@ -75,12 +77,38 @@ void PlanningInteractiveMarkers::enableSetPosetMarker(
   set_pose_marker_.pose = pose_stamped.pose;
 
   marker_server_.insert(set_pose_marker_);
-  // marker_server_->setCallback(set_pose_marker_.name, feedback_cb_);
+  marker_server_.setCallback(
+      set_pose_marker_.name,
+      boost::bind(&PlanningInteractiveMarkers::processSetPoseFeedback, this,
+                  _1));
   marker_server_.applyChanges();
 }
 
 void PlanningInteractiveMarkers::disableSetPoseMarker() {
   marker_server_.erase(set_pose_marker_.name);
+  marker_server_.applyChanges();
+}
+
+void PlanningInteractiveMarkers::setPose(
+    const mav_msgs::EigenTrajectoryPoint& pose) {
+  geometry_msgs::PoseStamped pose_stamped;
+  mav_msgs::msgPoseStampedFromEigenTrajectoryPoint(pose, &pose_stamped);
+  set_pose_marker_.pose = pose_stamped.pose;
+  marker_server_.setPose(set_pose_marker_.name, set_pose_marker_.pose);
+  marker_server_.applyChanges();
+}
+
+void PlanningInteractiveMarkers::processSetPoseFeedback(
+    const visualization_msgs::InteractiveMarkerFeedbackConstPtr& feedback) {
+  if (feedback->event_type ==
+      visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE) {
+    if (pose_updated_function_) {
+      mav_msgs::EigenTrajectoryPoint pose;
+      mav_msgs::eigenTrajectoryPointFromPoseMsg(feedback->pose, &pose);
+      pose_updated_function_(pose);
+    }
+  }
+
   marker_server_.applyChanges();
 }
 

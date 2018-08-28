@@ -18,11 +18,19 @@ class PoseWidget : public QWidget {
  public:
   explicit PoseWidget(const std::string& id, QWidget* parent = 0);
 
+  std::string id() const { return id_; }
+  void setId(const std::string& id) { id_ = id; }
+
   void getPose(mav_msgs::EigenTrajectoryPoint* point) const;
   void setPose(const mav_msgs::EigenTrajectoryPoint& point);
 
+  virtual QSize sizeHint() const { return table_widget_->sizeHint(); }
+
+ Q_SIGNALS:
+  void poseUpdated(const std::string& id, mav_msgs::EigenTrajectoryPoint& pose);
+
  public Q_SLOTS:
- protected Q_SLOTS:
+  void itemChanged(QTableWidgetItem* item);
 
  protected:
   // Set up the layout, only called by the constructor.

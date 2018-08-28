@@ -23,12 +23,7 @@ void PoseWidget::createTable() {
                  << "z [m]" << QString::fromUtf8("yaw [°]");
   table_widget_->setHorizontalHeaderLabels(table_headers_);
   table_widget_->verticalHeader()->setVisible(false);
-  // table_widget_->setEditTriggers(QAbstractItemView::NoEditTriggers);
-  // table_widget_->setSelectionBehavior(QAbstractItemView::SelectRows);
-  // table_widget_->setSelectionMode(QAbstractItemView::SingleSelection);
   table_widget_->setShowGrid(true);
-  // table_widget_->setMinimumHeight(10);
-  // table_widget_->setMinimumWidth(10);
   table_widget_->setItemDelegate(new DoubleTableDelegate);
 
   table_widget_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -41,18 +36,13 @@ void PoseWidget::createTable() {
                                   table_widget_->horizontalHeader()->height());
 
   for (int i = 0; i < 4; i++) {
-    table_widget_->setItem(0, i, new QTableWidgetItem("0.0"));
+    table_widget_->setItem(0, i, new QTableWidgetItem("0.00"));
     table_widget_->item(0, i)->setTextAlignment(Qt::AlignRight |
                                                 Qt::AlignVCenter);
   }
 
-  // table_widget_->setStyleSheet("QTableView {selection-background-color:
-  // red;}");
-  // table_widget_->setGeometry(QApplication::desktop()->screenGeometry());
-  /* for (int i = 0; i < table_widget_->columnCount(); ++i) {
-    table_widget_->resizeColumnToContents(i);
-  }
-  table_widget_->resizeRowToContents(0); */
+  connect(table_widget_, SIGNAL(itemChanged(QTableWidgetItem*)), this,
+          SLOT(itemChanged(QTableWidgetItem*)));
 }
 
 void PoseWidget::getPose(mav_msgs::EigenTrajectoryPoint* point) const {
@@ -64,11 +54,23 @@ void PoseWidget::getPose(mav_msgs::EigenTrajectoryPoint* point) const {
 }
 
 void PoseWidget::setPose(const mav_msgs::EigenTrajectoryPoint& point) {
-  table_widget_->item(0, 0)->setText(QString::number(point.position_W.x()));
-  table_widget_->item(0, 1)->setText(QString::number(point.position_W.x()));
-  table_widget_->item(0, 2)->setText(QString::number(point.position_W.x()));
+  table_widget_->blockSignals(true);
+  table_widget_->item(0, 0)->setText(
+      QString::number(point.position_W.x(), 'f', 2));
+  table_widget_->item(0, 1)->setText(
+      QString::number(point.position_W.y(), 'f', 2));
+  table_widget_->item(0, 2)->setText(
+      QString::number(point.position_W.z(), 'f', 2));
   table_widget_->item(0, 3)->setText(
-      QString::number(point.getYaw() * 180.0 / M_PI));
+      QString::number(point.getYaw() * 180.0 / M_PI, 'f', 2));
+  table_widget_->blockSignals(false);
+}
+
+void PoseWidget::itemChanged(QTableWidgetItem* item) {
+  std::cout << "Item changed: " << id_ << std::endl;
+  mav_msgs::EigenTrajectoryPoint point;
+  getPose(&point);
+  Q_EMIT poseUpdated(id_, point);
 }
 
 QWidget* DoubleTableDelegate::createEditor(QWidget* parent,

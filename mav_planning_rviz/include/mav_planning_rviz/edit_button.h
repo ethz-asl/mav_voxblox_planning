@@ -15,13 +15,22 @@ class EditButton : public QWidget {
  public:
   explicit EditButton(const std::string& id, QWidget* parent = 0);
 
-  std::string getId() const { return id_; }
+  std::string id() const { return id_; }
   void setId(const std::string& id) { id_ = id; }
+
+  virtual QSize sizeHint() const {
+    return edit_button_->sizeHint();
+  }
 
  public Q_SLOTS:
   void startEditing();
   void finishEditing();
   void toggle();
+
+  // Communicate to the main process what this button is doing:
+ Q_SIGNALS:
+  void startedEditing(const std::string& id);
+  void finishedEditing(const std::string& id);
 
  protected:
   // Set up the layout, only called by the constructor.

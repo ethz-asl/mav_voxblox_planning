@@ -4,14 +4,13 @@
 #ifndef Q_MOC_RUN
 #include <ros/ros.h>
 #include <rviz/panel.h>
+#include "mav_planning_rviz/edit_button.h"
 #include "mav_planning_rviz/planning_interactive_markers.h"
 #include "mav_planning_rviz/pose_widget.h"
 #endif
 
 class QLineEdit;
 namespace mav_planning_rviz {
-
-// class DriveWidget;
 
 class PlanningPanel : public rviz::Panel {
   // This class uses Qt slots and is a subclass of QObject, so it needs
@@ -33,10 +32,20 @@ class PlanningPanel : public rviz::Panel {
   virtual void load(const rviz::Config& config);
   virtual void save(rviz::Config config) const;
 
+  // All the settings to manage pose <-> edit mapping.
+  void registerPoseWidget(PoseWidget* widget);
+  void registerEditButton(EditButton* button);
+
+  // Callback from ROS when the pose updates:
+  void updateInteractiveMarkerPose(const mav_msgs::EigenTrajectoryPoint& pose);
+
   // Next come a couple of public Qt slots.
  public Q_SLOTS:
   void setNamespace(const QString& new_namespace);
-
+  void startEditing(const std::string& id);
+  void finishEditing(const std::string& id);
+  void widgetPoseUpdated(const std::string& id,
+                         mav_msgs::EigenTrajectoryPoint& pose);
   // Here we declare some internal slots.
  protected Q_SLOTS:
   // Updates the namespace from the editor.
@@ -55,11 +64,17 @@ class PlanningPanel : public rviz::Panel {
   PoseWidget* start_pose_widget_;
   PoseWidget* goal_pose_widget_;
 
+  // Keep track of all the pose <-> button widgets as they're related:
+  std::map<std::string, PoseWidget*> pose_widget_map_;
+  std::map<std::string, EditButton*> edit_button_map_;
+  // ROS state:
+  PlanningInteractiveMarkers interactive_markers_;
+
   // QT state:
   QString namespace_;
 
-  // ROS state:
-  PlanningInteractiveMarkers interactive_markers_;
+  // Other state:
+  std::string currently_editing_;
 };
 
 }  // end namespace mav_planning_rviz
