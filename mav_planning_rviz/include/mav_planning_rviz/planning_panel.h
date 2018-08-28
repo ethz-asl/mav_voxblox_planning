@@ -6,8 +6,10 @@
 #include <rviz/panel.h>
 #endif
 
+#include "mav_planning_rviz/pose_widget.h"
+
 class QLineEdit;
-namespace mav_planning {
+namespace mav_planning_rviz {
 
 // class DriveWidget;
 
@@ -37,7 +39,6 @@ class PlanningPanel : public rviz::Panel {
 
   // Here we declare some internal slots.
  protected Q_SLOTS:
-  void sendVel();
   // Updates the namespace from the editor.
   void updateNamespace();
 
@@ -51,11 +52,12 @@ class PlanningPanel : public rviz::Panel {
 
   // QT stuff:
   QLineEdit* namespace_editor_;
+  PoseWidget* pose_widget_;
 
   // QT state:
   QString namespace_;
 };
 
-}  // end namespace mav_planning
+}  // end namespace mav_planning_rviz
 
 #endif  // MAV_PLANNING_RVIZ_PLANNING_PANEL_H_

@@ -9,9 +9,10 @@
 
 #include <geometry_msgs/Twist.h>
 
+#include "mav_planning_rviz/pose_widget.h"
 #include "mav_planning_rviz/planning_panel.h"
 
-namespace mav_planning {
+namespace mav_planning_rviz {
 
 PlanningPanel::PlanningPanel(QWidget* parent) : rviz::Panel(parent) {
   createLayout();
@@ -22,11 +23,13 @@ void PlanningPanel::createLayout() {
   topic_layout->addWidget(new QLabel("Namespace:"));
   namespace_editor_ = new QLineEdit;
   topic_layout->addWidget(namespace_editor_);
+  pose_widget_ = new PoseWidget;
 
   // Lay out the topic field above the control widget.
   QVBoxLayout* layout = new QVBoxLayout;
   layout->addLayout(topic_layout);
-  // layout->addWidget(drive_widget_);
+  layout->addWidget(new QLabel("Start:"));
+  layout->addWidget(pose_widget_);
   setLayout(layout);
 
   connect(namespace_editor_, SIGNAL(editingFinished()), this,
@@ -64,11 +67,10 @@ void PlanningPanel::load(const rviz::Config& config) {
   }
 }
 
-}  // end namespace mav_planning
+}  // end namespace mav_planning_rviz
 
 // Tell pluginlib about this class.  Every class which should be
 // loadable by pluginlib::ClassLoader must have these two lines
 // compiled in its .cpp file, outside of any namespace scope.
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(mav_planning::PlanningPanel, rviz::Panel)
-// END_TUTORIAL
+PLUGINLIB_EXPORT_CLASS(mav_planning_rviz::PlanningPanel, rviz::Panel)

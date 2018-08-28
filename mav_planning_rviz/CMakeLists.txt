@@ -42,6 +42,8 @@ add_definitions(-DQT_NO_KEYWORDS)
 #############
 cs_add_library(${PROJECT_NAME}
   src/planning_panel.cpp
+  src/pose_widget.cpp
+  include/mav_planning_rviz/pose_widget.h
   include/mav_planning_rviz/planning_panel.h # Has to be included for auto-MOC.
   ${MOC_FILES}
 )
@@ -51,6 +53,10 @@ target_link_libraries(${PROJECT_NAME} ${QT_LIBRARIES})
 ############
 # BINARIES #
 ############
+cs_add_executable(standalone_test
+  src/standalone_test.cpp
+)
+target_link_libraries(standalone_test ${PROJECT_NAME})
 
 ##########
 # EXPORT #
