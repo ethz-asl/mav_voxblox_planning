@@ -41,28 +41,31 @@ class PlanningPanel : public rviz::Panel {
 
   // Next come a couple of public Qt slots.
  public Q_SLOTS:
-  void setNamespace(const QString& new_namespace);
+  void updateNamespace();
+  void updatePlannerName();
   void startEditing(const std::string& id);
   void finishEditing(const std::string& id);
   void widgetPoseUpdated(const std::string& id,
                          mav_msgs::EigenTrajectoryPoint& pose);
-  // Here we declare some internal slots.
- protected Q_SLOTS:
-  // Updates the namespace from the editor.
-  void updateNamespace();
+  void callPlannerService();
+  void callPublishPath();
 
-  // Then we finish up with protected member variables.
  protected:
   // Set up the layout, only called by the constructor.
   void createLayout();
+  void setNamespace(const QString& new_namespace);
+  void setPlannerName(const QString& new_planner_name);
 
   // ROS Stuff:
   ros::NodeHandle nh_;
 
   // QT stuff:
   QLineEdit* namespace_editor_;
+  QLineEdit* planner_name_editor_;
   PoseWidget* start_pose_widget_;
   PoseWidget* goal_pose_widget_;
+  QPushButton* planner_service_button_;
+  QPushButton* publish_path_button_;
 
   // Keep track of all the pose <-> button widgets as they're related:
   std::map<std::string, PoseWidget*> pose_widget_map_;
@@ -72,6 +75,7 @@ class PlanningPanel : public rviz::Panel {
 
   // QT state:
   QString namespace_;
+  QString planner_name_;
 
   // Other state:
   std::string currently_editing_;

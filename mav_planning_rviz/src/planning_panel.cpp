@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <functional>
+#include <thread>
 
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -10,7 +11,9 @@
 #include <QVBoxLayout>
 
 #include <geometry_msgs/Twist.h>
+#include <mav_planning_msgs/PlannerService.h>
 #include <rviz/visualization_manager.h>
+#include <std_srvs/Empty.h>
 
 #include "mav_planning_rviz/edit_button.h"
 #include "mav_planning_rviz/planning_panel.h"
@@ -34,6 +37,9 @@ void PlanningPanel::createLayout() {
   topic_layout->addWidget(new QLabel("Namespace:"));
   namespace_editor_ = new QLineEdit;
   topic_layout->addWidget(namespace_editor_);
+  topic_layout->addWidget(new QLabel("Planner name:"));
+  planner_name_editor_ = new QLineEdit;
+  topic_layout->addWidget(planner_name_editor_);
 
   // Start and goal poses.
   QGridLayout* start_goal_layout = new QGridLayout;
@@ -64,14 +70,29 @@ void PlanningPanel::createLayout() {
   start_goal_layout->addWidget(goal_pose_widget_, 1, 1);
   start_goal_layout->addWidget(goal_edit_button, 1, 2);
 
-  // Lay out the topic field above the control widget.
+  // Planner services and publications.
+  QHBoxLayout* service_layout = new QHBoxLayout;
+  planner_service_button_ = new QPushButton("Planner Service");
+  publish_path_button_ = new QPushButton("Publish Path");
+  service_layout->addWidget(planner_service_button_);
+  service_layout->addWidget(publish_path_button_);
+
+  // First the names, then the start/goal, then service buttons.
   QVBoxLayout* layout = new QVBoxLayout;
   layout->addLayout(topic_layout);
   layout->addLayout(start_goal_layout);
+  layout->addLayout(service_layout);
   setLayout(layout);
 
+  // Hook up connections.
   connect(namespace_editor_, SIGNAL(editingFinished()), this,
           SLOT(updateNamespace()));
+  connect(planner_name_editor_, SIGNAL(editingFinished()), this,
+          SLOT(updatePlannerName()));
+  connect(planner_service_button_, SIGNAL(released()), this,
+          SLOT(callPlannerService()));
+  connect(publish_path_button_, SIGNAL(released()), this,
+          SLOT(callPublishPath()));
 }
 
 void PlanningPanel::updateNamespace() {
@@ -85,8 +106,19 @@ void PlanningPanel::setNamespace(const QString& new_namespace) {
     namespace_ = new_namespace;
     Q_EMIT configChanged();
   }
+}
 
-  ROS_INFO("Current time: %f", vis_manager_->getROSTime());
+void PlanningPanel::updatePlannerName() {
+  setPlannerName(planner_name_editor_->text());
+}
+
+// Set the topic name we are publishing to.
+void PlanningPanel::setPlannerName(const QString& new_planner_name) {
+  // Only take action if the name has changed.
+  if (new_planner_name != planner_name_) {
+    planner_name_ = new_planner_name;
+    Q_EMIT configChanged();
+  }
 }
 
 void PlanningPanel::startEditing(const std::string& id) {
@@ -140,6 +172,7 @@ void PlanningPanel::registerEditButton(EditButton* button) {
 void PlanningPanel::save(rviz::Config config) const {
   rviz::Panel::save(config);
   config.mapSetValue("namespace", namespace_);
+  config.mapSetValue("planner_name", planner_name_);
 }
 
 // Load all configuration data for this panel from the given Config object.
@@ -148,7 +181,9 @@ void PlanningPanel::load(const rviz::Config& config) {
   QString topic;
   if (config.mapGetString("namespace", &namespace_)) {
     namespace_editor_->setText(namespace_);
-    updateNamespace();
+  }
+  if (config.mapGetString("planner_name", &planner_name_)) {
+    planner_name_editor_->setText(planner_name_);
   }
 }
 
@@ -168,6 +203,46 @@ void PlanningPanel::widgetPoseUpdated(const std::string& id,
                                       mav_msgs::EigenTrajectoryPoint& pose) {
   if (currently_editing_ == id) {
     interactive_markers_.setPose(pose);
+  }
+}
+
+void PlanningPanel::callPlannerService() {
+  std::string service_name =
+      namespace_.toStdString() + "/" + planner_name_.toStdString() + "/plan";
+  mav_msgs::EigenTrajectoryPoint start_point, goal_point;
+
+  start_pose_widget_->getPose(&start_point);
+  goal_pose_widget_->getPose(&goal_point);
+
+  std::thread t([service_name, start_point, goal_point] {
+    mav_planning_msgs::PlannerService req;
+    mav_msgs::msgPoseStampedFromEigenTrajectoryPoint(start_point,
+                                                     &req.request.start_pose);
+    mav_msgs::msgPoseStampedFromEigenTrajectoryPoint(goal_point,
+                                                     &req.request.goal_pose);
+
+    try {
+      ROS_INFO_STREAM("Service name: " << service_name);
+      if (!ros::service::call(service_name, req)) {
+        ROS_WARN_STREAM("Couldn't call service: " << service_name);
+      }
+    } catch (const std::exception& e) {
+      ROS_ERROR_STREAM("Service Exception: " << e.what());
+    }
+  });
+  t.detach();
+}
+
+void PlanningPanel::callPublishPath() {
+  std_srvs::Empty req;
+  std::string service_name = namespace_.toStdString() + "/" +
+                             planner_name_.toStdString() + "/publish_path";
+  try {
+    if (!ros::service::call(service_name, req)) {
+      ROS_WARN_STREAM("Couldn't call service: " << service_name);
+    }
+  } catch (const std::exception& e) {
+    ROS_ERROR_STREAM("Service Exception: " << e.what());
   }
 }
 
