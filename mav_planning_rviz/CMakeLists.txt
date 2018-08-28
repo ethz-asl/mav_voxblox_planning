@@ -13,6 +13,7 @@ set(CMAKE_AUTOMOC OFF)
 set(HEADER_FILES_QT
   include/mav_planning_rviz/pose_widget.h
   include/mav_planning_rviz/planning_panel.h
+  include/mav_planning_rviz/planning_panel_rviz.h
   include/mav_planning_rviz/edit_button.h
 )
 
@@ -21,6 +22,7 @@ set(SRC_FILES
   src/pose_widget.cpp
   src/edit_button.cpp
   src/planning_interactive_markers.cpp
+  src/planning_panel_rviz.cpp
 )
 
 # This plugin includes Qt widgets, so we must include Qt.
@@ -63,10 +65,10 @@ target_link_libraries(${PROJECT_NAME} ${QT_LIBRARIES})
 ############
 # BINARIES #
 ############
-cs_add_executable(standalone_test
-  src/standalone_test.cpp
+cs_add_executable(panel_standalone
+  src/panel_standalone.cpp
 )
-target_link_libraries(standalone_test ${PROJECT_NAME})
+target_link_libraries(panel_standalone ${PROJECT_NAME})
 
 ##########
 # EXPORT #
