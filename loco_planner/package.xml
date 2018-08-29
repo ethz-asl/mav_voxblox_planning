@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>loco</name>
+  <name>loco_planner</name>
   <version>0.0.0</version>
   <description>
     LOcal Continuous Optimization (LOCO!) for polynomial spline paths for MAV planning. This library takes an arbitrary distance and gradient function and pushes trajectories out of collision.

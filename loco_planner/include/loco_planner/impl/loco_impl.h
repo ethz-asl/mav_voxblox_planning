@@ -1,7 +1,7 @@
-#ifndef LOCO_LOCO_IMPL_LOCO_IMPL_H_
-#define LOCO_LOCO_IMPL_LOCO_IMPL_H_
+#ifndef LOCO_PLANNER_IMPL_LOCO_IMPL_H_
+#define LOCO_PLANNER_IMPL_LOCO_IMPL_H_
 
-namespace loco {
+namespace loco_planner {
 
 template <int N>
 Loco<N>::Loco(size_t dimension) : Loco(dimension, Config()) {}
@@ -14,12 +14,19 @@ template <int N>
 void Loco<N>::setupFromPositions(const Eigen::VectorXd& start,
                                  const Eigen::VectorXd& goal,
                                  size_t num_segments, double total_time) {
-  mav_msgs::EigenTrajectoryPoint start_point;
-  mav_msgs::EigenTrajectoryPoint goal_point;
-  start_point.position_W = start;
-  goal_point.position_W = goal;
+  mav_trajectory_generation::Vertex::Vector vertices(
+      num_segments + 1, mav_trajectory_generation::Vertex(K_));
 
-  setupFromTrajectoryPoints(start_point, goal_point, num_segments, total_time);
+  vertices.front().makeStartOrEnd(
+      0, mav_trajectory_generation::getHighestDerivativeFromN(N));
+  vertices.front().addConstraint(
+      mav_trajectory_generation::derivative_order::POSITION, start);
+  vertices.back().makeStartOrEnd(
+      0, mav_trajectory_generation::getHighestDerivativeFromN(N));
+  vertices.back().addConstraint(
+      mav_trajectory_generation::derivative_order::POSITION, goal);
+
+  setupFromVertices(total_time, &vertices);
 }
 
 template <int N>
@@ -27,17 +34,11 @@ void Loco<N>::setupFromTrajectoryPoints(
     const mav_msgs::EigenTrajectoryPoint& start_point,
     const mav_msgs::EigenTrajectoryPoint& goal_point, size_t num_segments,
     double total_time) {
-  mav_trajectory_generation::timing::Timer timer_setup("loco/setup");
-
-  std::vector<double> times(num_segments, total_time / num_segments);
-
-  int derivative_to_optimize =
-      mav_trajectory_generation::derivative_order::JERK;
-
   mav_trajectory_generation::Vertex::Vector vertices(
       num_segments + 1, mav_trajectory_generation::Vertex(K_));
 
-  vertices.front().makeStartOrEnd(0, derivative_to_optimize);
+  vertices.front().makeStartOrEnd(
+      0, mav_trajectory_generation::getHighestDerivativeFromN(N));
   vertices.front().addConstraint(
       mav_trajectory_generation::derivative_order::POSITION,
       start_point.position_W);
@@ -47,7 +48,8 @@ void Loco<N>::setupFromTrajectoryPoints(
   vertices.front().addConstraint(
       mav_trajectory_generation::derivative_order::ACCELERATION,
       start_point.acceleration_W);
-  vertices.back().makeStartOrEnd(0, derivative_to_optimize);
+  vertices.back().makeStartOrEnd(
+      0, mav_trajectory_generation::getHighestDerivativeFromN(N));
   vertices.back().addConstraint(
       mav_trajectory_generation::derivative_order::POSITION,
       goal_point.position_W);
@@ -57,7 +59,20 @@ void Loco<N>::setupFromTrajectoryPoints(
   vertices.back().addConstraint(
       mav_trajectory_generation::derivative_order::ACCELERATION,
       goal_point.acceleration_W);
-  poly_opt_.setupFromVertices(vertices, times, derivative_to_optimize);
+
+  setupFromVertices(total_time, &vertices);
+}
+
+// Vertices can be modified by this function.
+template <int N>
+void Loco<N>::setupFromVertices(
+    double total_time, mav_trajectory_generation::Vertex::Vector* vertices) {
+  mav_trajectory_generation::timing::Timer timer_setup("loco/setup");
+
+  std::vector<double> times((vertices->size() - 1),
+                            total_time / (vertices->size() - 1));
+
+  poly_opt_.setupFromVertices(*vertices, times, config_.derivative_to_optimize);
 
   // Get the initial solution.
   poly_opt_.solveLinear();
@@ -65,7 +80,8 @@ void Loco<N>::setupFromTrajectoryPoints(
   // If we're doing soft constraints, then get the current solution, remove the
   // constraint, and then feed it back as the initial condition.
   if (config_.soft_goal_constraint) {
-    goal_pos_ = goal_point.position_W;
+    vertices->back().getConstraint(
+        mav_trajectory_generation::derivative_order::POSITION, &goal_pos_);
     // Just get the p from the segments, no need to redo this work.
     mav_trajectory_generation::Segment::Vector segments;
     poly_opt_.getSegments(&segments);
@@ -78,9 +94,11 @@ void Loco<N>::setupFromTrajectoryPoints(
     }
 
     // Now remove the goal position constraint.
-    vertices.back().removeConstraint(
+    vertices->back().removeConstraint(
         mav_trajectory_generation::derivative_order::POSITION);
-    poly_opt_.setupFromVertices(vertices, times, derivative_to_optimize);
+    poly_opt_.setupFromVertices(
+        *vertices, times,
+        mav_trajectory_generation::getHighestDerivativeFromN(N));
 
     // Ok so fixed constraints are the same except the one we removed, just
     // have to properly pack the free constraints.
@@ -98,7 +116,6 @@ void Loco<N>::setupFromTrajectoryPoints(
     poly_opt_.setFreeConstraints(d_p);
   }
 
-  // Allocate all the matrices and stuff.
   setupProblem();
 
   timer_setup.Stop();
@@ -156,7 +173,7 @@ void Loco<N>::solveProblemGradientDescent() {
   increment = grad;
 
   int max_iter = 50;
-  double lambda = 10 * (config_.w_c_ + config_.w_d_);
+  double lambda = 10 * (config_.w_c + config_.w_d);
 
   double cost = 0;
   for (int i = 0; i < max_iter; ++i) {
@@ -267,13 +284,14 @@ void Loco<N>::getParameterVector(Eigen::VectorXd* parameters) const {
 }
 
 template <int N>
-void Loco<N>::getSolution(mav_trajectory_generation::Trajectory* trajectory) {
+void Loco<N>::getTrajectory(
+    mav_trajectory_generation::Trajectory* trajectory) const {
   poly_opt_.getTrajectory(trajectory);
 }
 
 template <int N>
 double Loco<N>::computeTotalCostAndGradients(
-    std::vector<Eigen::VectorXd>* gradients) {
+    std::vector<Eigen::VectorXd>* gradients) const {
   std::vector<Eigen::VectorXd> grad_d;
   std::vector<Eigen::VectorXd> grad_c;
   std::vector<Eigen::VectorXd> grad_g;
@@ -326,7 +344,7 @@ double Loco<N>::computeTotalCostAndGradients(
 
 template <int N>
 double Loco<N>::computeDerivativeCostAndGradient(
-    std::vector<Eigen::VectorXd>* gradients) {
+    std::vector<Eigen::VectorXd>* gradients) const {
   // Compare the two approaches:
   // getCost() and the full matrix.
   double J_d = 0;
@@ -339,12 +357,12 @@ double Loco<N>::computeDerivativeCostAndGradient(
   // so I guess not.
 
   // R_ff * d_f is actually constant so can cache this term.
-  Eigen::Block<Eigen::MatrixXd> R_ff = R_.block(0, 0, num_fixed_, num_fixed_);
+  const Eigen::Block<const Eigen::MatrixXd> R_ff = R_.block(0, 0, num_fixed_, num_fixed_);
 
-  Eigen::Block<Eigen::MatrixXd> R_pf =
+  const Eigen::Block<const Eigen::MatrixXd> R_pf =
       R_.block(num_fixed_, 0, num_free_, num_fixed_);
 
-  Eigen::Block<Eigen::MatrixXd> R_pp =
+  const Eigen::Block<const Eigen::MatrixXd> R_pp =
       R_.block(num_fixed_, num_fixed_, num_free_, num_free_);
 
   // Get d_p and d_f vector for all axes.
@@ -390,7 +408,7 @@ double Loco<N>::computeDerivativeCostAndGradient(
 
 template <int N>
 double Loco<N>::computeCollisionCostAndGradient(
-    std::vector<Eigen::VectorXd>* gradients) {
+    std::vector<Eigen::VectorXd>* gradients) const {
   // Unpack into d_f, d_ps.
   // Get d_p and d_f vector for all axes.
   std::vector<Eigen::VectorXd> d_p_vec;
@@ -423,7 +441,7 @@ double Loco<N>::computeCollisionCostAndGradient(
   poly_opt_.getSegmentTimes(&segment_times);
 
   // Get the correct L block to calculate derivatives.
-  Eigen::Block<Eigen::MatrixXd> L_pp =
+  Eigen::Block<const Eigen::MatrixXd> L_pp =
       L_.block(0, num_fixed_, L_.rows(), num_free_);
 
   double dt = config_.min_collision_sampling_dt;
@@ -536,7 +554,7 @@ double Loco<N>::computeCollisionCostAndGradient(
 
 template <int N>
 double Loco<N>::computeGoalCostAndGradient(
-    std::vector<Eigen::VectorXd>* gradients) {
+    std::vector<Eigen::VectorXd>* gradients) const {
   // Ok we just care about the T of the last point in the last segment.
   std::vector<double> segment_times;
   poly_opt_.getSegmentTimes(&segment_times);
@@ -561,7 +579,7 @@ double Loco<N>::computeGoalCostAndGradient(
   double J_g = 0.0;
 
   // Get the correct L block to calculate derivatives.
-  Eigen::Block<Eigen::MatrixXd> L_pp =
+  const Eigen::Block<const Eigen::MatrixXd> L_pp =
       L_.block(0, num_fixed_, L_.rows(), num_free_);
 
   Eigen::VectorXd actual_goal_pos = Eigen::VectorXd::Zero(K_);
@@ -645,8 +663,8 @@ double Loco<N>::potentialFunction(double distance) const {
 }
 
 template <int N>
-double Loco<N>::computePotentialCostAndGradient(const Eigen::VectorXd& position,
-                                                Eigen::VectorXd* gradient) {
+double Loco<N>::computePotentialCostAndGradient(
+    const Eigen::VectorXd& position, Eigen::VectorXd* gradient) const {
   Eigen::VectorXd distance_gradient(K_);
   distance_gradient.setZero();
   Eigen::VectorXd increment(K_);
@@ -715,10 +733,10 @@ int Loco<N>::NestedCeresFunction::NumParameters() const {
 }
 
 template <int N>
-double Loco<N>::getCost() {
+double Loco<N>::getCost() const {
   return computeTotalCostAndGradients(NULL);
 }
 
-}  // namespace loco
+}  // namespace loco_planner
 
-#endif  // LOCO_LOCO_IMPL_LOCO_IMPL_H_
+#endif  // LOCO_PLANNER_IMPL_LOCO_IMPL_H_

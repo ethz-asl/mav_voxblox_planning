@@ -1,5 +1,5 @@
-#ifndef LOCO_LOCO_H_
-#define LOCO_LOCO_H_
+#ifndef LOCO_PLANNER_LOCO_H_
+#define LOCO_PLANNER_LOCO_H_
 
 #include <ceres/ceres.h>
 #include <glog/logging.h>
@@ -10,7 +10,7 @@
 #include <mav_trajectory_generation/polynomial_optimization_linear.h>
 #include <mav_trajectory_generation/timing.h>
 
-namespace loco {
+namespace loco_planner {
 
 // Templated on the same as the polynomial optimization.
 // N coefficients, describing a polynomial of order N-1.
@@ -20,9 +20,11 @@ class Loco {
 
  public:
   struct Config {
+    int derivative_to_optimize =
+        mav_trajectory_generation::derivative_order::JERK;
     double epsilon = 0.5;
     double robot_radius = 0.5;
-    bool soft_goal_constraint = true;
+    bool soft_goal_constraint = false;
     double w_d = 0.1;   // Smoothness cost weight.
     double w_c = 10.0;  // Collision cost weight.
     double w_g = 2.5;   // Soft goal cost weight (if using soft goals).
@@ -48,7 +50,8 @@ class Loco {
       const mav_msgs::EigenTrajectoryPoint& start_point,
       const mav_msgs::EigenTrajectoryPoint& goal_point, size_t num_segments,
       double total_time);
-  void setupProblem();
+  void setupFromVertices(double total_time,
+                         mav_trajectory_generation::Vertex::Vector* vertices);
 
   // This should probably return something...
   void solveProblem();
@@ -58,10 +61,10 @@ class Loco {
   void solveProblemGradientDescent();
 
   // Accessors for getting the data back out...
-  void getSolution(mav_trajectory_generation::Trajectory* trajectory);
+  void getTrajectory(mav_trajectory_generation::Trajectory* trajectory) const;
 
   // The final cost in the optimization.
-  double getCost();
+  double getCost() const;
 
   // Output [t, p_x, p_y, ...] for MATLAB plotting.
   void printMatlabSampledTrajectory(double dt) const;
@@ -99,23 +102,26 @@ class Loco {
   void setSoftGoalConstraint(bool soft_goal) {
     config_.soft_goal_constraint = soft_goal;
   }
+  bool getVerbose() const { return config_.verbose; }
+  void setVerbose(bool verbose) { config_.verbose = verbose; }
 
   // Internal functions, for testing, debugging, or advanced use.
 
   // Returns cost and gradient vector, with respect to k (separate for each
   // dimension).
-  double computeTotalCostAndGradients(std::vector<Eigen::VectorXd>* gradients);
+  double computeTotalCostAndGradients(
+      std::vector<Eigen::VectorXd>* gradients) const;
   // Just the J_d part.
   double computeDerivativeCostAndGradient(
-      std::vector<Eigen::VectorXd>* gradients);
+      std::vector<Eigen::VectorXd>* gradients) const;
   // Just the J_c part.
   double computeCollisionCostAndGradient(
-      std::vector<Eigen::VectorXd>* gradients);
+      std::vector<Eigen::VectorXd>* gradients) const;
   // The J_g part if using soft goals.
-  double computeGoalCostAndGradient(std::vector<Eigen::VectorXd>* gradients);
-
+  double computeGoalCostAndGradient(
+      std::vector<Eigen::VectorXd>* gradients) const;
   double computePotentialCostAndGradient(const Eigen::VectorXd& position,
-                                         Eigen::VectorXd* gradient);
+                                         Eigen::VectorXd* gradient) const;
   double potentialFunction(double distance) const;
 
   // Set how to get the distance of a point.
@@ -127,6 +133,8 @@ class Loco {
   void getTVector(double t, Eigen::VectorXd* T) const;
 
  private:
+  void setupProblem();
+
   // Private class for ceres evaluations.
   class NestedCeresFunction : public ceres::FirstOrderFunction {
    public:
@@ -176,8 +184,8 @@ class Loco {
   Eigen::MatrixXd A_;
 };
 
-}  //  namespace loco
+}  //  namespace loco_planner
 
-#include "loco/impl/loco_impl.h"
+#include "loco_planner/impl/loco_impl.h"
 
-#endif  // LOCO_LOCO_H_
+#endif  // LOCO_PLANNER_LOCO_H_

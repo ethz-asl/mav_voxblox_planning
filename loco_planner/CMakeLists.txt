@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(loco)
+project(loco_planner)
 
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
@@ -23,10 +23,10 @@ cs_add_executable(loco_main
 #########
 # TESTS #
 #########
-#catkin_add_gtest(test_cost_functions
-#  test/test_cost_functions.cpp
-#)
-#target_link_libraries(test_cost_functions ${catkin_LIBRARIES} chomp_optimizer)
+catkin_add_gtest(test_loco
+  test/test_loco.cpp
+)
+target_link_libraries(test_loco ${catkin_LIBRARIES})
 
 ##########
 # EXPORT #
