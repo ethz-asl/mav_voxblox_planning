@@ -655,11 +655,12 @@ void Loco<N>::printMatlabSampledTrajectory(double dt) const {
 template <int N>
 double Loco<N>::potentialFunction(double distance) const {
   double result = 0.0;
-  distance -= config_.robot_radius;
-  if (distance < 0) {
-    result = -distance + 0.5 * config_.epsilon;
-  } else if (distance <= config_.epsilon) {
-    double epsilon_distance = distance - config_.epsilon;
+  double d = distance - config_.robot_radius;
+
+  if (d < 0) {
+    result = -d + 0.5 * config_.epsilon;
+  } else if (d <= config_.epsilon) {
+    double epsilon_distance = d - config_.epsilon;
     result = 0.5 * 1.0 / config_.epsilon * epsilon_distance * epsilon_distance;
   } else {
     result = 0.0;
@@ -671,8 +672,8 @@ template <int N>
 void Loco<N>::potentialGradientFunction(
     double distance, const Eigen::VectorXd& distance_gradient,
     Eigen::VectorXd* gradient_out) const {
-  double result = 0.0;
   double d = distance - config_.robot_radius;
+
   if (d < 0) {
     *gradient_out = -distance_gradient;
   } else if (d <= config_.epsilon) {
