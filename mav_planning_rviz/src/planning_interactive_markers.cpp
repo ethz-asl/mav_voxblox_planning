@@ -161,7 +161,6 @@ void PlanningInteractiveMarkers::processSetPoseFeedback(
 
 void PlanningInteractiveMarkers::enableMarker(
     const std::string& id, const mav_msgs::EigenTrajectoryPoint& pose) {
-  ROS_INFO_STREAM("Enabling marker: " << id);
   geometry_msgs::PoseStamped pose_stamped;
   mav_msgs::msgPoseStampedFromEigenTrajectoryPoint(pose, &pose_stamped);
 
@@ -198,8 +197,6 @@ void PlanningInteractiveMarkers::updateMarkerPose(
 }
 
 void PlanningInteractiveMarkers::disableMarker(const std::string& id) {
-  ROS_INFO_STREAM("Disabling marker: " << id);
-
   marker_server_.erase(id);
   marker_server_.applyChanges();
 }

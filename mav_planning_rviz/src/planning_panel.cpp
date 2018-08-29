@@ -32,7 +32,6 @@ void PlanningPanel::onInitialize() {
       std::bind(&PlanningPanel::updateInteractiveMarkerPose, this,
                 std::placeholders::_1));
 
-  ROS_INFO_STREAM("Fixed frame: " << vis_manager_->getFixedFrame().toStdString());
   interactive_markers_.setFrameId(vis_manager_->getFixedFrame().toStdString());
   // Initialize all the markers.
   for (const auto& kv : pose_widget_map_) {
@@ -133,7 +132,6 @@ void PlanningPanel::setPlannerName(const QString& new_planner_name) {
 }
 
 void PlanningPanel::startEditing(const std::string& id) {
-  ROS_INFO_STREAM("Id: " << id << " Currently editing: " << currently_editing_);
   // Make sure nothing else is being edited.
   if (!currently_editing_.empty()) {
     auto search = edit_button_map_.find(currently_editing_);
