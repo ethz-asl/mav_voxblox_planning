@@ -19,11 +19,11 @@ class LocoTest : public ::testing::Test {
   virtual void SetUp() {
     // Default values, easily overwritten.
     obstacle_center_ << 2.0, 2.0;
-    start_ << 0.5, 0.5;
-    goal_ << 3.5, 3.5;
+    start_ << 0.0, 0.5;
+    goal_ << 3.5, 3.0;
     loco_.setEpsilon(0.5);
     loco_.setRobotRadius(0.5);
-    loco_.setVerbose(true);
+    loco_.setVerbose(false);
     setExactDistanceFunction();
   }
 
@@ -34,9 +34,9 @@ class LocoTest : public ::testing::Test {
                                         this, std::placeholders::_1, nullptr));
   }
   void setExactDistanceAndGradientFunction() {
-    // loco_.setDistanceAndGradientFunction(std::bind(&LocoTest::getExactDistanceAndGradient,
-    //                                   this, std::placeholders::_1,
-    //                                   std::placeholders::_2));
+    loco_.setDistanceAndGradientFunction(
+        std::bind(&LocoTest::getExactDistanceAndGradient, this,
+                  std::placeholders::_1, std::placeholders::_2));
   }
   void setDiscretizedDistanceFunction() {}
   void setDiscretizedDistanceAndGradientFunction() {}
@@ -68,6 +68,7 @@ class LocoTest : public ::testing::Test {
         return true;
       }
     }
+    return false;
   }
 
   // TODO(helenol): add voxel-discretized versions down to resolution.
@@ -105,7 +106,7 @@ TEST_F(LocoTest, VerifySmoothnessCostAndGrad) {
 }
 
 TEST_F(LocoTest, VerifyPotentialCosts) {
-  setExactDistanceFunction();
+  setExactDistanceAndGradientFunction();
   loco_.setupFromPositions(start_, goal_, num_segments_, total_time_);
 
   constexpr double kGradientTolerance = 1e-2;
@@ -206,7 +207,7 @@ TEST_F(LocoTest, VerifyPotentialCosts) {
 }
 
 TEST_F(LocoTest, TestCeres) {
-  setExactDistanceFunction();
+  setExactDistanceAndGradientFunction();
   loco_.setupFromPositions(start_, goal_, num_segments_, total_time_);
 
   // Check cost.
@@ -217,6 +218,7 @@ TEST_F(LocoTest, TestCeres) {
   double cost_c = loco_.computeCollisionCostAndGradient(&gradients_c);
   double cost_d = loco_.computeDerivativeCostAndGradient(&gradients_d);
   double cost = loco_.computeTotalCostAndGradients(&gradients);
+  std::cout << "Num free: " << loco_.getNumParams() << std::endl;
 
   std::cout << "Cost c: " << cost_c << " Cost d: " << cost_d
             << " Total cost: " << cost << std::endl;
@@ -235,7 +237,41 @@ TEST_F(LocoTest, TestCeres) {
 
   loco_.getTrajectory(&trajectory);
   EXPECT_FALSE(inCollision(trajectory));
-  loco_.printMatlabSampledTrajectory(0.1);
+  // loco_.printMatlabSampledTrajectory(0.1);
+}
+
+TEST_F(LocoTest, TestGradientDescent) {
+  setExactDistanceAndGradientFunction();
+  loco_.setupFromPositions(start_, goal_, num_segments_, total_time_);
+
+  // Check cost.
+  std::vector<Eigen::VectorXd> gradients;
+  std::vector<Eigen::VectorXd> gradients_c;
+  std::vector<Eigen::VectorXd> gradients_d;
+
+  double cost_c = loco_.computeCollisionCostAndGradient(&gradients_c);
+  double cost_d = loco_.computeDerivativeCostAndGradient(&gradients_d);
+  double cost = loco_.computeTotalCostAndGradients(&gradients);
+  std::cout << "Num free: " << loco_.getNumParams() << std::endl;
+
+  std::cout << "Cost c: " << cost_c << " Cost d: " << cost_d
+            << " Total cost: " << cost << std::endl;
+
+  mav_trajectory_generation::Trajectory trajectory;
+  loco_.getTrajectory(&trajectory);
+  EXPECT_TRUE(inCollision(trajectory));
+
+  loco_.solveProblemGradientDescent();
+
+  double final_cost = loco_.computeTotalCostAndGradients(&gradients);
+
+  std::cout << "Initial cost: " << cost << " Final cost: " << final_cost
+            << std::endl;
+  EXPECT_LT(final_cost, cost);
+
+  loco_.getTrajectory(&trajectory);
+  EXPECT_FALSE(inCollision(trajectory));
+  // loco_.printMatlabSampledTrajectory(0.1);
 }
 
 }  // namespace loco_planner

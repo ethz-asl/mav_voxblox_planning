@@ -163,6 +163,7 @@ void Loco<N>::solveProblem() {
 
 template <int N>
 void Loco<N>::solveProblemGradientDescent() {
+  mav_trajectory_generation::timing::Timer timer_solve("loco/solve_gd");
   // Get initial parameters.
   std::vector<Eigen::VectorXd> grad_vec;
 
@@ -173,6 +174,7 @@ void Loco<N>::solveProblemGradientDescent() {
   increment = grad;
 
   int max_iter = 50;
+  // If we have bad results... try 10 again.
   double lambda = 10 * (config_.w_c + config_.w_d);
 
   double cost = 0;
@@ -186,16 +188,19 @@ void Loco<N>::solveProblemGradientDescent() {
     }
     double step_size = 1.0 / (lambda + i);
     increment = -step_size * grad;
-    std::cout << "[GD] i: " << i << " step size: " << step_size
-              << " cost: " << cost << " gradient norm: " << grad.norm()
-              << std::endl;
+    if (config_.verbose) {
+      std::cout << "[GD] i: " << i << " step size: " << step_size
+                << " cost: " << cost << " gradient norm: " << grad.norm()
+                << std::endl;
+    }
 
     // Update the parameters.
     x += increment;
     setParameterVector(x);
   }
-
-  std::cout << "[Solution]: " << x.transpose() << std::endl;
+  if (config_.verbose) {
+    std::cout << "[Solution]: " << x.transpose() << std::endl;
+  }
 }
 
 template <int N>
@@ -218,11 +223,10 @@ void Loco<N>::solveProblemCeres() {
 
   ceres::GradientProblemSolver::Options options;
   options.line_search_direction_type = ceres::BFGS;
-  // options.max_lbfgs_rank = 5;
+
   if (config_.verbose) {
     options.minimizer_progress_to_stdout = true;
   }
-  // options.max_num_line_search_step_size_iterations = 4;
   options.line_search_interpolation_type = ceres::BISECTION;
   ceres::GradientProblemSolver::Summary summary;
 
@@ -357,7 +361,8 @@ double Loco<N>::computeDerivativeCostAndGradient(
   // so I guess not.
 
   // R_ff * d_f is actually constant so can cache this term.
-  const Eigen::Block<const Eigen::MatrixXd> R_ff = R_.block(0, 0, num_fixed_, num_fixed_);
+  const Eigen::Block<const Eigen::MatrixXd> R_ff =
+      R_.block(0, 0, num_fixed_, num_fixed_);
 
   const Eigen::Block<const Eigen::MatrixXd> R_pf =
       R_.block(num_fixed_, 0, num_free_, num_fixed_);
@@ -663,30 +668,39 @@ double Loco<N>::potentialFunction(double distance) const {
 }
 
 template <int N>
+void Loco<N>::potentialGradientFunction(
+    double distance, const Eigen::VectorXd& distance_gradient,
+    Eigen::VectorXd* gradient_out) const {
+  double result = 0.0;
+  double d = distance - config_.robot_radius;
+  if (d < 0) {
+    *gradient_out = -distance_gradient;
+  } else if (d <= config_.epsilon) {
+    *gradient_out =
+        1.0 / config_.epsilon *
+        (d * distance_gradient - config_.epsilon * distance_gradient);
+  } else {
+    gradient_out->setZero(K_);
+  }
+}
+
+template <int N>
 double Loco<N>::computePotentialCostAndGradient(
     const Eigen::VectorXd& position, Eigen::VectorXd* gradient) const {
   Eigen::VectorXd distance_gradient(K_);
   distance_gradient.setZero();
   Eigen::VectorXd increment(K_);
 
-  double d = distance_function_(position);
-  double c = potentialFunction(d);
-  // Get numeric derivative for each dim.
-  if (gradient != NULL) {
-    for (int k = 0; k < K_; ++k) {
-      // Gradient computations for a single dimension.
-      increment.setZero();
-      increment(k) = config_.map_resolution;
-      double left_distance =
-          potentialFunction(distance_function_(position - increment));
-      double right_distance =
-          potentialFunction(distance_function_(position + increment));
-      double dim_gradient =
-          (right_distance - left_distance) / (2.0 * config_.map_resolution);
-      distance_gradient(k) = dim_gradient;
-    }
+  double d;
+  if (gradient != nullptr) {
+    d = distance_and_gradient_function_(position, &distance_gradient);
+  } else {
+    d = distance_and_gradient_function_(position, nullptr);
+  }
 
-    *gradient = distance_gradient;
+  double c = potentialFunction(d);
+  if (gradient != nullptr) {
+    potentialGradientFunction(d, distance_gradient, gradient);
   }
   return c;
 }
@@ -735,6 +749,28 @@ int Loco<N>::NestedCeresFunction::NumParameters() const {
 template <int N>
 double Loco<N>::getCost() const {
   return computeTotalCostAndGradients(NULL);
+}
+
+template <int N>
+double Loco<N>::getNumericalDistanceAndGradient(const Eigen::VectorXd& position,
+                                                Eigen::VectorXd* gradient) {
+  gradient->setZero(K_);
+  Eigen::VectorXd increment(K_);
+  double d = distance_function_(position);
+
+  if (gradient != NULL) {
+    for (int k = 0; k < K_; ++k) {
+      // Gradient computations for a single dimension.
+      increment.setZero();
+      increment(k) = config_.map_resolution;
+      double left_distance = distance_function_(position - increment);
+      double right_distance = distance_function_(position + increment);
+      double dim_gradient =
+          (right_distance - left_distance) / (2.0 * config_.map_resolution);
+      (*gradient)(k) = dim_gradient;
+    }
+    return d;
+  }
 }
 
 }  // namespace loco_planner

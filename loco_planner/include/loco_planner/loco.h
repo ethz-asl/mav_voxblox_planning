@@ -53,6 +53,18 @@ class Loco {
   void setupFromVertices(double total_time,
                          mav_trajectory_generation::Vertex::Vector* vertices);
 
+  // Set how to get the distance of a point. ONE OF THESE TWO *MUST* BE SET!
+  void setDistanceFunction(const DistanceFunctionType& function) {
+    distance_function_ = function;
+    distance_and_gradient_function_ =
+        std::bind(&Loco::getNumericalDistanceAndGradient, this,
+                  std::placeholders::_1, std::placeholders::_2);
+  }
+  void setDistanceAndGradientFunction(
+      const DistanceAndGradientFunctionType& function) {
+    distance_and_gradient_function_ = function;
+  }
+
   // This should probably return something...
   void solveProblem();
 
@@ -123,17 +135,17 @@ class Loco {
   double computePotentialCostAndGradient(const Eigen::VectorXd& position,
                                          Eigen::VectorXd* gradient) const;
   double potentialFunction(double distance) const;
-
-  // Set how to get the distance of a point.
-  void setDistanceFunction(const DistanceFunctionType& function) {
-    distance_function_ = function;
-  }
-
+  void potentialGradientFunction(double distance,
+                                 const Eigen::VectorXd& distance_gradient,
+                                 Eigen::VectorXd* gradient_out) const;
   // Convenience.
   void getTVector(double t, Eigen::VectorXd* T) const;
 
  private:
   void setupProblem();
+
+  double getNumericalDistanceAndGradient(const Eigen::VectorXd& position,
+                                         Eigen::VectorXd* gradient);
 
   // Private class for ceres evaluations.
   class NestedCeresFunction : public ceres::FirstOrderFunction {
