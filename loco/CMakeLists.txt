@@ -16,9 +16,9 @@ add_definitions(-std=c++11)
 ############
 # BINARIES #
 ############
-#cs_add_executable(loco_main
-#  src/loco_main.cpp
-#)
+cs_add_executable(loco_main
+  src/loco_main.cpp
+)
 
 #########
 # TESTS #

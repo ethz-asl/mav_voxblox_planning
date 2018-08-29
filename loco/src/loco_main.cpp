@@ -3,7 +3,7 @@
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
 
-  Loco<10> loco;
+  loco::Loco<10> loco(3);
 
-  return;
+  return 0;
 }
