@@ -57,11 +57,18 @@ class Loco {
   // These methods take in an initial solution:
   // The first method keeps the number of segments of the original, while the
   // second re-samples it into num_segments.
+  // set_waypoints will determine whether initial vertices are set as soft costs
+  // in the optimization.
   void setupFromTrajectory(
       const mav_trajectory_generation::Trajectory& trajectory);
   void setupFromTrajectoryAndResample(
       const mav_trajectory_generation::Trajectory& trajectory,
       size_t num_segments);
+
+  // Optionally set soft costs on waypoints, at specific times:
+  void setWaypoints(const std::map<double, Eigen::VectorXd>& waypoints);
+  void setWaypointsFromTrajectory(
+      const mav_trajectory_generation::Trajectory& trajectory);
 
   // Set how to get the distance of a point. ONE OF THESE TWO *MUST* BE SET!
   void setDistanceFunction(const DistanceFunctionType& function) {
