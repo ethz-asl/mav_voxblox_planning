@@ -18,10 +18,11 @@ void LocoSmoother::setParametersFromRos(const ros::NodeHandle& nh) {
 bool LocoSmoother::getTrajectoryBetweenWaypoints(
     const mav_msgs::EigenTrajectoryPoint::Vector& waypoints,
     mav_trajectory_generation::Trajectory* trajectory) const {
-  if (waypoints.size() < 2) {
-    return false;
+  // If there's less than 3 waypoints, there are no free variables for loco.
+  if (waypoints.size() < 3) {
+    return PolynomialSmoother::getTrajectoryBetweenWaypoints(waypoints,
+                                                             trajectory);
   }
-
   mav_trajectory_generation::timing::Timer loco_timer("smoothing/poly_loco");
 
   // Create a loco object! So Loco!
@@ -41,6 +42,8 @@ bool LocoSmoother::getTrajectoryBetweenWaypoints(
   loco.setupFromTrajectory(traj_initial);
   loco.solveProblem();
   loco.getTrajectory(trajectory);
+
+  return true;
 
   mav_msgs::EigenTrajectoryPoint::Vector path;
 
