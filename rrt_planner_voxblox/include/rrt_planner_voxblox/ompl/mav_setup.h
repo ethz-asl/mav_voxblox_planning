@@ -27,7 +27,7 @@ class MavSetup : public geometric::SimpleSetup {
                 getSpaceInformation())));
   }
 
-  void setDefaultPlanner() { setRRTStar(); }
+  void setDefaultPlanner() { setRRT(); }
 
   void setRRTStar() {
     setPlanner(ompl::base::PlannerPtr(

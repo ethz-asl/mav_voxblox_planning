@@ -363,7 +363,9 @@ bool RrtPlannerVoxblox::generateFeasibleTrajectory(
 bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) {
-  loco_smoother_.setResampleTrajectory(false);
+  loco_smoother_.setResampleTrajectory(true);
+  loco_smoother_.setAddWaypoints(false);
+
   loco_smoother_.getPathBetweenWaypoints(coordinate_path, path);
 
   bool path_in_collision = checkPathForCollisions(*path, NULL);
@@ -378,9 +380,9 @@ bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco2(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) {
   loco_smoother_.setResampleTrajectory(true);
+  loco_smoother_.setAddWaypoints(true);
+
   loco_smoother_.getPathBetweenWaypoints(coordinate_path, path);
-  /* loco_smoother_.getPathBetweenTwoPoints(coordinate_path.front(),
-                                         coordinate_path.back(), path); */
 
   bool path_in_collision = checkPathForCollisions(*path, NULL);
 

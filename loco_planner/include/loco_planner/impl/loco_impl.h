@@ -255,13 +255,12 @@ void Loco<N>::setupFromTrajectoryAndResample(
 }
 
 template <int N>
-void Loco<N>::void setWaypoints(
-    const std::map<double, Eigen::VectorXd>& waypoints) {
+void Loco<N>::setWaypoints(const std::map<double, Eigen::VectorXd>& waypoints) {
   waypoints_ = waypoints;
 }
 
 template <int N>
-void Loco<N>::void setWaypointsFromTrajectory(
+void Loco<N>::setWaypointsFromTrajectory(
     const mav_trajectory_generation::Trajectory& trajectory) {
   waypoints_.clear();
   std::vector<double> times = trajectory.getSegmentTimes();
@@ -687,65 +686,6 @@ double Loco<N>::computeGoalCostAndGradient(
       std::accumulate(segment_times.begin(), segment_times.end(), 0.0);
 
   return computePositionSoftCostAndGradient(total_time, goal_pos_, gradients);
-  /*
-
-    // Ok we just care about the T of the last point in the last segment.
-    std::vector<double> segment_times;
-    poly_opt_.getSegmentTimes(&segment_times);
-    size_t num_segments = segment_times.size();
-    Eigen::VectorXd T_last_seg;
-    getTVector(segment_times.back(), &T_last_seg);
-
-    // I guess the best is to just pad out T_g with 0s up to last seg.
-    Eigen::VectorXd T(num_segments * N);
-    T.setZero();
-    T.segment<N>((num_segments - 1) * N) = T_last_seg;
-
-    // Get d_p and d_f vector for all axes.
-    std::vector<Eigen::VectorXd> d_p_vec;
-    std::vector<Eigen::VectorXd> d_f_vec;
-
-    poly_opt_.getFreeConstraints(&d_p_vec);
-    poly_opt_.getFixedConstraints(&d_f_vec);
-
-    // Unpack the ps.
-    std::vector<Eigen::VectorXd> p_vec(K_, Eigen::VectorXd(N * num_segments));
-    double J_g = 0.0;
-
-    // Get the correct L block to calculate derivatives.
-    const Eigen::Block<const Eigen::MatrixXd> L_pp =
-        L_.block(0, num_fixed_, L_.rows(), num_free_);
-
-    Eigen::VectorXd actual_goal_pos = Eigen::VectorXd::Zero(K_);
-    for (int k = 0; k < K_; ++k) {
-      Eigen::VectorXd d_all(num_fixed_ + num_free_);
-      d_all.head(num_fixed_) = d_f_vec[k];
-      d_all.tail(num_free_) = d_p_vec[k];
-
-      // Get the coefficients out.
-      // L is shorthand for A_inv * M.
-      p_vec[k] = L_ * d_all;
-
-      actual_goal_pos(k) = T.transpose() * p_vec[k];
-    }
-
-    J_g = (actual_goal_pos - goal_pos_).norm();
-
-    // Fill in gradients too.
-    if (gradients != nullptr) {
-      gradients->resize(K_);
-      for (int k = 0; k < K_; ++k) {
-        (*gradients)[k].resize(num_free_);
-        (*gradients)[k].setZero();
-        Eigen::MatrixXd df_dpk(K_, num_segments * N);
-        df_dpk.setZero();
-        df_dpk.row(k) = T;
-        (*gradients)[k] =
-            ((actual_goal_pos - goal_pos_) / J_g).transpose() * df_dpk * L_pp;
-      }
-    }
-
-    return J_g; */
 }
 
 template <int N>

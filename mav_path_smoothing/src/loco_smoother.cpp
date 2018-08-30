@@ -6,12 +6,20 @@
 namespace mav_planning {
 
 LocoSmoother::LocoSmoother()
-    : PolynomialSmoother(), resample_trajectory_(false), num_segments_(3) {
+    : PolynomialSmoother(),
+      resample_trajectory_(false),
+      num_segments_(3),
+      add_waypoints_(false) {
   split_at_collisions_ = false;
 }
 
 void LocoSmoother::setParametersFromRos(const ros::NodeHandle& nh) {
   PolynomialSmoother::setParametersFromRos(nh);
+  nh.param("resample_trajectory", resample_trajectory_, resample_trajectory_);
+  nh.param("add_waypoints", add_waypoints_, add_waypoints_);
+  nh.param("num_segments", num_segments_,
+           num_segments_);
+
   // Force some settings.
   split_at_collisions_ = false;
 }
@@ -48,6 +56,10 @@ bool LocoSmoother::getTrajectoryBetweenWaypoints(
   } else {
     loco.setupFromTrajectory(traj_initial);
   }
+  if (add_waypoints_) {
+    loco.setWaypointsFromTrajectory(traj_initial);
+  }
+
   loco.solveProblem();
   loco.getTrajectory(trajectory);
 

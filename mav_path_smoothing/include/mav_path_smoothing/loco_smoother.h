@@ -36,10 +36,14 @@ class LocoSmoother : public PolynomialSmoother {
   }
   int getNumSegments() const { return num_segments_; }
   void setNumSegments(int num_segments) { num_segments_ = num_segments; }
+  // Controls whether waypoints are added as soft costs in the LOCO problem.
+  bool getAddWaypoints() const { return add_waypoints_; }
+  void setAddWaypoints(bool add_waypoints) { add_waypoints_ = add_waypoints; }
 
  protected:
   bool resample_trajectory_;
   int num_segments_;
+  bool add_waypoints_;
 };
 
 }  // namespace mav_planning
