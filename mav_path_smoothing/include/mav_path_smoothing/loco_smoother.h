@@ -18,7 +18,20 @@ class LocoSmoother : public PolynomialSmoother {
       const mav_msgs::EigenTrajectoryPoint::Vector& waypoints,
       mav_trajectory_generation::Trajectory* trajectory) const;
 
+  // Special case for num_waypoints = 2 (splits trajectory into num_segments).
+  virtual bool getTrajectoryBetweenTwoPoints(
+    const mav_msgs::EigenTrajectoryPoint& start,
+    const mav_msgs::EigenTrajectoryPoint& goal,
+    mav_trajectory_generation::Trajectory* trajectory) const;
+
+  virtual bool getPathBetweenTwoPoints(
+      const mav_msgs::EigenTrajectoryPoint& start,
+      const mav_msgs::EigenTrajectoryPoint& goal,
+      mav_msgs::EigenTrajectoryPoint::Vector* path) const;
+
+
  protected:
+  int num_segments_;
 };
 
 }  // namespace mav_planning

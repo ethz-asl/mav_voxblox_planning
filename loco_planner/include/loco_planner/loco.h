@@ -25,7 +25,7 @@ class Loco {
     double epsilon = 0.5;
     double robot_radius = 0.5;
     bool soft_goal_constraint = false;
-    double w_d = 10.0;   // Smoothness cost weight.
+    double w_d = 0.1;  // Smoothness cost weight.
     double w_c = 10.0;  // Collision cost weight.
     double w_g = 2.5;   // Soft goal cost weight (if using soft goals).
     double min_collision_sampling_dt = 0.1;
@@ -54,7 +54,8 @@ class Loco {
                          mav_trajectory_generation::Vertex::Vector* vertices);
 
   // These methods take in an initial solution:
-  void setupFromTrajectory(const mav_trajectory_generation::Trajectory& trajectory);
+  void setupFromTrajectory(
+      const mav_trajectory_generation::Trajectory& trajectory);
 
   // Set how to get the distance of a point. ONE OF THESE TWO *MUST* BE SET!
   void setDistanceFunction(const DistanceFunctionType& function) {
@@ -99,10 +100,10 @@ class Loco {
   void setRobotRadius(double robot_radius) {
     config_.robot_radius = robot_radius;
   }
-  double getWd() const { return config_.w_d_; }
-  void setWd(double w_d) { config_.w_d_ = w_d; }
-  double getWc() const { return config_.w_c_; }
-  void setWc(double w_c) { config_.w_c_ = w_c; }
+  double getWd() const { return config_.w_d; }
+  void setWd(double w_d) { config_.w_d = w_d; }
+  double getWc() const { return config_.w_c; }
+  void setWc(double w_c) { config_.w_c = w_c; }
   double getCollisionSamplingDt() const {
     return config_.min_collision_sampling_dt;
   }

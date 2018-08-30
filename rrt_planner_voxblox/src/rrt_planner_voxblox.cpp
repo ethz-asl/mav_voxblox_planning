@@ -229,9 +229,15 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
         !generateFeasibleTrajectoryLoco(waypoints, &loco_path);
     loco_timer.Stop();
 
+    mav_msgs::EigenTrajectoryPointVector loco2_path;
+    mav_trajectory_generation::timing::Timer loco2_timer("plan/loco2");
+    bool loco2_has_collisions =
+        !generateFeasibleTrajectoryLoco2(waypoints, &loco2_path);
+    loco2_timer.Stop();
+
     ROS_INFO(
-        "Poly Smoothed Path has collisions? %d Loco Path has collisions? %d",
-        poly_has_collisions, loco_has_collisions);
+        "Poly Smoothed Path has collisions? %d Loco Path has collisions? %d Loco 2 has collisions? %d",
+        poly_has_collisions, loco_has_collisions, loco2_has_collisions);
 
     if (!poly_has_collisions) {
       last_trajectory_valid_ = true;
@@ -242,6 +248,8 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
           poly_path, mav_visualization::Color::Orange(), "poly", 0.075));
       marker_array.markers.push_back(createMarkerForPath(
           loco_path, mav_visualization::Color::Pink(), "loco", 0.075));
+      marker_array.markers.push_back(createMarkerForPath(
+          loco2_path, mav_visualization::Color::Teal(), "loco2", 0.075));
     }
   }
 
@@ -351,6 +359,20 @@ bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) {
   loco_smoother_.getPathBetweenWaypoints(coordinate_path, path);
+
+  bool path_in_collision = checkPathForCollisions(*path, NULL);
+
+  if (path_in_collision) {
+    return false;
+  }
+  return true;
+}
+
+bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco2(
+    const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
+    mav_msgs::EigenTrajectoryPointVector* path) {
+  loco_smoother_.getPathBetweenTwoPoints(coordinate_path.front(),
+                                         coordinate_path.back(), path);
 
   bool path_in_collision = checkPathForCollisions(*path, NULL);
 
