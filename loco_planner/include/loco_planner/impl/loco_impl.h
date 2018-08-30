@@ -384,47 +384,63 @@ double Loco<N>::computeTotalCostAndGradients(
   std::vector<Eigen::VectorXd> grad_d;
   std::vector<Eigen::VectorXd> grad_c;
   std::vector<Eigen::VectorXd> grad_g;
+  std::vector<Eigen::VectorXd> grad_w;
 
-  double J_d = 0.0, J_c = 0.0, J_g = 0.0;
+  double J_d = 0.0, J_c = 0.0, J_g = 0.0, J_w = 0.0;
 
   mav_trajectory_generation::timing::Timer timer_cost_grad_d(
       "loco/cost_grad_d");
-  if (gradients != NULL) {
+  if (gradients != nullptr) {
     J_d = computeDerivativeCostAndGradient(&grad_d);
   } else {
-    J_d = computeDerivativeCostAndGradient(NULL);
+    J_d = computeDerivativeCostAndGradient(nullptr);
   }
   timer_cost_grad_d.Stop();
   mav_trajectory_generation::timing::Timer timer_cost_grad_c(
       "loco/cost_grad_c");
-  if (gradients != NULL) {
+  if (gradients != nullptr) {
     J_c = computeCollisionCostAndGradient(&grad_c);
   } else {
-    J_c = computeCollisionCostAndGradient(NULL);
+    J_c = computeCollisionCostAndGradient(nullptr);
   }
   timer_cost_grad_c.Stop();
 
   if (config_.soft_goal_constraint) {
     mav_trajectory_generation::timing::Timer timer_cost_grad_g(
         "loco/cost_grad_g");
-    if (gradients != NULL) {
+    if (gradients != nullptr) {
       J_g = computeGoalCostAndGradient(&grad_g);
     } else {
-      J_g = computeGoalCostAndGradient(NULL);
+      J_g = computeGoalCostAndGradient(nullptr);
     }
     timer_cost_grad_g.Stop();
   }
 
-  double cost = config_.w_d * J_d + config_.w_c * J_c + config_.w_g * J_g;
+  if (!waypoints_.empty()) {
+    mav_trajectory_generation::timing::Timer timer_cost_grad_w(
+        "loco/cost_grad_w");
+    if (gradients != nullptr) {
+      J_w = computeWaypointCostAndGradient(&grad_w);
+    } else {
+      J_w = computeWaypointCostAndGradient(nullptr);
+    }
+    timer_cost_grad_w.Stop();
+  }
+
+  double cost = config_.w_d * J_d + config_.w_c * J_c + config_.w_g * J_g +
+                config_.w_w * J_w;
 
   // Add the gradients too...
-  if (gradients != NULL) {
+  if (gradients != nullptr) {
     gradients->clear();
     gradients->resize(K_, Eigen::VectorXd::Zero(num_free_));
     for (int k = 0; k < K_; ++k) {
       (*gradients)[k] = config_.w_d * grad_d[k] + config_.w_c * grad_c[k];
       if (config_.soft_goal_constraint && !grad_g.empty()) {
         (*gradients)[k] += config_.w_g * grad_g[k];
+      }
+      if (!grad_w.empty()) {
+        (*gradients)[k] += config_.w_w * grad_w[k];
       }
     }
   }
@@ -486,7 +502,7 @@ double Loco<N>::computeDerivativeCostAndGradient(
   }
 
   double cost = J_d;
-  if (gradients != NULL) {
+  if (gradients != nullptr) {
     gradients->clear();
     gradients->resize(K_);
     for (int k = 0; k < K_; ++k) {
@@ -546,7 +562,7 @@ double Loco<N>::computeCollisionCostAndGradient(
   Eigen::VectorXd last_position(K_);
   last_position.setZero();
   // int is "integral" in this case, not "integer."
-  double time_int = -1;
+  double time_int = -1.0;
   double distance_int = 0;
   double t = 0.0;
   for (int i = 0; i < num_segments; ++i) {
@@ -597,10 +613,10 @@ double Loco<N>::computeCollisionCostAndGradient(
       mav_trajectory_generation::timing::Timer timer_map_lookup(
           "loco/map_lookup");
       double c = 0;
-      if (gradients != NULL) {
+      if (gradients != nullptr) {
         c = computePotentialCostAndGradient(position, &d_c_d_f);
       } else {
-        c = computePotentialCostAndGradient(position, NULL);
+        c = computePotentialCostAndGradient(position, nullptr);
       }
       timer_map_lookup.Stop();
 
@@ -608,7 +624,7 @@ double Loco<N>::computeCollisionCostAndGradient(
 
       J_c += cost;
 
-      if (gradients != NULL) {
+      if (gradients != nullptr) {
         // Gotta make sure the norm is non-zero, since we divide by it later.
         if (velocity.norm() > 1e-6) {
           // Now calculate the gradient per axis.
@@ -634,7 +650,7 @@ double Loco<N>::computeCollisionCostAndGradient(
     time_int += -dt + (segment_times[i] - t);
   }
 
-  if (gradients != NULL) {
+  if (gradients != nullptr) {
     gradients->clear();
     gradients->resize(K_, Eigen::VectorXd(num_free_));
     *gradients = grad_c;
@@ -645,17 +661,142 @@ double Loco<N>::computeCollisionCostAndGradient(
 template <int N>
 double Loco<N>::computeGoalCostAndGradient(
     std::vector<Eigen::VectorXd>* gradients) const {
-  // Ok we just care about the T of the last point in the last segment.
+  std::vector<double> segment_times;
+  poly_opt_.getSegmentTimes(&segment_times);
+  double total_time =
+      std::accumulate(segment_times.begin(), segment_times.end(), 0.0);
+
+  return computePositionSoftCostAndGradient(total_time, goal_pos_, gradients);
+  /*
+
+    // Ok we just care about the T of the last point in the last segment.
+    std::vector<double> segment_times;
+    poly_opt_.getSegmentTimes(&segment_times);
+    size_t num_segments = segment_times.size();
+    Eigen::VectorXd T_last_seg;
+    getTVector(segment_times.back(), &T_last_seg);
+
+    // I guess the best is to just pad out T_g with 0s up to last seg.
+    Eigen::VectorXd T(num_segments * N);
+    T.setZero();
+    T.segment<N>((num_segments - 1) * N) = T_last_seg;
+
+    // Get d_p and d_f vector for all axes.
+    std::vector<Eigen::VectorXd> d_p_vec;
+    std::vector<Eigen::VectorXd> d_f_vec;
+
+    poly_opt_.getFreeConstraints(&d_p_vec);
+    poly_opt_.getFixedConstraints(&d_f_vec);
+
+    // Unpack the ps.
+    std::vector<Eigen::VectorXd> p_vec(K_, Eigen::VectorXd(N * num_segments));
+    double J_g = 0.0;
+
+    // Get the correct L block to calculate derivatives.
+    const Eigen::Block<const Eigen::MatrixXd> L_pp =
+        L_.block(0, num_fixed_, L_.rows(), num_free_);
+
+    Eigen::VectorXd actual_goal_pos = Eigen::VectorXd::Zero(K_);
+    for (int k = 0; k < K_; ++k) {
+      Eigen::VectorXd d_all(num_fixed_ + num_free_);
+      d_all.head(num_fixed_) = d_f_vec[k];
+      d_all.tail(num_free_) = d_p_vec[k];
+
+      // Get the coefficients out.
+      // L is shorthand for A_inv * M.
+      p_vec[k] = L_ * d_all;
+
+      actual_goal_pos(k) = T.transpose() * p_vec[k];
+    }
+
+    J_g = (actual_goal_pos - goal_pos_).norm();
+
+    // Fill in gradients too.
+    if (gradients != nullptr) {
+      gradients->resize(K_);
+      for (int k = 0; k < K_; ++k) {
+        (*gradients)[k].resize(num_free_);
+        (*gradients)[k].setZero();
+        Eigen::MatrixXd df_dpk(K_, num_segments * N);
+        df_dpk.setZero();
+        df_dpk.row(k) = T;
+        (*gradients)[k] =
+            ((actual_goal_pos - goal_pos_) / J_g).transpose() * df_dpk * L_pp;
+      }
+    }
+
+    return J_g; */
+}
+
+template <int N>
+double Loco<N>::computeWaypointCostAndGradient(
+    std::vector<Eigen::VectorXd>* gradients) const {
+  if (gradients != nullptr) {
+    gradients->resize(K_);
+    for (int k = 0; k < K_; ++k) {
+      (*gradients)[k].resize(num_free_);
+      (*gradients)[k].setZero();
+    }
+  }
+
+  if (waypoints_.empty()) {
+    // TODO(helenol): Do I need to fill in gradients?
+    return 0.0;
+  }
+
+  std::vector<Eigen::VectorXd> waypoint_gradient;
+  double total_cost = 0.0;
+  for (const std::pair<double, Eigen::VectorXd>& kv : waypoints_) {
+    if (gradients == nullptr) {
+      total_cost +=
+          computePositionSoftCostAndGradient(kv.first, kv.second, nullptr);
+    } else {
+      total_cost += computePositionSoftCostAndGradient(kv.first, kv.second,
+                                                       &waypoint_gradient);
+      for (int k = 0; k < K_; ++k) {
+        (*gradients)[k] += waypoint_gradient[k];
+      }
+    }
+  }
+
+  return total_cost;
+}
+
+template <int N>
+double Loco<N>::computePositionSoftCostAndGradient(
+    double t, const Eigen::VectorXd& position,
+    std::vector<Eigen::VectorXd>* gradients) const {
   std::vector<double> segment_times;
   poly_opt_.getSegmentTimes(&segment_times);
   size_t num_segments = segment_times.size();
-  Eigen::VectorXd T_last_seg;
-  getTVector(segment_times.back(), &T_last_seg);
+
+  // Find the correct segment for this to apply.
+  double accumulated_time = 0.0;
+  // Look for the correct segment.
+  size_t i = 0;
+  for (i = 0; i < segment_times.size(); ++i) {
+    accumulated_time += segment_times[i];
+    if (accumulated_time > t) {
+      break;
+    }
+  }
+  // Make sure we don't go off the end of the segments (can happen if t is
+  // equal to trajectory max time).
+  if (i >= segment_times.size()) {
+    i = segment_times.size() - 1;
+  }
+  // Go back to the start of this segment.
+  accumulated_time -= segment_times[i];
+  int segment_index = i;
+  double segment_time = accumulated_time;
+
+  Eigen::VectorXd T_desired_seg;
+  getTVector(segment_time, &T_desired_seg);
 
   // I guess the best is to just pad out T_g with 0s up to last seg.
   Eigen::VectorXd T(num_segments * N);
   T.setZero();
-  T.segment<N>((num_segments - 1) * N) = T_last_seg;
+  T.segment<N>(segment_index * N) = T_desired_seg;
 
   // Get d_p and d_f vector for all axes.
   std::vector<Eigen::VectorXd> d_p_vec;
@@ -666,13 +807,13 @@ double Loco<N>::computeGoalCostAndGradient(
 
   // Unpack the ps.
   std::vector<Eigen::VectorXd> p_vec(K_, Eigen::VectorXd(N * num_segments));
-  double J_g = 0.0;
+  double J_w = 0.0;
 
   // Get the correct L block to calculate derivatives.
   const Eigen::Block<const Eigen::MatrixXd> L_pp =
       L_.block(0, num_fixed_, L_.rows(), num_free_);
 
-  Eigen::VectorXd actual_goal_pos = Eigen::VectorXd::Zero(K_);
+  Eigen::VectorXd actual_pos = Eigen::VectorXd::Zero(K_);
   for (int k = 0; k < K_; ++k) {
     Eigen::VectorXd d_all(num_fixed_ + num_free_);
     d_all.head(num_fixed_) = d_f_vec[k];
@@ -682,13 +823,13 @@ double Loco<N>::computeGoalCostAndGradient(
     // L is shorthand for A_inv * M.
     p_vec[k] = L_ * d_all;
 
-    actual_goal_pos(k) = T.transpose() * p_vec[k];
+    actual_pos(k) = T.transpose() * p_vec[k];
   }
 
-  J_g = (actual_goal_pos - goal_pos_).norm();
+  J_w = (actual_pos - position).norm();
 
   // Fill in gradients too.
-  if (gradients != NULL) {
+  if (gradients != nullptr) {
     gradients->resize(K_);
     for (int k = 0; k < K_; ++k) {
       (*gradients)[k].resize(num_free_);
@@ -697,11 +838,11 @@ double Loco<N>::computeGoalCostAndGradient(
       df_dpk.setZero();
       df_dpk.row(k) = T;
       (*gradients)[k] =
-          ((actual_goal_pos - goal_pos_) / J_g).transpose() * df_dpk * L_pp;
+          ((actual_pos - position) / J_w).transpose() * df_dpk * L_pp;
     }
   }
 
-  return J_g;
+  return J_w;
 }
 
 template <int N>
@@ -815,7 +956,7 @@ bool Loco<N>::NestedCeresFunction::Evaluate(const double* parameters,
   *cost = parent_->computeTotalCostAndGradients(&grad_vec);
 
   // Step 5: re-pack gradients back into flat format.
-  if (gradient != NULL) {
+  if (gradient != nullptr) {
     i = 0;
     for (int k = 0; k < K_; ++k) {
       for (int j = 0; j < num_free_; ++j) {
@@ -834,7 +975,7 @@ int Loco<N>::NestedCeresFunction::NumParameters() const {
 
 template <int N>
 double Loco<N>::getCost() const {
-  return computeTotalCostAndGradients(NULL);
+  return computeTotalCostAndGradients(nullptr);
 }
 
 template <int N>
@@ -844,7 +985,7 @@ double Loco<N>::getNumericalDistanceAndGradient(const Eigen::VectorXd& position,
   Eigen::VectorXd increment(K_);
   double d = distance_function_(position);
 
-  if (gradient != NULL) {
+  if (gradient != nullptr) {
     for (int k = 0; k < K_; ++k) {
       // Gradient computations for a single dimension.
       increment.setZero();

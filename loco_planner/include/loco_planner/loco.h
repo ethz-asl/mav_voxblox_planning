@@ -28,6 +28,7 @@ class Loco {
     double w_d = 0.1;   // Smoothness cost weight.
     double w_c = 10.0;  // Collision cost weight.
     double w_g = 2.5;   // Soft goal cost weight (if using soft goals).
+    double w_w = 0.5;   // Waypoint cost weight (if waypoints set).
     double min_collision_sampling_dt = 0.1;
     double map_resolution = 0.1;  // Size of voxels in the map.
     bool verbose = false;
@@ -141,6 +142,16 @@ class Loco {
   // The J_g part if using soft goals.
   double computeGoalCostAndGradient(
       std::vector<Eigen::VectorXd>* gradients) const;
+  // The J_w part if the waypoint soft constraint list isn't empty.
+  double computeWaypointCostAndGradient(
+      std::vector<Eigen::VectorXd>* gradients) const;
+
+  // Actual function to compute specific costs per waypoint, also used to
+  // calculate J_g above.
+  double computePositionSoftCostAndGradient(
+      double t, const Eigen::VectorXd& position,
+      std::vector<Eigen::VectorXd>* gradients) const;
+
   double computePotentialCostAndGradient(const Eigen::VectorXd& position,
                                          Eigen::VectorXd* gradient) const;
   double potentialFunction(double distance) const;
@@ -184,6 +195,9 @@ class Loco {
 
   // If soft goal constraint is set, then save the goal location.
   Eigen::VectorXd goal_pos_;
+  // If this map isn't empty, then waypoint costs are activated.
+  // Maps from time (in trajectory time) to waypoint positions.
+  std::map<double, Eigen::VectorXd> waypoints_;
 
   // Cache these params.
   int K_;  // Dimension of the problem.
