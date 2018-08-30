@@ -64,6 +64,8 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
       }
     }
   }
+  double voxel_size =
+      voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxel_size();
 
   ROS_INFO(
       "Size: %f VPS: %lu",
@@ -93,11 +95,13 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
 
   // Set up the path smoother as well.
   smoother_.setParametersFromRos(nh_private_);
+  smoother_.setMinCollisionCheckResolution(voxel_size);
   smoother_.setMapDistanceCallback(std::bind(&RrtPlannerVoxblox::getMapDistance,
                                              this, std::placeholders::_1));
 
   // Loco smoother!
   loco_smoother_.setParametersFromRos(nh_private_);
+  loco_smoother_.setMinCollisionCheckResolution(voxel_size);
   loco_smoother_.setMapDistanceCallback(std::bind(
       &RrtPlannerVoxblox::getMapDistance, this, std::placeholders::_1));
 
@@ -236,7 +240,8 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
     loco2_timer.Stop();
 
     ROS_INFO(
-        "Poly Smoothed Path has collisions? %d Loco Path has collisions? %d Loco 2 has collisions? %d",
+        "Poly Smoothed Path has collisions? %d Loco Path has collisions? %d "
+        "Loco 2 has collisions? %d",
         poly_has_collisions, loco_has_collisions, loco2_has_collisions);
 
     if (!poly_has_collisions) {
@@ -358,6 +363,7 @@ bool RrtPlannerVoxblox::generateFeasibleTrajectory(
 bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) {
+  loco_smoother_.setResampleTrajectory(false);
   loco_smoother_.getPathBetweenWaypoints(coordinate_path, path);
 
   bool path_in_collision = checkPathForCollisions(*path, NULL);
@@ -371,8 +377,10 @@ bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco(
 bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco2(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) {
-  loco_smoother_.getPathBetweenTwoPoints(coordinate_path.front(),
-                                         coordinate_path.back(), path);
+  loco_smoother_.setResampleTrajectory(true);
+  loco_smoother_.getPathBetweenWaypoints(coordinate_path, path);
+  /* loco_smoother_.getPathBetweenTwoPoints(coordinate_path.front(),
+                                         coordinate_path.back(), path); */
 
   bool path_in_collision = checkPathForCollisions(*path, NULL);
 

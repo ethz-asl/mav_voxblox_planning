@@ -20,17 +20,25 @@ class LocoSmoother : public PolynomialSmoother {
 
   // Special case for num_waypoints = 2 (splits trajectory into num_segments).
   virtual bool getTrajectoryBetweenTwoPoints(
-    const mav_msgs::EigenTrajectoryPoint& start,
-    const mav_msgs::EigenTrajectoryPoint& goal,
-    mav_trajectory_generation::Trajectory* trajectory) const;
+      const mav_msgs::EigenTrajectoryPoint& start,
+      const mav_msgs::EigenTrajectoryPoint& goal,
+      mav_trajectory_generation::Trajectory* trajectory) const;
 
   virtual bool getPathBetweenTwoPoints(
       const mav_msgs::EigenTrajectoryPoint& start,
       const mav_msgs::EigenTrajectoryPoint& goal,
       mav_msgs::EigenTrajectoryPoint::Vector* path) const;
 
+  // Parameters...
+  bool getResampleTrajectory() const { return resample_trajectory_; }
+  void setResampleTrajectory(bool resample_trajectory) {
+    resample_trajectory_ = resample_trajectory;
+  }
+  int getNumSegments() const { return num_segments_; }
+  void setNumSegments(int num_segments) { num_segments_ = num_segments; }
 
  protected:
+  bool resample_trajectory_;
   int num_segments_;
 };
 

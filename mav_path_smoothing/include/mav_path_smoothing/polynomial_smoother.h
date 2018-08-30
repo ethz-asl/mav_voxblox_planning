@@ -50,6 +50,20 @@ class PolynomialSmoother : public PathSmootherBase {
   virtual bool isPathInCollision(
       const mav_msgs::EigenTrajectoryPoint::Vector& path, double* t) const;
 
+  // Parameters.
+  bool getOptimizeTime() const { return optimize_time_; }
+  void setOptimizeTime(bool optimize_time) { optimize_time_ = optimize_time; }
+  bool getSplitAtCollisions() const { return split_at_collisions_; }
+  void setSplitAtCollisions(bool split_at_collisions) {
+    split_at_collisions_ = split_at_collisions;
+  }
+  double getMinCollisionCheckResolution() const {
+    return min_col_check_resolution_;
+  }
+  void setMinCollisionCheckResolution(double min_col_check_resolution) {
+    min_col_check_resolution_ = min_col_check_resolution;
+  }
+
  protected:
   // Add intermediate vertex for splitting.
   bool addVertex(double t,

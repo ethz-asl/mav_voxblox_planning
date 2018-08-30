@@ -5,7 +5,8 @@
 
 namespace mav_planning {
 
-LocoSmoother::LocoSmoother() : PolynomialSmoother(), num_segments_(3) {
+LocoSmoother::LocoSmoother()
+    : PolynomialSmoother(), resample_trajectory_(false), num_segments_(3) {
   split_at_collisions_ = false;
 }
 
@@ -42,7 +43,11 @@ bool LocoSmoother::getTrajectoryBetweenWaypoints(
   loco.setMapResolution(min_col_check_resolution_);
   loco.setDistanceFunction(map_distance_func_);
 
-  loco.setupFromTrajectory(traj_initial);
+  if (resample_trajectory_) {
+    loco.setupFromTrajectoryAndResample(traj_initial, num_segments_);
+  } else {
+    loco.setupFromTrajectory(traj_initial);
+  }
   loco.solveProblem();
   loco.getTrajectory(trajectory);
 

@@ -182,6 +182,79 @@ void Loco<N>::setupFromTrajectory(
 }
 
 template <int N>
+void Loco<N>::setupFromTrajectoryAndResample(
+    const mav_trajectory_generation::Trajectory& trajectory,
+    size_t num_segments) {
+  mav_trajectory_generation::timing::Timer timer_setup("loco/setup");
+  const int highest_derivative =
+      mav_trajectory_generation::getHighestDerivativeFromN(N);
+  // Luckily the trajectory contains most of what we need.
+  double total_time = trajectory.getMaxTime();
+  std::vector<double> times(num_segments, total_time / num_segments);
+  mav_trajectory_generation::Vertex::Vector vertices;
+  vertices.reserve(times.size() + 1);
+
+  double time_so_far = 0.0;
+  vertices.emplace_back(trajectory.getStartVertex(highest_derivative));
+  for (size_t i = 0; i < times.size() - 1; ++i) {
+    time_so_far += times[i];
+    vertices.emplace_back(
+        trajectory.getVertexAtTime(time_so_far, highest_derivative));
+  }
+  vertices.emplace_back(trajectory.getGoalVertex(highest_derivative));
+
+  poly_opt_.setupFromVertices(vertices, times, config_.derivative_to_optimize);
+  poly_opt_.solveLinear();
+
+  // Now we remove the constraints, and re-set all the free constraints. Same as
+  // for the soft goal case.
+  mav_trajectory_generation::Segment::Vector segments;
+  poly_opt_.getSegments(&segments);
+  std::vector<Eigen::VectorXd> p(K_, Eigen::VectorXd(N * segments.size()));
+  for (int i = 0; i < K_; ++i) {
+    for (size_t j = 0; j < segments.size(); ++j) {
+      p[i].segment<N>(j * N) = segments[j][i].getCoefficients(0);
+    }
+  }
+
+  // Remove all the intermediate constraints.
+  for (size_t i = 1; i < vertices.size() - 1; ++i) {
+    for (int j = 0; j <= highest_derivative; ++j) {
+      vertices[i].removeConstraint(j);
+    }
+  }
+
+  // Now optionally remove the goal position constraint.
+  if (config_.soft_goal_constraint) {
+    vertices.back().getConstraint(
+        mav_trajectory_generation::derivative_order::POSITION, &goal_pos_);
+    vertices.back().removeConstraint(
+        mav_trajectory_generation::derivative_order::POSITION);
+  }
+
+  poly_opt_.setupFromVertices(vertices, times, config_.derivative_to_optimize);
+
+  // Ok so fixed constraints are the same except the one we removed, just
+  // have to properly pack the free constraints.
+  poly_opt_.getA(&A_);
+  poly_opt_.getMpinv(&M_pinv_);
+
+  Eigen::VectorXd d_all(poly_opt_.getNumberFixedConstraints() +
+                        poly_opt_.getNumberFreeConstraints());
+  std::vector<Eigen::VectorXd> d_p(
+      K_, Eigen::VectorXd(poly_opt_.getNumberFreeConstraints()));
+  for (int i = 0; i < K_; ++i) {
+    d_all = M_pinv_ * A_ * p[i];
+    d_p[i] = d_all.tail(poly_opt_.getNumberFreeConstraints());
+  }
+  poly_opt_.setFreeConstraints(d_p);
+
+  setupProblem();
+
+  timer_setup.Stop();
+}
+
+template <int N>
 void Loco<N>::setupProblem() {
   // Assume everything is computed by the underlying polyopt already.
   // We just need to copy out a copy for our uses...
