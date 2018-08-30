@@ -86,6 +86,7 @@ void PlanningInteractiveMarkers::createMarkers() {
 
   control.orientation.x = control.orientation.y = control.orientation.z = 0.0;
   control.orientation.w = 1.0;
+  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::NONE;
   mav_visualization::HexacopterMarker hm;
   hm.getMarkers(control.markers, set_pose_marker_.scale, false);
   control.always_visible = true;
@@ -98,6 +99,7 @@ void PlanningInteractiveMarkers::createMarkers() {
   marker_prototype_.scale = 1.0;
   control.markers.clear();
   control.name = "arrow";
+  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::NONE;
   visualization_msgs::Marker default_marker;
   default_marker.type = visualization_msgs::Marker::ARROW;
   default_marker.color = mav_visualization::Color::Purple();
