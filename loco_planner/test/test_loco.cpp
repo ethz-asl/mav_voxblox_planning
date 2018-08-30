@@ -274,6 +274,43 @@ TEST_F(LocoTest, TestGradientDescent) {
   // loco_.printMatlabSampledTrajectory(0.1);
 }
 
+
+TEST_F(LocoTest, TestTrajectoryInitialization) {
+  setExactDistanceAndGradientFunction();
+  loco_.setupFromPositions(start_, goal_, num_segments_, total_time_);
+  //loco_.setVerbose(true);
+
+  mav_trajectory_generation::Trajectory trajectory;
+  Eigen::VectorXd params_solve1, params_before, params_after;
+  int num_params = loco_.getNumParams();
+
+  loco_.solveProblem();
+  double first_solve_cost = loco_.computeTotalCostAndGradients(nullptr);
+  loco_.getTrajectory(&trajectory);
+  EXPECT_FALSE(inCollision(trajectory));
+  loco_.getParameterVector(&params_solve1);
+  EXPECT_EQ(num_params, loco_.getNumParams());
+
+  loco_.setupFromTrajectory(trajectory);
+  double second_before_cost = loco_.computeTotalCostAndGradients(nullptr);
+  EXPECT_NEAR(first_solve_cost, second_before_cost, 1e-4);
+  loco_.getParameterVector(&params_before);
+  EXPECT_EQ(num_params, loco_.getNumParams());
+
+  loco_.solveProblem();
+  double second_after_cost = loco_.computeTotalCostAndGradients(nullptr);
+  EXPECT_NEAR(first_solve_cost, second_after_cost, 1e-4);
+  loco_.getParameterVector(&params_after);
+  EXPECT_EQ(num_params, loco_.getNumParams());
+
+  loco_.getTrajectory(&trajectory);
+  EXPECT_FALSE(inCollision(trajectory));
+
+  EXPECT_TRUE(EIGEN_MATRIX_NEAR(params_solve1, params_before, 1e-4));
+  EXPECT_TRUE(EIGEN_MATRIX_NEAR(params_before, params_after, 1e-4));
+}
+
+
 }  // namespace loco_planner
 
 int main(int argc, char** argv) {

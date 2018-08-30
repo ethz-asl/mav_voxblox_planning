@@ -53,6 +53,9 @@ class Loco {
   void setupFromVertices(double total_time,
                          mav_trajectory_generation::Vertex::Vector* vertices);
 
+  // These methods take in an initial solution:
+  void setupFromTrajectory(const mav_trajectory_generation::Trajectory& trajectory);
+
   // Set how to get the distance of a point. ONE OF THESE TWO *MUST* BE SET!
   void setDistanceFunction(const DistanceFunctionType& function) {
     distance_function_ = function;

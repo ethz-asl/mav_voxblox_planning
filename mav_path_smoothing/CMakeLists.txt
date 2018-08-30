@@ -11,9 +11,10 @@ add_definitions(-std=c++11)
 # LIBRARIES #
 #############
 cs_add_library(${PROJECT_NAME}
+  src/loco_smoother.cpp
   src/path_smoother_base.cpp
-  src/velocity_ramp_smoother.cpp
   src/polynomial_smoother.cpp
+  src/velocity_ramp_smoother.cpp
 )
 target_link_libraries(${PROJECT_NAME} ${OMPL_LIBRARIES})
 

@@ -15,6 +15,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>catkin_simple</buildtool_depend>
 
+  <depend>loco_planner</depend>
   <depend>mav_msgs</depend>
   <depend>mav_planning_common</depend>
   <depend>mav_trajectory_generation_ros</depend>
@@ -22,5 +23,4 @@
   <depend>std_msgs</depend>
   <depend>tf</depend>
   <depend>visualization_msgs</depend>
-  <depend>voxblox_ros</depend>
 </package>
