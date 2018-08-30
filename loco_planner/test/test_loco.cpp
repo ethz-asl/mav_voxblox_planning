@@ -240,40 +240,6 @@ TEST_F(LocoTest, TestCeres) {
   // loco_.printMatlabSampledTrajectory(0.1);
 }
 
-TEST_F(LocoTest, TestGradientDescent) {
-  setExactDistanceAndGradientFunction();
-  loco_.setupFromPositions(start_, goal_, num_segments_, total_time_);
-
-  // Check cost.
-  std::vector<Eigen::VectorXd> gradients;
-  std::vector<Eigen::VectorXd> gradients_c;
-  std::vector<Eigen::VectorXd> gradients_d;
-
-  double cost_c = loco_.computeCollisionCostAndGradient(&gradients_c);
-  double cost_d = loco_.computeDerivativeCostAndGradient(&gradients_d);
-  double cost = loco_.computeTotalCostAndGradients(&gradients);
-  std::cout << "Num free: " << loco_.getNumParams() << std::endl;
-
-  std::cout << "Cost c: " << cost_c << " Cost d: " << cost_d
-            << " Total cost: " << cost << std::endl;
-
-  mav_trajectory_generation::Trajectory trajectory;
-  loco_.getTrajectory(&trajectory);
-  EXPECT_TRUE(inCollision(trajectory));
-
-  loco_.solveProblemGradientDescent();
-
-  double final_cost = loco_.computeTotalCostAndGradients(&gradients);
-
-  std::cout << "Initial cost: " << cost << " Final cost: " << final_cost
-            << std::endl;
-  EXPECT_LT(final_cost, cost);
-
-  loco_.getTrajectory(&trajectory);
-  EXPECT_FALSE(inCollision(trajectory));
-  // loco_.printMatlabSampledTrajectory(0.1);
-}
-
 
 TEST_F(LocoTest, TestTrajectoryInitialization) {
   setExactDistanceAndGradientFunction();

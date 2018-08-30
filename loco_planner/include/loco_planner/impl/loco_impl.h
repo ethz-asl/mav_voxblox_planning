@@ -210,57 +210,9 @@ template <int N>
 void Loco<N>::solveProblem() {
   // Find the current params.
   mav_trajectory_generation::timing::Timer timer_solve("loco/solve");
-
-  const bool use_ceres = true;
-  if (use_ceres) {
-    solveProblemCeres();
-  } else {
-    solveProblemGradientDescent();
-  }
+  solveProblemCeres();
 
   timer_solve.Stop();
-}
-
-template <int N>
-void Loco<N>::solveProblemGradientDescent() {
-  mav_trajectory_generation::timing::Timer timer_solve("loco/solve_gd");
-  // Get initial parameters.
-  std::vector<Eigen::VectorXd> grad_vec;
-
-  Eigen::VectorXd x, grad, increment;
-  getParameterVector(&x);
-  grad.resize(x.size());
-  grad.setZero();
-  increment = grad;
-
-  int max_iter = 50;
-  // If we have bad results... try 10 again.
-  double lambda = 10 * (config_.w_c + config_.w_d);
-
-  double cost = 0;
-  for (int i = 0; i < max_iter; ++i) {
-    // Evaluate cost.
-    cost = computeTotalCostAndGradients(&grad_vec);
-
-    // Unpack gradients.
-    for (int k = 0; k < K_; ++k) {
-      grad.segment(k * num_free_, num_free_) = grad_vec[k];
-    }
-    double step_size = 1.0 / (lambda + i);
-    increment = -step_size * grad;
-    if (config_.verbose) {
-      std::cout << "[GD] i: " << i << " step size: " << step_size
-                << " cost: " << cost << " gradient norm: " << grad.norm()
-                << std::endl;
-    }
-
-    // Update the parameters.
-    x += increment;
-    setParameterVector(x);
-  }
-  if (config_.verbose) {
-    std::cout << "[Solution]: " << x.transpose() << std::endl;
-  }
 }
 
 template <int N>
