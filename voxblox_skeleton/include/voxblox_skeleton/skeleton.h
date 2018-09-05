@@ -123,6 +123,12 @@ class SparseSkeletonGraph {
     return edge_map_;
   }
 
+  // These are the barebones version: does not enforce any connections, used
+  // only for de-serializing sparse skeleton graphs. Also sets ids to the ids
+  // already in the structure.
+  void addSerializedVertex(const SkeletonVertex& vertex);
+  void addSerializedEdge(const SkeletonEdge& edge);
+
  private:
   // Vertex and edge IDs are separate.
   std::map<int64_t, SkeletonVertex> vertex_map_;

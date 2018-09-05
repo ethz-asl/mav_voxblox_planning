@@ -1,5 +1,5 @@
-#include "voxblox_skeleton/nanoflann_interface.h"
 #include "voxblox_skeleton/skeleton_generator.h"
+#include "voxblox_skeleton/nanoflann_interface.h"
 
 namespace voxblox {
 
@@ -37,12 +37,15 @@ void SkeletonGenerator::setEsdfLayer(Layer<EsdfVoxel>* esdf_layer) {
 
 void SkeletonGenerator::updateSkeletonFromLayer() {
   CHECK(skeleton_layer_);
+
+  timing::Timer update_timer("skeleton/update_from_layer");
+
   // Clear whatever's in there.
   skeleton_.getSkeletonPoints().clear();
   skeleton_.getEdgePoints().clear();
   skeleton_.getVertexPoints().clear();
 
-  //  Now iterate over the whole thing, and stick any face/edge/vertex points
+  // Now iterate over the whole thing, and stick any face/edge/vertex points
   // in there.
   BlockIndexList blocks;
   skeleton_layer_->getAllAllocatedBlocks(&blocks);
@@ -1172,7 +1175,8 @@ void SkeletonGenerator::pruneDiagramVertices() {
   // construct a kd-tree index:
   typedef nanoflann::KDTreeSingleIndexAdaptor<
       nanoflann::L2_Simple_Adaptor<FloatingPoint, SkeletonPointVectorAdapter>,
-      SkeletonPointVectorAdapter, kDim> SkeletonKdTree;
+      SkeletonPointVectorAdapter, kDim>
+      SkeletonKdTree;
 
   SkeletonKdTree kd_tree(kDim, adapter,
                          nanoflann::KDTreeSingleIndexAdaptorParams(kMaxLeaf));
@@ -1290,7 +1294,8 @@ void SkeletonGenerator::splitSpecificEdges(
 
   typedef nanoflann::KDTreeSingleIndexDynamicAdaptor<
       nanoflann::L2_Simple_Adaptor<FloatingPoint, SkeletonVertexMapAdapter>,
-      SkeletonVertexMapAdapter, kDim> VertexGraphKdTree;
+      SkeletonVertexMapAdapter, kDim>
+      VertexGraphKdTree;
 
   VertexGraphKdTree kd_tree(
       kDim, adapter, nanoflann::KDTreeSingleIndexAdaptorParams(kMaxLeaf));

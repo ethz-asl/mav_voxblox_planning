@@ -1,5 +1,6 @@
 #include <mav_planning_common/path_visualization.h>
 #include <mav_planning_common/utils.h>
+#include <geometry_msgs/PoseArray.h>
 
 #include "skeleton_planner/skeleton_global_planner.h"
 
@@ -16,7 +17,7 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
   constraints_.setParametersFromRos(nh_);
 
   std::string input_filepath;
-  nh_private_.param("input_filepath", input_filepath, input_filepath);
+  nh_private_.param("voxblox_path", input_filepath, input_filepath);
   nh_private_.param("visualize", visualize_, visualize_);
 
   path_marker_pub_ =
@@ -25,6 +26,14 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
       "skeleton", 1, true);
   sparse_graph_pub_ = nh_private_.advertise<visualization_msgs::MarkerArray>(
       "sparse_graph", 1, true);
+
+  waypoint_list_pub_ =
+      nh_.advertise<geometry_msgs::PoseArray>("waypoint_list", 1);
+
+  planner_srv_ = nh_private_.advertiseService(
+      "plan", &SkeletonGlobalPlanner::plannerServiceCallback, this);
+  path_pub_srv_ = nh_private_.advertiseService(
+      "publish_path", &SkeletonGlobalPlanner::publishPathCallback, this);
 
   // Load a file from the params.
   if (input_filepath.empty()) {
@@ -117,9 +126,8 @@ void SkeletonGlobalPlanner::generateSparseGraph() {
   sparse_graph_planner_.setup();
   kd_tree_init.Stop();
 
-  ROS_INFO_STREAM("Generation timings: "
-                  << std::endl
-                  << mav_trajectory_generation::timing::Timing::Print());
+  ROS_INFO_STREAM("Generation timings: " << std::endl
+                                         << voxblox::timing::Timing::Print());
 }
 
 bool SkeletonGlobalPlanner::plannerServiceCallback(
@@ -248,6 +256,38 @@ double SkeletonGlobalPlanner::getMapDistance(
     return 0.0;
   }
   return distance;
+}
+
+bool SkeletonGlobalPlanner::publishPathCallback(std_srvs::EmptyRequest& request,
+                                            std_srvs::EmptyResponse& response) {
+  /* if (!last_trajectory_valid_) {
+    ROS_ERROR("Can't publish trajectory, marked as invalid.");
+    return false;
+  }
+
+  ROS_INFO("Publishing path.");
+
+  if (!do_smoothing_) {
+    geometry_msgs::PoseArray pose_array;
+    pose_array.poses.reserve(last_waypoints_.size());
+    for (const mav_msgs::EigenTrajectoryPoint& point : last_waypoints_) {
+      geometry_msgs::PoseStamped pose_stamped;
+      mav_msgs::msgPoseStampedFromEigenTrajectoryPoint(point, &pose_stamped);
+      pose_array.poses.push_back(pose_stamped.pose);
+    }
+
+    pose_array.header.frame_id = frame_id_;
+    waypoint_list_pub_.publish(pose_array);
+  } else {
+    mav_planning_msgs::PolynomialTrajectory4D msg;
+    mav_trajectory_generation::trajectoryToPolynomialTrajectoryMsg(
+        last_trajectory_, &msg);
+
+    msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = frame_id_;
+    polynomial_trajectory_pub_.publish(msg);
+  } */
+  return true;
 }
 
 }  // namespace mav_planning

@@ -206,4 +206,12 @@ bool SparseSkeletonGraph::areVerticesDirectlyConnected(
 
   return false;
 }
+
+void SparseSkeletonGraph::addSerializedVertex(const SkeletonVertex& vertex) {
+  vertex_map_[vertex.vertex_id] = vertex;
+}
+void SparseSkeletonGraph::addSerializedEdge(const SkeletonEdge& edge) {
+  edge_map_[edge.edge_id] = edge;
+}
+
 }  // namespace voxblox

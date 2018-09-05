@@ -294,7 +294,7 @@ bool RrtPlannerVoxblox::generateFeasibleTrajectory(
 bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) {
-  loco_smoother_.setResampleTrajectory(true);
+  loco_smoother_.setResampleTrajectory(false);
   loco_smoother_.setAddWaypoints(false);
 
   loco_smoother_.getPathBetweenWaypoints(coordinate_path, path);
@@ -311,7 +311,7 @@ bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco2(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) {
   loco_smoother_.setResampleTrajectory(true);
-  loco_smoother_.setAddWaypoints(true);
+  loco_smoother_.setAddWaypoints(false);
 
   loco_smoother_.getPathBetweenWaypoints(coordinate_path, path);
 
