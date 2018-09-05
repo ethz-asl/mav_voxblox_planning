@@ -64,4 +64,12 @@ void Block<SkeletonVoxel>::serializeToIntegers(
   CHECK_EQ(num_voxels_ * kNumDataPacketsPerVoxel, data->size());
 }
 
+template <>
+void mergeVoxelAIntoVoxelB(const SkeletonVoxel& voxel_A,
+                           SkeletonVoxel* voxel_B) {
+  // This makes absolutely no sense.
+  // Just set voxel_B = voxel_A.
+  *voxel_B = voxel_A;
+}
+
 }  // namespace voxblox
