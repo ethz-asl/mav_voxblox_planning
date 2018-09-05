@@ -1,4 +1,5 @@
 #include <geometry_msgs/PoseArray.h>
+#include <mav_planning_common/path_visualization.h>
 #include <mav_planning_common/utils.h>
 #include <mav_trajectory_generation/polynomial_optimization_nonlinear.h>
 #include <mav_trajectory_generation/timing.h>
@@ -210,10 +211,11 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
   visualization_msgs::MarkerArray marker_array;
   if (visualize_) {
     marker_array.markers.push_back(createMarkerForPath(
-        waypoints, mav_visualization::Color::Green(), "rrt_star", 0.075));
-    marker_array.markers.push_back(
-        createMarkerForWaypoints(waypoints, mav_visualization::Color::Green(),
-                                 "rrt_star_waypoints", 0.15));
+        waypoints, frame_id_, mav_visualization::Color::Green(), "rrt_star",
+        0.075));
+    marker_array.markers.push_back(createMarkerForWaypoints(
+        waypoints, frame_id_, mav_visualization::Color::Green(),
+        "rrt_star_waypoints", 0.15));
   }
 
   last_waypoints_ = waypoints;
@@ -250,11 +252,14 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
 
     if (visualize_) {
       marker_array.markers.push_back(createMarkerForPath(
-          poly_path, mav_visualization::Color::Orange(), "poly", 0.075));
+          poly_path, frame_id_, mav_visualization::Color::Orange(), "poly",
+          0.075));
+      marker_array.markers.push_back(
+          createMarkerForPath(loco_path, frame_id_,
+                              mav_visualization::Color::Pink(), "loco", 0.075));
       marker_array.markers.push_back(createMarkerForPath(
-          loco_path, mav_visualization::Color::Pink(), "loco", 0.075));
-      marker_array.markers.push_back(createMarkerForPath(
-          loco2_path, mav_visualization::Color::Teal(), "loco2", 0.075));
+          loco2_path, frame_id_, mav_visualization::Color::Teal(), "loco2",
+          0.075));
     }
   }
 
@@ -271,80 +276,6 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
                   << start_pose.position_W.transpose()
                   << " and goal point: " << goal_pose.position_W.transpose());
   return success;
-}
-
-visualization_msgs::Marker RrtPlannerVoxblox::createMarkerForPath(
-    mav_msgs::EigenTrajectoryPointVector& path,
-    const std_msgs::ColorRGBA& color, const std::string& name,
-    double scale) const {
-  visualization_msgs::Marker path_marker;
-
-  const int kMaxSamples = 1000;
-  const int num_samples = path.size();
-  int subsample = 1;
-  while (num_samples / subsample > kMaxSamples) {
-    subsample *= 10;
-  }
-  const double kMaxMagnitude = 1.0e4;
-
-  path_marker.header.frame_id = frame_id_;
-
-  path_marker.header.stamp = ros::Time::now();
-  path_marker.type = visualization_msgs::Marker::LINE_STRIP;
-  path_marker.color = color;
-  path_marker.color.a = 0.75;
-  path_marker.ns = name;
-  path_marker.scale.x = scale;
-  path_marker.scale.y = scale;
-  path_marker.scale.z = scale;
-
-  path_marker.points.reserve(path.size() / subsample);
-  int i = 0;
-  for (const mav_msgs::EigenTrajectoryPoint& point : path) {
-    i++;
-    if (i % subsample != 0) {
-      continue;
-    }
-    // Check that we're in some reasonable bounds.
-    // Makes rviz stop crashing.
-    if (point.position_W.maxCoeff() > kMaxMagnitude ||
-        point.position_W.minCoeff() < -kMaxMagnitude) {
-      continue;
-    }
-
-    geometry_msgs::Point point_msg;
-    tf::pointKindrToMsg(point.position_W, &point_msg);
-    path_marker.points.push_back(point_msg);
-  }
-
-  return path_marker;
-}
-
-visualization_msgs::Marker RrtPlannerVoxblox::createMarkerForWaypoints(
-    mav_msgs::EigenTrajectoryPointVector& path,
-    const std_msgs::ColorRGBA& color, const std::string& name,
-    double scale) const {
-  visualization_msgs::Marker path_marker;
-
-  path_marker.header.frame_id = frame_id_;
-
-  path_marker.header.stamp = ros::Time::now();
-  path_marker.type = visualization_msgs::Marker::SPHERE_LIST;
-  path_marker.color = color;
-  path_marker.color.a = 0.75;
-  path_marker.ns = name;
-  path_marker.scale.x = scale;
-  path_marker.scale.y = scale;
-  path_marker.scale.z = scale;
-
-  path_marker.points.reserve(path.size());
-  for (const mav_msgs::EigenTrajectoryPoint& point : path) {
-    geometry_msgs::Point point_msg;
-    tf::pointKindrToMsg(point.position_W, &point_msg);
-    path_marker.points.push_back(point_msg);
-  }
-
-  return path_marker;
 }
 
 bool RrtPlannerVoxblox::generateFeasibleTrajectory(

@@ -56,16 +56,6 @@ class RrtPlannerVoxblox {
   bool checkPhysicalConstraints(
       const mav_trajectory_generation::Trajectory& trajectory);
 
-  // Visualization utilities.
-  visualization_msgs::Marker createMarkerForPath(
-      mav_msgs::EigenTrajectoryPointVector& path,
-      const std_msgs::ColorRGBA& color, const std::string& name,
-      double scale = 0.05) const;
-  visualization_msgs::Marker createMarkerForWaypoints(
-      mav_msgs::EigenTrajectoryPointVector& path,
-      const std_msgs::ColorRGBA& color, const std::string& name,
-      double scale = 0.05) const;
-
  private:
   void inferValidityCheckingResolution(const Eigen::Vector3d& bounding_box);
 

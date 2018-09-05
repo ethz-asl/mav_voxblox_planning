@@ -5,6 +5,13 @@ find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
 
+#############
+# LIBRARIES #
+#############
+cs_add_library(${PROJECT_NAME}
+  src/path_visualization.cpp
+)
+
 ##########
 # EXPORT #
 ##########
