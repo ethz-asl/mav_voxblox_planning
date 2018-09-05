@@ -9,6 +9,7 @@
 #include <voxblox_ros/ptcloud_vis.h>
 
 #include "voxblox_skeleton/ros/skeleton_vis.h"
+#include "voxblox_skeleton/io/skeleton_io.h"
 #include "voxblox_skeleton/skeleton_generator.h"
 
 namespace voxblox {
@@ -49,9 +50,12 @@ class SkeletonizerNode {
 
 void SkeletonizerNode::init() {
   // Load a file from the params.
-  std::string input_filepath, output_filepath;
+  std::string input_filepath, output_filepath, sparse_graph_filepath;
   nh_private_.param("input_filepath", input_filepath, input_filepath);
   nh_private_.param("output_filepath", output_filepath, output_filepath);
+  nh_private_.param("sparse_graph_filepath", sparse_graph_filepath,
+                    sparse_graph_filepath);
+
   nh_private_.param("frame_id", frame_id_, frame_id_);
 
   if (input_filepath.empty()) {
@@ -118,6 +122,15 @@ void SkeletonizerNode::init() {
       ROS_INFO("Output map to: %s", output_filepath.c_str());
     } else {
       ROS_ERROR("Couldn't output map to: %s", output_filepath.c_str());
+    }
+  }
+  if (!sparse_graph_filepath.empty()) {
+    if (io::saveSparseSkeletonGraphToFile(
+            sparse_graph_filepath, skeleton_generator_.getSparseGraph())) {
+      ROS_INFO("Output sparse graph to: %s", sparse_graph_filepath.c_str());
+    } else {
+      ROS_ERROR("Couldn't output sparse graph to: %s",
+                sparse_graph_filepath.c_str());
     }
   }
 }

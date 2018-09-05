@@ -59,6 +59,7 @@ class SkeletonGlobalPlanner {
   // Settings for physical constriants.
   mav_planning::PhysicalConstraints constraints_;
 
+  std::string sparse_graph_path_;
   std::string frame_id_;
   bool visualize_;
   double voxel_size_;  // Cache the size of the voxels used by the map.

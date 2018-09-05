@@ -1,5 +1,7 @@
-#include "voxblox_skeleton/skeleton_generator.h"
+#include "voxblox_skeleton/io/skeleton_io.h"
 #include "voxblox_skeleton/nanoflann_interface.h"
+
+#include "voxblox_skeleton/skeleton_generator.h"
 
 namespace voxblox {
 
@@ -1266,7 +1268,8 @@ void SkeletonGenerator::pruneDiagramVertices() {
 }
 
 void SkeletonGenerator::splitEdges() {
-  timing::Timer generate_timer("skeleton/split_edges");
+  timing::Timer split_timer("skeleton/split_edges");
+
   std::vector<int64_t> edge_ids;
   graph_.getAllEdgeIds(&edge_ids);
 
@@ -1284,6 +1287,7 @@ void SkeletonGenerator::splitSpecificEdges(
   const int kMaxAstarIterations = 500;
   skeleton_planner_.setMaxIterations(kMaxAstarIterations);
 
+  timing::Timer kdtree_timer("skeleton/split_edges/kdtree");
   // Build the kD Tree of the vertices at the current moment.
   // Create the adapter.
   SkeletonVertexMapAdapter adapter(graph_.getVertexMap());
@@ -1300,6 +1304,8 @@ void SkeletonGenerator::splitSpecificEdges(
   VertexGraphKdTree kd_tree(
       kDim, adapter, nanoflann::KDTreeSingleIndexAdaptorParams(kMaxLeaf));
   kd_tree.addPoints(0, adapter.kdtree_get_point_count() - 1);
+
+  kdtree_timer.Stop();
 
   size_t num_vertices_added = 0;
 
@@ -1367,10 +1373,12 @@ void SkeletonGenerator::splitSpecificEdges(
             // from this to end vertex.
             AlignedVector<Point> start_path, end_path;
 
+            timing::Timer path_timer("skeleton/split_edges/search_path");
             bool success_start = skeleton_planner_.getPathOnDiagram(
                 start, vertex_candidate.point, &start_path);
             bool success_end = skeleton_planner_.getPathOnDiagram(
                 vertex_candidate.point, end, &end_path);
+            path_timer.Stop();
 
             if (success_start && success_end) {
               size_t max_start_index = 0, max_end_index = 0;
@@ -1438,21 +1446,23 @@ void SkeletonGenerator::splitSpecificEdges(
 
       graph_.removeEdge(edge_id);
       if (num_vertices_added % 1 == 0) {
-        timing::Timer kdtree_timer("skeleton/kdtree");
+        timing::Timer kdtree_add_timer("skeleton/split_edges/kdtree_add");
         kd_tree.addPoints(adapter.kdtree_get_point_count() - 1,
                           adapter.kdtree_get_point_count() - 1);
-        kdtree_timer.Stop();
+        kdtree_add_timer.Stop();
       }
     }
   }
 
   skeleton_planner_.setMaxIterations(0);
-  LOG(INFO) << "Num vertices added: " << num_vertices_added;
+  LOG(INFO) << "[Split Edges] Num vertices added: " << num_vertices_added;
 }
 
 FloatingPoint SkeletonGenerator::getMaxEdgeDistanceFromStraightLine(
     const Point& start, const Point& end, AlignedVector<Point>* coordinate_path,
     size_t* max_index) {
+  timing::Timer split_timer("skeleton/split_edges/get_max_dist");
+
   CHECK_NOTNULL(coordinate_path);
   CHECK_NOTNULL(max_index);
   *max_index = 0;
@@ -1497,7 +1507,7 @@ void SkeletonGenerator::setSkeletonLayer(Layer<SkeletonVoxel>* skeleton_layer) {
 }
 
 void SkeletonGenerator::repairGraph() {
-  timing::Timer generate_timer("skeleton/repair_graph");
+  timing::Timer repair_timer("skeleton/repair_graph");
 
   // Go over all the vertices in the sparse graph and flood fill to label
   // unconnected components.
@@ -1529,15 +1539,18 @@ void SkeletonGenerator::repairGraph() {
     return;
   }
 
+  LOG(INFO) << "[Subgraph] Number of disconnected subgraphs: "
+            << subgraph_vertex_examples.size();
+
   // Go through all combinations of subgraphs until we're connected.
-  for (const std::pair<int, int64_t> subgraph1 : subgraph_vertex_examples) {
+  for (const std::pair<int, int64_t>& subgraph1 : subgraph_vertex_examples) {
     const SkeletonVertex& vertex1 = graph_.getVertex(subgraph1.second);
     if (vertex1.subgraph_id != subgraph1.first) {
       // This already got absorbed into another subgraph.
       continue;
     }
 
-    for (const std::pair<int, int64_t> subgraph2 : subgraph_vertex_examples) {
+    for (const std::pair<int, int64_t>& subgraph2 : subgraph_vertex_examples) {
       if (subgraph1.first == subgraph2.first) {
         continue;
       }
@@ -1558,7 +1571,10 @@ void SkeletonGenerator::repairGraph() {
       }
     }
   }
+  LOG(INFO) << "[Subgraph] Trying to check if we need to split "
+            << new_edge_ids.size() << " new edges.";
 
+  timing::Timer split_timer("skeleton/repair_graph/split");
   splitSpecificEdges(new_edge_ids);
 }
 
@@ -1637,6 +1653,14 @@ void SkeletonGenerator::tryToFindEdgesInCoordinatePath(
       }
     }
   }
+}
+
+bool SkeletonGenerator::loadSparseGraphFromFile(const std::string& filename) {
+  return io::loadSparseSkeletonGraphFromFile(filename, &graph_);
+}
+
+bool SkeletonGenerator::saveSparseGraphToFile(const std::string& filename) {
+  return io::saveSparseSkeletonGraphToFile(filename, graph_);
 }
 
 }  // namespace voxblox

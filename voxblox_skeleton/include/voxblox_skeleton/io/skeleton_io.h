@@ -1,6 +1,8 @@
 #ifndef VOXBLOX_SKELETON_IO_SKELETON_IO_H_
 #define VOXBLOX_SKELETON_IO_SKELETON_IO_H_
 
+#include "./skeleton.pb.h"
+
 #include "voxblox_skeleton/skeleton.h"
 
 namespace voxblox {

@@ -27,3 +27,8 @@ message SkeletonEdgeProto {
   optional float start_distance = 10;
   optional float end_distance = 11;
 }
+
+message SkeletonGraphProto {
+  repeated SkeletonVertexProto vertices = 1;
+  repeated SkeletonEdgeProto edges = 2;
+}

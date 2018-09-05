@@ -1,6 +1,6 @@
+#include <geometry_msgs/PoseArray.h>
 #include <mav_planning_common/path_visualization.h>
 #include <mav_planning_common/utils.h>
-#include <geometry_msgs/PoseArray.h>
 
 #include "skeleton_planner/skeleton_global_planner.h"
 
@@ -16,8 +16,10 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
       skeleton_generator_() {
   constraints_.setParametersFromRos(nh_);
 
-  std::string input_filepath;
-  nh_private_.param("voxblox_path", input_filepath, input_filepath);
+  std::string voxblox_path;
+  nh_private_.param("voxblox_path", voxblox_path, voxblox_path);
+  nh_private_.param("sparse_graph_path", sparse_graph_path_,
+                    sparse_graph_path_);
   nh_private_.param("visualize", visualize_, visualize_);
 
   path_marker_pub_ =
@@ -36,7 +38,7 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
       "publish_path", &SkeletonGlobalPlanner::publishPathCallback, this);
 
   // Load a file from the params.
-  if (input_filepath.empty()) {
+  if (voxblox_path.empty()) {
     ROS_ERROR("Couldn't load map, empty filename.");
     return;
   }
@@ -44,7 +46,7 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
   std::shared_ptr<voxblox::EsdfMap> esdf_map = voxblox_server_.getEsdfMapPtr();
   CHECK(esdf_map);
 
-  if (!voxblox_server_.loadMap(input_filepath)) {
+  if (!voxblox_server_.loadMap(voxblox_path)) {
     ROS_ERROR("Coudldn't load ESDF map!");
   }
 
@@ -64,7 +66,7 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
               ->voxels_per_side());
 
   if (!voxblox::io::LoadBlocksFromFile<voxblox::SkeletonVoxel>(
-          input_filepath,
+          voxblox_path,
           voxblox::Layer<
               voxblox::SkeletonVoxel>::BlockMergingStrategy::kReplace,
           true, skeleton_layer)) {
@@ -96,10 +98,14 @@ void SkeletonGlobalPlanner::generateSparseGraph() {
   ROS_INFO("About to generate skeleton graph.");
   skeleton_generator_.updateSkeletonFromLayer();
   ROS_INFO("Re-populated from layer.");
-  skeleton_generator_.generateSparseGraph();
-  ROS_INFO("Generated skeleton graph.");
-  skeleton_generator_.repairGraph();
 
+  if (!sparse_graph_path_.empty() &&
+      skeleton_generator_.loadSparseGraphFromFile(sparse_graph_path_)) {
+    ROS_INFO_STREAM("Loaded sparse graph from file: " << sparse_graph_path_);
+  } else {
+    skeleton_generator_.generateSparseGraph();
+    ROS_INFO("Generated skeleton graph.");
+  }
   if (visualize_) {
     voxblox::Pointcloud pointcloud;
     std::vector<float> distances;
@@ -258,8 +264,8 @@ double SkeletonGlobalPlanner::getMapDistance(
   return distance;
 }
 
-bool SkeletonGlobalPlanner::publishPathCallback(std_srvs::EmptyRequest& request,
-                                            std_srvs::EmptyResponse& response) {
+bool SkeletonGlobalPlanner::publishPathCallback(
+    std_srvs::EmptyRequest& request, std_srvs::EmptyResponse& response) {
   /* if (!last_trajectory_valid_) {
     ROS_ERROR("Can't publish trajectory, marked as invalid.");
     return false;

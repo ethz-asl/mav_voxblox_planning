@@ -1,6 +1,5 @@
 #include <voxblox/utils/protobuf_utils.h>
 
-#include "./skeleton.pb.h"
 #include "voxblox_skeleton/skeleton.h"
 
 #include "voxblox_skeleton/io/skeleton_io.h"
@@ -23,30 +22,29 @@ bool saveSparseSkeletonGraphToFile(const std::string& filename,
     return false;
   }
 
+  SkeletonGraphProto proto;
+
   // First save all the vertices.
   const std::map<int64_t, SkeletonVertex>& vertices = graph.getVertexMap();
 
   for (const std::pair<int64_t, SkeletonVertex>& kv : vertices) {
-    SkeletonVertexProto proto;
-    convertVertexToProto(kv.second, &proto);
-    if (!utils::writeProtoMsgToStream(proto, &outfile)) {
-      LOG(ERROR) << "Could not write layer header message.";
-      outfile.close();
-      return false;
-    }
+    proto.add_vertices();
+    convertVertexToProto(kv.second,
+                         proto.mutable_vertices(proto.vertices_size()));
   }
 
   // Now it's time for edges.
   const std::map<int64_t, SkeletonEdge>& edges = graph.getEdgeMap();
 
   for (const std::pair<int64_t, SkeletonEdge>& kv : edges) {
-    SkeletonEdgeProto proto;
-    convertEdgeToProto(kv.second, &proto);
-    if (!utils::writeProtoMsgToStream(proto, &outfile)) {
-      LOG(ERROR) << "Could not write layer header message.";
-      outfile.close();
-      return false;
-    }
+    proto.add_edges();
+    convertEdgeToProto(kv.second, proto.mutable_edges(proto.edges_size()));
+  }
+
+  if (!utils::writeProtoMsgToStream(proto, &outfile)) {
+    LOG(ERROR) << "Could not write layer header message.";
+    outfile.close();
+    return false;
   }
 
   return true;
@@ -70,27 +68,21 @@ bool loadSparseSkeletonGraphFromFile(const std::string& filename,
   // necessary.
   uint32_t tmp_byte_offset = 0;
 
-  do {
-    SkeletonVertexProto vertex_proto;
-    SkeletonEdgeProto edge_proto;
-
-    if (utils::readProtoMsgFromStream(&proto_file, &vertex_proto,
-                                      &tmp_byte_offset)) {
-      // Add to the graph.
-      SkeletonVertex vertex;
-      convertProtoToVertex(vertex_proto, &vertex);
-      graph->addSerializedVertex(vertex);
-    } else if (utils::readProtoMsgFromStream(&proto_file, &edge_proto,
-                                             &tmp_byte_offset)) {
-      // Add it.
-      SkeletonEdge edge;
-      convertProtoToEdge(edge_proto, &edge);
-      graph->addSerializedEdge(edge);
-    } else {
-      LOG(ERROR) << "Some unknown proto in the file.";
-      return false;
-    }
-  } while (!proto_file.eof());
+  SkeletonGraphProto proto;
+  if (!utils::readProtoMsgFromStream(&proto_file, &proto, &tmp_byte_offset)) {
+    LOG(ERROR) << "Could not read skeleton graph proto from file!";
+    return false;
+  }
+  for (size_t i = 0; i < proto.vertices_size(); i++) {
+    SkeletonVertex vertex;
+    convertProtoToVertex(proto.vertices(i), &vertex);
+    graph->addSerializedVertex(vertex);
+  }
+  for (size_t i = 0; i < proto.edges_size(); i++) {
+    SkeletonEdge edge;
+    convertProtoToEdge(proto.edges(i), &edge);
+    graph->addSerializedEdge(edge);
+  }
   return true;
 }
 

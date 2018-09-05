@@ -40,6 +40,9 @@ class SkeletonGenerator {
   // the layer.
   void updateSkeletonFromLayer();
 
+  bool loadSparseGraphFromFile(const std::string& filename);
+  bool saveSparseGraphToFile(const std::string& filename);
+
   // Pruning function by fitting template neighbors.
   size_t pruneDiagramEdges();
 
