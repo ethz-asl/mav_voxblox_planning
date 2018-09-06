@@ -67,6 +67,45 @@ class SkeletonVertexMapAdapter {
   const std::map<int64_t, SkeletonVertex>& vertices_;
 };
 
+class DirectSkeletonVertexMapAdapter {
+ public:
+  DirectSkeletonVertexMapAdapter(
+      const std::map<int64_t, SkeletonVertex>& vertices)
+      : vertices_(vertices) {}
+
+  inline const std::map<int64_t, SkeletonVertex>& derived() const {
+    return vertices_;
+  }
+
+  // Must return the number of data points
+  inline size_t kdtree_get_point_count() const {
+    if (vertices_.empty()) {
+      return 0;
+    }
+    auto iter = vertices_.end();
+    iter--;
+    return iter->first + 1;
+  }
+
+  inline FloatingPoint kdtree_get_pt(const size_t idx, int dim) const {
+    auto iter = vertices_.find(idx);
+    if (iter != vertices_.end()) {
+      return iter->second.point(dim);
+    }
+    return std::numeric_limits<FloatingPoint>::max();
+  }
+
+  // Optional bounding-box computation: return false to default to a standard
+  // bbox computation loop.
+  template <class BBOX>
+  bool kdtree_get_bbox(BBOX& /*bb*/) const {
+    return false;
+  }
+
+ private:
+  const std::map<int64_t, SkeletonVertex>& vertices_;
+};
+
 }  // namespace voxblox
 
 #endif  // VOXBLOX_SKELETON_NANOFLANN_INTERFACE_H_

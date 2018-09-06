@@ -4,16 +4,18 @@
 #include <voxblox/core/common.h>
 #include <voxblox/utils/neighbor_tools.h>
 
-#include "voxblox_skeleton/skeleton.h"
 #include "voxblox_skeleton/nanoflann_interface.h"
+#include "voxblox_skeleton/skeleton.h"
 
 namespace voxblox {
 
 class SparseGraphPlanner {
  public:
   typedef nanoflann::KDTreeSingleIndexAdaptor<
-      nanoflann::L2_Simple_Adaptor<FloatingPoint, SkeletonVertexMapAdapter>,
-      SkeletonVertexMapAdapter, 3> VertexGraphKdTree;
+      nanoflann::L2_Simple_Adaptor<FloatingPoint,
+                                   DirectSkeletonVertexMapAdapter>,
+      DirectSkeletonVertexMapAdapter, 3>
+      VertexGraphKdTree;
 
   SparseGraphPlanner();
 
@@ -50,7 +52,7 @@ class SparseGraphPlanner {
   SparseSkeletonGraph* graph_;
 
   std::unique_ptr<VertexGraphKdTree> kd_tree_;
-  std::unique_ptr<SkeletonVertexMapAdapter> kd_tree_adapter_;
+  std::unique_ptr<DirectSkeletonVertexMapAdapter> kd_tree_adapter_;
 };
 
 }  // namespace voxblox

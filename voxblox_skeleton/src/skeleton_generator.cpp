@@ -1290,15 +1290,16 @@ void SkeletonGenerator::splitSpecificEdges(
   timing::Timer kdtree_timer("skeleton/split_edges/kdtree");
   // Build the kD Tree of the vertices at the current moment.
   // Create the adapter.
-  SkeletonVertexMapAdapter adapter(graph_.getVertexMap());
+  DirectSkeletonVertexMapAdapter adapter(graph_.getVertexMap());
 
   // construct a kd-tree index:
   const int kDim = 3;
   const int kMaxLeaf = 10;
 
   typedef nanoflann::KDTreeSingleIndexDynamicAdaptor<
-      nanoflann::L2_Simple_Adaptor<FloatingPoint, SkeletonVertexMapAdapter>,
-      SkeletonVertexMapAdapter, kDim>
+      nanoflann::L2_Simple_Adaptor<FloatingPoint,
+                                   DirectSkeletonVertexMapAdapter>,
+      DirectSkeletonVertexMapAdapter, kDim>
       VertexGraphKdTree;
 
   VertexGraphKdTree kd_tree(
@@ -1354,59 +1355,57 @@ void SkeletonGenerator::splitSpecificEdges(
       kd_tree.findNeighbors(result_set, new_vertex.point.data(), params);
 
       if (squared_distance < kVertexSearchRadus) {
-        // Get the first (closest?)
-        size_t map_index = ret_index;
-        auto iter = graph_.getVertexMap().begin();
-        for (size_t i = 0; i < map_index; ++i) {
-          iter++;
-        }
-        const SkeletonVertex& vertex_candidate = iter->second;
+        auto iter = graph_.getVertexMap().find(ret_index);
+        if (iter != graph_.getVertexMap().end()) {
+          const SkeletonVertex& vertex_candidate = iter->second;
 
-        if (vertex_candidate.vertex_id != edge.start_vertex &&
-            vertex_candidate.vertex_id != edge.end_vertex) {
-          if (graph_.areVerticesDirectlyConnected(vertex_candidate.vertex_id,
-                                                  edge.start_vertex) &&
-              graph_.areVerticesDirectlyConnected(vertex_candidate.vertex_id,
-                                                  edge.end_vertex)) {
-          } else {
-            // Try to find a connection from start vertex -> this and then
-            // from this to end vertex.
-            AlignedVector<Point> start_path, end_path;
+          if (vertex_candidate.vertex_id != edge.start_vertex &&
+              vertex_candidate.vertex_id != edge.end_vertex) {
+            if (graph_.areVerticesDirectlyConnected(vertex_candidate.vertex_id,
+                                                    edge.start_vertex) &&
+                graph_.areVerticesDirectlyConnected(vertex_candidate.vertex_id,
+                                                    edge.end_vertex)) {
+            } else {
+              // Try to find a connection from start vertex -> this and then
+              // from this to end vertex.
+              AlignedVector<Point> start_path, end_path;
 
-            timing::Timer path_timer("skeleton/split_edges/search_path");
-            bool success_start = skeleton_planner_.getPathOnDiagram(
-                start, vertex_candidate.point, &start_path);
-            bool success_end = skeleton_planner_.getPathOnDiagram(
-                vertex_candidate.point, end, &end_path);
-            path_timer.Stop();
+              timing::Timer path_timer("skeleton/split_edges/search_path");
+              bool success_start = skeleton_planner_.getPathOnDiagram(
+                  start, vertex_candidate.point, &start_path);
+              bool success_end = skeleton_planner_.getPathOnDiagram(
+                  vertex_candidate.point, end, &end_path);
+              path_timer.Stop();
 
-            if (success_start && success_end) {
-              size_t max_start_index = 0, max_end_index = 0;
-              FloatingPoint max_d_start = getMaxEdgeDistanceOnPath(
-                  start, vertex_candidate.point, start_path, &max_start_index);
-              FloatingPoint max_d_end = getMaxEdgeDistanceOnPath(
-                  vertex_candidate.point, end, end_path, &max_end_index);
+              if (success_start && success_end) {
+                size_t max_start_index = 0, max_end_index = 0;
+                FloatingPoint max_d_start =
+                    getMaxEdgeDistanceOnPath(start, vertex_candidate.point,
+                                             start_path, &max_start_index);
+                FloatingPoint max_d_end = getMaxEdgeDistanceOnPath(
+                    vertex_candidate.point, end, end_path, &max_end_index);
 
-              if (max_d_start < max_d && max_d_end < max_d) {
-                // Only connect to this if it ACTUALLY lowers the costs!
+                if (max_d_start < max_d && max_d_end < max_d) {
+                  // Only connect to this if it ACTUALLY lowers the costs!
 
-                // Remove the existing edge, add two new edges.
-                SkeletonEdge new_edge_1, new_edge_2;
-                new_edge_1.start_vertex = edge.start_vertex;
-                new_edge_1.end_vertex = vertex_candidate.vertex_id;
-                new_edge_2.start_vertex = vertex_candidate.vertex_id;
-                new_edge_2.end_vertex = edge.end_vertex;
+                  // Remove the existing edge, add two new edges.
+                  SkeletonEdge new_edge_1, new_edge_2;
+                  new_edge_1.start_vertex = edge.start_vertex;
+                  new_edge_1.end_vertex = vertex_candidate.vertex_id;
+                  new_edge_2.start_vertex = vertex_candidate.vertex_id;
+                  new_edge_2.end_vertex = edge.end_vertex;
 
-                int64_t edge_id_1 = graph_.addEdge(new_edge_1);
-                int64_t edge_id_2 = graph_.addEdge(new_edge_2);
+                  int64_t edge_id_1 = graph_.addEdge(new_edge_1);
+                  int64_t edge_id_2 = graph_.addEdge(new_edge_2);
 
-                // Make sure two new edges are going to be iteratively checked
-                // again.
-                edge_ids.push_back(edge_id_1);
-                edge_ids.push_back(edge_id_2);
+                  // Make sure two new edges are going to be iteratively checked
+                  // again.
+                  edge_ids.push_back(edge_id_1);
+                  edge_ids.push_back(edge_id_2);
 
-                graph_.removeEdge(edge_id);
-                continue;
+                  graph_.removeEdge(edge_id);
+                  continue;
+                }
               }
             }
           }
@@ -1576,9 +1575,26 @@ void SkeletonGenerator::repairGraph() {
 
   timing::Timer split_timer("skeleton/repair_graph/split");
   splitSpecificEdges(new_edge_ids);
+  split_timer.Stop();
+
+  // Check how many subgraphs we finally have.
+  int num_subgraphs = 0;
+  graph_.getAllVertexIds(&vertex_ids);
+  std::set<int> unique_subgraphs;
+
+  for (const int64_t vertex_id : vertex_ids) {
+    SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+    if (vertex.subgraph_id > 0) {
+      unique_subgraphs.insert(vertex.subgraph_id);
+    }
+  }
+
+  LOG(INFO) << "[Subgraph] Final number of disconnected subgraphs: "
+            << unique_subgraphs.size();
 }
 
 int SkeletonGenerator::recursivelyLabel(int64_t vertex_id, int subgraph_id) {
+  timing::Timer label_timer("skeleton/repair_graph/label");
   int num_labelled = 1;
   SkeletonVertex& vertex = graph_.getVertex(vertex_id);
   if (vertex.subgraph_id == subgraph_id) {
