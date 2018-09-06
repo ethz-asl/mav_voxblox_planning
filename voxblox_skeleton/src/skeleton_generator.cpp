@@ -619,6 +619,9 @@ void SkeletonGenerator::generateSparseGraph() {
   } else if (cleanup_style_ == kSimplify) {
     simplifyGraph();
   }
+
+  LOG(INFO) << "[Sparse Graph] Vertices: " << graph_.getVertexMap().size()
+            << " Edges: " << graph_.getEdgeMap().size();
 }
 
 bool SkeletonGenerator::followEdge(const BlockIndex& start_block_index,
@@ -1587,7 +1590,6 @@ void SkeletonGenerator::repairGraph() {
 }
 
 int SkeletonGenerator::recursivelyLabel(int64_t vertex_id, int subgraph_id) {
-  timing::Timer label_timer("skeleton/recursive_label");
   int num_labelled = 1;
   SkeletonVertex& vertex = graph_.getVertex(vertex_id);
   if (vertex.subgraph_id == subgraph_id) {
@@ -1601,10 +1603,6 @@ int SkeletonGenerator::recursivelyLabel(int64_t vertex_id, int subgraph_id) {
       neighbor_vertex_id = edge.end_vertex;
     } else {
       neighbor_vertex_id = edge.start_vertex;
-    }
-    SkeletonVertex& neighbor_vertex = graph_.getVertex(neighbor_vertex_id);
-    if (neighbor_vertex.subgraph_id == subgraph_id) {
-      continue;
     }
     num_labelled += recursivelyLabel(neighbor_vertex_id, subgraph_id);
   }
@@ -1742,6 +1740,7 @@ void SkeletonGenerator::simplifyVertices() {
             int64_t edge_id = graph_.addEdge(new_edge);
 
             edges_added++;
+            break;
           }
         }
       }
