@@ -1235,7 +1235,7 @@ void SkeletonGenerator::pruneDiagramVertices() {
     }
   }
 
-  LOG(INFO) << "Number of vertices: " << num_vertices
+  LOG(INFO) << "[Prune] Number of vertices before prune: " << num_vertices
             << " Number of deleted vertices: " << deletion_index.size();
 
   // Go through everything in the deletion index and remove it from the list.

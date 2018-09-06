@@ -14,7 +14,7 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
       visualize_(true),
       voxblox_server_(nh_, nh_private_),
       skeleton_generator_() {
-  constraints_.setParametersFromRos(nh_);
+  constraints_.setParametersFromRos(nh_private_);
 
   std::string voxblox_path;
   nh_private_.param("voxblox_path", voxblox_path, voxblox_path);
@@ -162,7 +162,7 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
 
   visualization_msgs::MarkerArray marker_array;
 
-  bool run_astar_esdf = true;
+  bool run_astar_esdf = false;
   bool run_astar_diagram = true;
   bool run_astar_graph = true;
 

@@ -30,7 +30,7 @@ bool saveSparseSkeletonGraphToFile(const std::string& filename,
   for (const std::pair<int64_t, SkeletonVertex>& kv : vertices) {
     proto.add_vertices();
     convertVertexToProto(kv.second,
-                         proto.mutable_vertices(proto.vertices_size()));
+                         proto.mutable_vertices(proto.vertices_size() - 1));
   }
 
   // Now it's time for edges.
@@ -38,7 +38,7 @@ bool saveSparseSkeletonGraphToFile(const std::string& filename,
 
   for (const std::pair<int64_t, SkeletonEdge>& kv : edges) {
     proto.add_edges();
-    convertEdgeToProto(kv.second, proto.mutable_edges(proto.edges_size()));
+    convertEdgeToProto(kv.second, proto.mutable_edges(proto.edges_size() - 1));
   }
 
   if (!utils::writeProtoMsgToStream(proto, &outfile)) {
