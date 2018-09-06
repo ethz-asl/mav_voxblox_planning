@@ -1709,6 +1709,9 @@ void SkeletonGenerator::simplifyVertices() {
   size_t vertices_removed = 0;
   size_t edges_added = 0;
 
+  // We're a bit more generous here.
+  const FloatingPoint kMaxThreshold = 2 * skeleton_layer_->voxel_size();
+
   for (const int64_t vertex_id : vertex_ids) {
     SkeletonVertex& vertex = graph_.getVertex(vertex_id);
     if (vertex.edge_list.size() == 1) {
@@ -1733,7 +1736,16 @@ void SkeletonGenerator::simplifyVertices() {
           coordinate_path.clear();
           success = skeleton_planner_.getPathInEsdf(
               vertex.point, neighbor_vertex.point, &coordinate_path);
+
           if (success) {
+            size_t max_index;
+            FloatingPoint max_d =
+                getMaxEdgeDistanceOnPath(vertex.point, neighbor_vertex.point,
+                                         coordinate_path, &max_index);
+            if (max_d > kMaxThreshold) {
+              continue;
+            }
+
             SkeletonEdge new_edge;
             new_edge.start_vertex = vertex_id;
             new_edge.end_vertex = neighbor_vertex.vertex_id;
@@ -1744,9 +1756,48 @@ void SkeletonGenerator::simplifyVertices() {
           }
         }
       }
-    } else if (vertex.edge_list.size() == 2) {
+    }
+  }
+
+  for (const int64_t vertex_id : vertex_ids) {
+    const SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+    if (vertex.edge_list.size() == 2) {
       vertex_removal_candidates++;
+
       // Try to see if we can cut this!
+      const SkeletonEdge& edge1 = graph_.getEdge(vertex.edge_list[0]);
+      const SkeletonEdge& edge2 = graph_.getEdge(vertex.edge_list[1]);
+
+      int64_t vertex_id1 = edge1.start_vertex;
+      if (vertex_id1 == vertex_id) {
+        vertex_id1 = edge1.end_vertex;
+      }
+      int64_t vertex_id2 = edge2.start_vertex;
+      if (vertex_id2 == vertex_id) {
+        vertex_id2 = edge2.end_vertex;
+      }
+
+      const SkeletonVertex& vertex1 = graph_.getVertex(vertex_id1);
+      const SkeletonVertex& vertex2 = graph_.getVertex(vertex_id2);
+
+      AlignedVector<Point> coordinate_path;
+      bool success = skeleton_planner_.getPathInEsdf(
+          vertex1.point, vertex2.point, &coordinate_path);
+      if (!success) {
+        continue;
+      }
+      size_t max_index;
+      FloatingPoint max_d = getMaxEdgeDistanceOnPath(
+          vertex1.point, vertex2.point, coordinate_path, &max_index);
+
+      if (max_d <= kMaxThreshold) {
+        SkeletonEdge new_edge;
+        new_edge.start_vertex = vertex_id1;
+        new_edge.end_vertex = vertex_id2;
+        int64_t edge_id = graph_.addEdge(new_edge);
+        graph_.removeVertex(vertex_id);
+        vertices_removed++;
+      }
     }
   }
   LOG(INFO) << "[Simplify Vertices] Vertex removals: " << vertices_removed
