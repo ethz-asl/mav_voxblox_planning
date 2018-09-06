@@ -9,7 +9,7 @@
   <group ns="$(arg mav_name)">
     <node name="skeleton_global_planner" pkg="skeleton_planner" type="skeleton_global_planner_node" output="screen" clear_params="true">
       <param name="voxblox_path" value="$(arg voxblox_path)" />
-      <param name="sparse_graph_path" value="$(arg sparse_graph_path)" />
+      <param name="sparse_graph_path" value="" />
       <param name="visualize" value="true" />
       <param name="robot_radius" value="0.5" />
       <param name="tsdf_voxel_size" value="0.10" />

@@ -74,6 +74,8 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
     return;
   }
 
+  voxblox_server_.setTraversabilityRadius(constraints_.robot_radius);
+
   // Now set up the skeleton generator.
   skeleton_generator_.setEsdfLayer(
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr());

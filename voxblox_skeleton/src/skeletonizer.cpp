@@ -8,8 +8,8 @@
 #include <voxblox_ros/mesh_vis.h>
 #include <voxblox_ros/ptcloud_vis.h>
 
-#include "voxblox_skeleton/ros/skeleton_vis.h"
 #include "voxblox_skeleton/io/skeleton_io.h"
+#include "voxblox_skeleton/ros/skeleton_vis.h"
 #include "voxblox_skeleton/skeleton_generator.h"
 
 namespace voxblox {
@@ -125,8 +125,7 @@ void SkeletonizerNode::init() {
     }
   }
   if (!sparse_graph_filepath.empty()) {
-    if (io::saveSparseSkeletonGraphToFile(
-            sparse_graph_filepath, skeleton_generator_.getSparseGraph())) {
+    if (skeleton_generator_.saveSparseGraphToFile(sparse_graph_filepath)) {
       ROS_INFO("Output sparse graph to: %s", sparse_graph_filepath.c_str());
     } else {
       ROS_ERROR("Couldn't output sparse graph to: %s",

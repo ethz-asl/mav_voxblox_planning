@@ -13,6 +13,7 @@
 #include <voxblox/utils/neighbor_tools.h>
 #include <voxblox/utils/timing.h>
 
+#include "voxblox_skeleton/nanoflann_interface.h"
 #include "voxblox_skeleton/skeleton.h"
 #include "voxblox_skeleton/skeleton_planner.h"
 #include "voxblox_skeleton/voxel_template_matcher.h"
@@ -22,6 +23,8 @@ namespace voxblox {
 // TODO(helenol): move as an integrator?
 class SkeletonGenerator {
  public:
+  enum CleanupStyle { kNone = 0, kMatchUnderlyingDiagram, kSimplify };
+
   SkeletonGenerator();
   SkeletonGenerator(Layer<EsdfVoxel>* esdf_layer);
 
@@ -78,6 +81,7 @@ class SkeletonGenerator {
   FloatingPoint getMinGvdDistance() const { return min_gvd_distance_; }
   void setMinGvdDistance(FloatingPoint min_gvd_distance) {
     min_gvd_distance_ = min_gvd_distance;
+    skeleton_planner_.setMinEsdfDistance(min_gvd_distance_);
   }
 
   int getNumNeighborsForEdge() const { return num_neighbors_for_edge_; }
@@ -122,7 +126,31 @@ class SkeletonGenerator {
       int subgraph_id_end, std::vector<int64_t>* new_edge_ids);
   void splitSpecificEdges(const std::vector<int64_t>& starting_edge_ids);
 
+  // Newer simplification functions.
+  void simplifyGraph();
+
+  void simplifyVertices();
+  void reconnectSubgraphsAlongEsdf();
+  void mergeSubgraphs(int subgraph_1, int subgraph_2,
+                      std::map<int, int>* subgraph_map) const;
+
  private:
+  // KD tree adapters.
+  typedef nanoflann::KDTreeSingleIndexAdaptor<
+      nanoflann::L2_Simple_Adaptor<FloatingPoint,
+                                   DirectSkeletonVertexMapAdapter>,
+      DirectSkeletonVertexMapAdapter, 3>
+      VertexGraphKdTree;
+  typedef nanoflann::KDTreeSingleIndexAdaptor<
+      nanoflann::L2_Simple_Adaptor<FloatingPoint, SkeletonPointVectorAdapter>,
+      SkeletonPointVectorAdapter, 3>
+      SkeletonPointKdTree;
+  typedef nanoflann::KDTreeSingleIndexDynamicAdaptor<
+      nanoflann::L2_Simple_Adaptor<FloatingPoint,
+                                   DirectSkeletonVertexMapAdapter>,
+      DirectSkeletonVertexMapAdapter, 3>
+      DynamicVertexGraphKdTree;
+
   float min_separation_angle_;
   int esdf_voxels_per_side_;
 
@@ -137,6 +165,9 @@ class SkeletonGenerator {
 
   // Minimum distance that the GVD is computed at. 0 by default.
   FloatingPoint min_gvd_distance_;
+
+  // How to clean up the skeleton, if any.
+  CleanupStyle cleanup_style_;
 
   // Template matchers.
   VoxelTemplateMatcher pruning_template_matcher_;

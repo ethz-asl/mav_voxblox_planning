@@ -1,5 +1,4 @@
 #include "voxblox_skeleton/io/skeleton_io.h"
-#include "voxblox_skeleton/nanoflann_interface.h"
 
 #include "voxblox_skeleton/skeleton_generator.h"
 
@@ -10,14 +9,14 @@ SkeletonGenerator::SkeletonGenerator()
       generate_by_layer_neighbors_(true),
       num_neighbors_for_edge_(18),
       vertex_pruning_radius_(0.35),
-      min_gvd_distance_(0.4) {
+      min_gvd_distance_(0.4),
+      cleanup_style_(kSimplify) {
   // Initialize the template matchers.
   pruning_template_matcher_.setDeletionTemplates();
   corner_template_matcher_.setCornerTemplates();
 }
 
 SkeletonGenerator::SkeletonGenerator(Layer<EsdfVoxel>* esdf_layer)
-
     : SkeletonGenerator() {
   setEsdfLayer(esdf_layer);
   CHECK_NOTNULL(esdf_layer);
@@ -35,6 +34,8 @@ void SkeletonGenerator::setEsdfLayer(Layer<EsdfVoxel>* esdf_layer) {
       esdf_layer_->voxel_size(), esdf_layer_->voxels_per_side()));
   neighbor_tools_.setLayer(skeleton_layer_.get());
   skeleton_planner_.setSkeletonLayer(skeleton_layer_.get());
+  skeleton_planner_.setEsdfLayer(esdf_layer_);
+  skeleton_planner_.setMinEsdfDistance(min_gvd_distance_);
 }
 
 void SkeletonGenerator::updateSkeletonFromLayer() {
@@ -612,8 +613,12 @@ void SkeletonGenerator::generateSparseGraph() {
 
   generate_timer.Stop();
 
-  splitEdges();
-  repairGraph();
+  if (cleanup_style_ == kMatchUnderlyingDiagram) {
+    splitEdges();
+    repairGraph();
+  } else if (cleanup_style_ == kSimplify) {
+    simplifyGraph();
+  }
 }
 
 bool SkeletonGenerator::followEdge(const BlockIndex& start_block_index,
@@ -1173,15 +1178,9 @@ void SkeletonGenerator::pruneDiagramVertices() {
 
   // Create the adapter.
   SkeletonPointVectorAdapter adapter(const_vertices);
-
   // construct a kd-tree index:
-  typedef nanoflann::KDTreeSingleIndexAdaptor<
-      nanoflann::L2_Simple_Adaptor<FloatingPoint, SkeletonPointVectorAdapter>,
-      SkeletonPointVectorAdapter, kDim>
-      SkeletonKdTree;
-
-  SkeletonKdTree kd_tree(kDim, adapter,
-                         nanoflann::KDTreeSingleIndexAdaptorParams(kMaxLeaf));
+  SkeletonPointKdTree kd_tree(
+      kDim, adapter, nanoflann::KDTreeSingleIndexAdaptorParams(kMaxLeaf));
 
   // This would be buildIndex if we were doing the non-dynamic version...
   // kd_tree.addPoints(0, adapter.kdtree_get_point_count());
@@ -1296,13 +1295,7 @@ void SkeletonGenerator::splitSpecificEdges(
   const int kDim = 3;
   const int kMaxLeaf = 10;
 
-  typedef nanoflann::KDTreeSingleIndexDynamicAdaptor<
-      nanoflann::L2_Simple_Adaptor<FloatingPoint,
-                                   DirectSkeletonVertexMapAdapter>,
-      DirectSkeletonVertexMapAdapter, kDim>
-      VertexGraphKdTree;
-
-  VertexGraphKdTree kd_tree(
+  DynamicVertexGraphKdTree kd_tree(
       kDim, adapter, nanoflann::KDTreeSingleIndexAdaptorParams(kMaxLeaf));
   kd_tree.addPoints(0, adapter.kdtree_get_point_count() - 1);
 
@@ -1594,7 +1587,7 @@ void SkeletonGenerator::repairGraph() {
 }
 
 int SkeletonGenerator::recursivelyLabel(int64_t vertex_id, int subgraph_id) {
-  timing::Timer label_timer("skeleton/repair_graph/label");
+  timing::Timer label_timer("skeleton/recursive_label");
   int num_labelled = 1;
   SkeletonVertex& vertex = graph_.getVertex(vertex_id);
   if (vertex.subgraph_id == subgraph_id) {
@@ -1608,6 +1601,10 @@ int SkeletonGenerator::recursivelyLabel(int64_t vertex_id, int subgraph_id) {
       neighbor_vertex_id = edge.end_vertex;
     } else {
       neighbor_vertex_id = edge.start_vertex;
+    }
+    SkeletonVertex& neighbor_vertex = graph_.getVertex(neighbor_vertex_id);
+    if (neighbor_vertex.subgraph_id == subgraph_id) {
+      continue;
     }
     num_labelled += recursivelyLabel(neighbor_vertex_id, subgraph_id);
   }
@@ -1667,6 +1664,220 @@ void SkeletonGenerator::tryToFindEdgesInCoordinatePath(
           }
         }
       }
+    }
+  }
+}
+
+void SkeletonGenerator::simplifyGraph() {
+  // This will have to do a couple of things.
+  // (1) Verify each edge along the ESDF does not reach a distance below min
+  // gvd.
+  // (2) For vertices with only 2 neighbors, try to skip the vertex along the
+  // straight line.
+  // (3) For vertices that are end-points, try to reconnect them to something
+  // nice.
+  // (4) Label subgraphs, and if there's really near-by vertices with a
+  // different subgraph, try to connect along the ESDF.
+
+  // Make sure we don't waste time looking too far.
+  const int kMaxAstarIterations = 100;
+  skeleton_planner_.setMaxIterations(kMaxAstarIterations);
+
+  simplifyVertices();
+
+  reconnectSubgraphsAlongEsdf();
+}
+
+void SkeletonGenerator::simplifyVertices() {
+  timing::Timer simplify_timer("skeleton/simplify_vertices");
+
+  // Build a kd tree again.
+  constexpr int kMaxLeaf = 10;
+  DirectSkeletonVertexMapAdapter adapter(graph_.getVertexMap());
+  // construct a kd-tree index:
+  VertexGraphKdTree kd_tree(
+      3, adapter, nanoflann::KDTreeSingleIndexAdaptorParams(kMaxLeaf));
+  kd_tree.buildIndex();
+
+  constexpr int kNumNeighbors = 10;
+  nanoflann::SearchParams params;  // Defaults are fine.
+  std::vector<size_t> ret_index(kNumNeighbors);
+  std::vector<FloatingPoint> out_dist_sqr(kNumNeighbors);
+
+  std::vector<int64_t> vertex_ids;
+  graph_.getAllVertexIds(&vertex_ids);
+
+  size_t vertex_removal_candidates = 0;
+  size_t vertices_removed = 0;
+  size_t edges_added = 0;
+
+  for (const int64_t vertex_id : vertex_ids) {
+    SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+    if (vertex.edge_list.size() == 1) {
+      // Find it a friend! Find only friends with only 1 neighbor.
+      // kD tree lookup here.
+      size_t num_results = kd_tree.knnSearch(vertex.point.data(), kNumNeighbors,
+                                             &ret_index[0], &out_dist_sqr[0]);
+      for (size_t i = 0; i < num_results; i++) {
+        const SkeletonVertex& neighbor_vertex = graph_.getVertex(ret_index[i]);
+        if (neighbor_vertex.edge_list.size() == 1) {
+          timing::Timer path_timer("skeleton/simplify_vertices/path_finding");
+
+          // We don't want stuff that's easily linked in the diagram, or we
+          // would have already gotten this.
+          AlignedVector<Point> coordinate_path;
+          bool success = skeleton_planner_.getPathOnDiagram(
+              vertex.point, neighbor_vertex.point, &coordinate_path);
+          if (success) {
+            continue;
+          }
+
+          coordinate_path.clear();
+          success = skeleton_planner_.getPathInEsdf(
+              vertex.point, neighbor_vertex.point, &coordinate_path);
+          if (success) {
+            SkeletonEdge new_edge;
+            new_edge.start_vertex = vertex_id;
+            new_edge.end_vertex = neighbor_vertex.vertex_id;
+            int64_t edge_id = graph_.addEdge(new_edge);
+
+            edges_added++;
+          }
+        }
+      }
+    } else if (vertex.edge_list.size() == 2) {
+      vertex_removal_candidates++;
+      // Try to see if we can cut this!
+    }
+  }
+  LOG(INFO) << "[Simplify Vertices] Vertex removals: " << vertices_removed
+            << " / " << vertex_removal_candidates
+            << ", Edges added: " << edges_added;
+}
+
+void SkeletonGenerator::reconnectSubgraphsAlongEsdf() {
+  timing::Timer reconnect_timer("skeleton/reconnect");
+
+  // Subgraph merging is done differently here... Just accumlate all the ones
+  // that map to the same thing. Always map to the lowest.
+  std::map<int, int> subgraph_map;
+
+  // Go over all the vertices in the sparse graph and flood fill to label
+  // unconnected components.
+  std::vector<int64_t> vertex_ids;
+  graph_.getAllVertexIds(&vertex_ids);
+  std::map<int, int64_t> subgraph_vertex_examples;
+
+  int last_subgraph = 0;
+  for (const int64_t vertex_id : vertex_ids) {
+    SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+    if (vertex.subgraph_id > 0) {
+      // This vertex is already labelled.
+      continue;
+    }
+    int subgraph_id = ++last_subgraph;
+    int num_labelled = recursivelyLabel(vertex_id, subgraph_id);
+
+    if (num_labelled == 1) {
+      graph_.removeVertex(vertex_id);
+    } else {
+      subgraph_vertex_examples[subgraph_id] = vertex_id;
+      subgraph_map[subgraph_id] = subgraph_id;
+    }
+  }
+
+  // Ok now we presumably have more than 1 disconnected subgraph...
+  if (subgraph_vertex_examples.size() <= 1) {
+    // Nope only one subgraph, we're done!
+    return;
+  }
+
+  LOG(INFO) << "[Subgraph] Number of disconnected subgraphs: "
+            << subgraph_vertex_examples.size();
+
+  size_t potential_edge_candidates = 0;
+  size_t diagram_candidates = 0;
+
+  // Next, build a KD Tree of all the vertices.
+  // Create the adapter.
+  constexpr int kMaxLeaf = 10;
+  DirectSkeletonVertexMapAdapter adapter(graph_.getVertexMap());
+  // construct a kd-tree index:
+  VertexGraphKdTree kd_tree(
+      3, adapter, nanoflann::KDTreeSingleIndexAdaptorParams(kMaxLeaf));
+  kd_tree.buildIndex();
+
+  constexpr int kNumNeighbors = 5;
+  nanoflann::SearchParams params;  // Defaults are fine.
+  std::vector<size_t> ret_index(kNumNeighbors);
+  std::vector<FloatingPoint> out_dist_sqr(kNumNeighbors);
+
+  // Look up the nearest kNumNeighbors in the kD tree for each vertex.
+  for (const int64_t vertex_id : vertex_ids) {
+    const SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+
+    // kD tree lookup here.
+    size_t num_results = kd_tree.knnSearch(vertex.point.data(), kNumNeighbors,
+                                           &ret_index[0], &out_dist_sqr[0]);
+    for (size_t i = 0; i < num_results; i++) {
+      const SkeletonVertex& neighbor_vertex = graph_.getVertex(ret_index[i]);
+      if (subgraph_map[neighbor_vertex.subgraph_id] ==
+          subgraph_map[vertex.subgraph_id]) {
+        continue;
+      }
+      potential_edge_candidates++;
+
+      // Ok now presumably we have two different subgraphs that we're gonna
+      // try to connect.
+      timing::Timer path_timer("skeleton/reconnect/path_finding");
+
+      AlignedVector<Point> coordinate_path;
+      bool success = skeleton_planner_.getPathInEsdf(
+          vertex.point, neighbor_vertex.point, &coordinate_path);
+      if (success) {
+        diagram_candidates++;
+        SkeletonEdge new_edge;
+        new_edge.start_vertex = vertex_id;
+        new_edge.end_vertex = neighbor_vertex.vertex_id;
+        int64_t edge_id = graph_.addEdge(new_edge);
+
+        mergeSubgraphs(vertex.subgraph_id, neighbor_vertex.subgraph_id,
+                       &subgraph_map);
+      }
+      path_timer.Stop();
+    }
+  }
+  LOG(INFO) << "[Subgraph] Potential edge candidates: "
+            << potential_edge_candidates
+            << " diagram candidates: " << diagram_candidates;
+
+  // Recolor!
+  timing::Timer recolor_timer("skeleton/reconnect/recolor");
+  std::set<int> unique_subgraphs;
+
+  for (const int64_t vertex_id : vertex_ids) {
+    SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+    vertex.subgraph_id = subgraph_map[vertex.subgraph_id];
+    unique_subgraphs.insert(vertex.subgraph_id);
+  }
+  recolor_timer.Stop();
+
+  LOG(INFO) << "[Subgraph] Final number of disconnected subgraphs: "
+            << unique_subgraphs.size();
+}
+
+void SkeletonGenerator::mergeSubgraphs(int subgraph_1, int subgraph_2,
+                                       std::map<int, int>* subgraph_map) const {
+  // Figure out the lowest thing that these subgraphs actually map to.
+  int subgraph_1a = (*subgraph_map)[subgraph_1];
+  int subgraph_2a = (*subgraph_map)[subgraph_2];
+
+  int new_subgraph = std::min(subgraph_1a, subgraph_2a);
+  int old_subgraph = std::max(subgraph_1a, subgraph_2a);
+
+  for (std::pair<const int, int>& kv : (*subgraph_map)) {
+    if (kv.second == old_subgraph) {
+      kv.second = new_subgraph;
     }
   }
 }
