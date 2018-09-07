@@ -301,7 +301,7 @@ size_t SkeletonGenerator::pruneDiagramEdges() {
   // any that fit the template, and mark them in removal indices.
   std::vector<size_t> removal_indices;
 
-  const AlignedVector<SkeletonPoint>& edge_points = skeleton_.getEdgePoints();
+  const AlignedList<SkeletonPoint>& edge_points = skeleton_.getEdgePoints();
 
   size_t j = 0;
   for (const SkeletonPoint& edge : edge_points) {
@@ -365,15 +365,21 @@ size_t SkeletonGenerator::pruneDiagramEdges() {
   size_t num_removed = removal_indices.size();
   timing::Timer removal_timer("skeleton/prune_edges/removal");
 
-  AlignedVector<SkeletonPoint>& non_const_edge_points =
+  AlignedList<SkeletonPoint>& non_const_edge_points =
       skeleton_.getEdgePoints();
   // They are necessarily already sorted, as we iterate over this vector
   // to build the removal indices.
-  std::reverse(removal_indices.begin(), removal_indices.end());
+  //std::reverse(removal_indices.begin(), removal_indices.end());
 
+  auto iter = non_const_edge_points.begin();
+  size_t current_index = 0;
   for (size_t index : removal_indices) {
-    non_const_edge_points[index].distance = -1;
-    non_const_edge_points.erase(non_const_edge_points.begin() + index);
+    while (index > current_index) {
+      iter++;
+      current_index++;
+    }
+    iter = non_const_edge_points.erase(iter);
+    current_index++;
   }
   return num_removed;
 }
@@ -447,7 +453,7 @@ void SkeletonGenerator::generateVerticesByLayerNeighbors() {
 
   // Rather than iterate over the entire layer, let's just go over all the
   // points in the skeleton.
-  const AlignedVector<SkeletonPoint>& edge_points = skeleton_.getEdgePoints();
+  const AlignedList<SkeletonPoint>& edge_points = skeleton_.getEdgePoints();
 
   // Then figure out how to connect them to other vertices by following the
   // skeleton layer voxels.
@@ -730,7 +736,7 @@ bool SkeletonGenerator::followEdge(const BlockIndex& start_block_index,
       }
     }
 
-    if (still_got_neighbors) {
+    if (still_got_neighbors && best_neighbor >= 0) {
       // Get the best one out AGAIN...
       BlockIndex neighbor_block_index = neighbors[best_neighbor].first;
       VoxelIndex neighbor_voxel_index = neighbors[best_neighbor].second;
@@ -741,9 +747,8 @@ bool SkeletonGenerator::followEdge(const BlockIndex& start_block_index,
         neighbor_block =
             skeleton_layer_->getBlockPtrByIndex(neighbor_block_index);
       }
-      if (!neighbor_block) {
-        continue;
-      }
+      CHECK(neighbor_block);
+
       SkeletonVoxel& neighbor_voxel =
           neighbor_block->getVoxelByVoxelIndex(neighbor_voxel_index);
 
