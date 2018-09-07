@@ -8,12 +8,14 @@
 
   <node name="voxblox_skeletonizer" pkg="voxblox_skeleton" type="skeletonizer" output="screen" clear_params="true">
    <param name="input_filepath" value="$(arg voxblox_path)" />
-    <param name="output_filepath" value="" />
-    <param name="sparse_graph_filepath" value="" />
+    <param name="output_filepath" value="$(arg output_path)" />
+    <param name="sparse_graph_filepath" value="$(arg sparse_graph_filepath)" />
 
     <param name="min_gvd_distance" value="0.5" />
     <param name="tsdf_voxel_size" value="0.1" />
     <param name="esdf_max_distance" value="5.0" />
+    <param name="publish_pointclouds" value="true" />
+    <param name="publish_slices" value="true" />
     <param name="world_frame" value="$(arg frame_id)" />
     <param name="frame_id" value="$(arg frame_id)" />
     <param name="verbose" value="true" />

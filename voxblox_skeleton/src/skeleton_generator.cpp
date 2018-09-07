@@ -222,6 +222,7 @@ void SkeletonGenerator::generateSkeleton() {
     }
   }
 
+  LOG(INFO) << "[GVD] Finished finding GVD candidates.";
   if (generate_by_layer_neighbors_) {
     generateEdgesByLayerNeighbors();
     // Keep going until a certain small percentage remains...
@@ -318,6 +319,7 @@ size_t SkeletonGenerator::pruneDiagramEdges() {
       continue;
     }
 
+    timing::Timer neighbor_timer("skeleton/prune_edges/neighbors");
     // Now just get the neighbors and count how many are on the skeleton.
     AlignedVector<VoxelKey> neighbors;
     AlignedVector<float> distances;
@@ -348,16 +350,20 @@ size_t SkeletonGenerator::pruneDiagramEdges() {
         neighbor_bitset[mapNeighborIndexToBitsetIndex(i)] = true;
       }
     }
+    neighbor_timer.Stop();
+    timing::Timer template_timer("skeleton/prune_edges/template");
     if (pruning_template_matcher_.fitsTemplates(neighbor_bitset)) {
       if (isSimplePoint(neighbor_bitset) && !isEndPoint(neighbor_bitset)) {
         voxel.is_edge = false;
         removal_indices.push_back(j);
       }
     }
+    template_timer.Stop();
     j++;
   }
 
   size_t num_removed = removal_indices.size();
+  timing::Timer removal_timer("skeleton/prune_edges/removal");
 
   AlignedVector<SkeletonPoint>& non_const_edge_points =
       skeleton_.getEdgePoints();
@@ -734,6 +740,9 @@ bool SkeletonGenerator::followEdge(const BlockIndex& start_block_index,
       } else {
         neighbor_block =
             skeleton_layer_->getBlockPtrByIndex(neighbor_block_index);
+      }
+      if (!neighbor_block) {
+        continue;
       }
       SkeletonVoxel& neighbor_voxel =
           neighbor_block->getVoxelByVoxelIndex(neighbor_voxel_index);
@@ -1710,7 +1719,7 @@ void SkeletonGenerator::simplifyVertices() {
   size_t edges_added = 0;
 
   // We're a bit more generous here.
-  const FloatingPoint kMaxThreshold = 2 * skeleton_layer_->voxel_size();
+  const FloatingPoint kMaxThreshold = 4 * skeleton_layer_->voxel_size();
 
   for (const int64_t vertex_id : vertex_ids) {
     SkeletonVertex& vertex = graph_.getVertex(vertex_id);
@@ -1864,12 +1873,16 @@ void SkeletonGenerator::reconnectSubgraphsAlongEsdf() {
 
   // Look up the nearest kNumNeighbors in the kD tree for each vertex.
   for (const int64_t vertex_id : vertex_ids) {
+    if (!graph_.hasVertex(vertex_id)) {
+      continue;
+    }
     const SkeletonVertex& vertex = graph_.getVertex(vertex_id);
 
     // kD tree lookup here.
     size_t num_results = kd_tree.knnSearch(vertex.point.data(), kNumNeighbors,
                                            &ret_index[0], &out_dist_sqr[0]);
     for (size_t i = 0; i < num_results; i++) {
+      CHECK(graph_.hasVertex(ret_index[i]));
       const SkeletonVertex& neighbor_vertex = graph_.getVertex(ret_index[i]);
       if (subgraph_map[neighbor_vertex.subgraph_id] ==
           subgraph_map[vertex.subgraph_id]) {

@@ -127,7 +127,7 @@ class SparseSkeletonGraph {
   // only for de-serializing sparse skeleton graphs. Also sets ids to the ids
   // already in the structure.
   void addSerializedVertex(const SkeletonVertex& vertex);
-  void addSerializedEdge(const SkeletonEdge& edge);
+   addSerializedEdge(const SkeletonEdge& edge);
 
  private:
   // Vertex and edge IDs are separate.
