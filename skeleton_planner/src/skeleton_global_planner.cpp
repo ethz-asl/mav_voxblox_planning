@@ -305,7 +305,7 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
       if (smooth_path) {
         mav_msgs::EigenTrajectoryPointVector loco_path;
         mav_trajectory_generation::timing::Timer loco_timer("plan/graph/loco");
-        loco_smoother_.setResampleTrajectory(true);
+        loco_smoother_.setResampleVisibility(true);
         loco_smoother_.setAddWaypoints(false);
         loco_smoother_.setNumSegments(5);
         loco_smoother_.getPathBetweenWaypoints(short_path, &loco_path);

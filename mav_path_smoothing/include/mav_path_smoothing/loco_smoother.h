@@ -34,6 +34,10 @@ class LocoSmoother : public PolynomialSmoother {
   void setResampleTrajectory(bool resample_trajectory) {
     resample_trajectory_ = resample_trajectory;
   }
+  bool getResampleVisibility() const { return resample_visibility_; }
+  void setResampleVisibility(bool resample_visibility) {
+    resample_visibility_ = resample_visibility;
+  }
   int getNumSegments() const { return num_segments_; }
   void setNumSegments(int num_segments) { num_segments_ = num_segments; }
   // Controls whether waypoints are added as soft costs in the LOCO problem.
@@ -41,7 +45,12 @@ class LocoSmoother : public PolynomialSmoother {
   void setAddWaypoints(bool add_waypoints) { add_waypoints_ = add_waypoints; }
 
  protected:
+void resampleWaypointsFromVisibilityGraph(
+    const mav_msgs::EigenTrajectoryPoint::Vector& waypoints,
+    mav_msgs::EigenTrajectoryPoint::Vector* waypoints_out) const;
+
   bool resample_trajectory_;
+  bool resample_visibility_;
   int num_segments_;
   bool add_waypoints_;
 };
