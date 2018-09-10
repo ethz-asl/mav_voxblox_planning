@@ -47,7 +47,7 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
   CHECK(esdf_map);
 
   if (!voxblox_server_.loadMap(voxblox_path)) {
-    ROS_ERROR("Coudldn't load ESDF map!");
+    ROS_ERROR("Couldn't load ESDF map!");
   }
 
   ROS_INFO(
@@ -93,6 +93,13 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
   path_shortener_.setEsdfLayer(
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr());
   path_shortener_.setConstraints(constraints_);
+
+  // Loco smoother!
+  loco_smoother_.setParametersFromRos(nh_private_);
+  loco_smoother_.setMinCollisionCheckResolution(
+      voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxel_size());
+  loco_smoother_.setMapDistanceCallback(std::bind(
+      &SkeletonGlobalPlanner::getMapDistance, this, std::placeholders::_1));
 
   if (visualize_) {
     voxblox_server_.generateMesh();
@@ -174,6 +181,7 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
   bool run_astar_graph = true;
   bool shorten_graph = true;
   bool exact_start_and_goal = true;
+  bool smooth_path = true;
 
   if (run_astar_esdf) {
     // First, run just the ESDF A*...
@@ -222,7 +230,10 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
           "plan/astar_diag/shorten");
       mav_msgs::EigenTrajectoryPointVector short_path;
       path_shortener_.shortenPath(diagram_path, &short_path);
-
+      path_length = computePathLength(short_path);
+      num_vertices = short_path.size();
+      ROS_INFO("Diagram Shorten Success? %d Path length: %f Vertices: %d",
+               success, path_length, num_vertices);
       if (visualize_) {
         marker_array.markers.push_back(createMarkerForPath(
             short_path, frame_id_, mav_visualization::Color::Green(),
@@ -281,16 +292,31 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
       success = path_shortener_.shortenPath(graph_path, &short_path);
       path_length = computePathLength(short_path);
       num_vertices = short_path.size();
-      ROS_INFO("Shorten Success? %d Path length: %f Vertices: %d",
-               success, path_length, num_vertices);
-
+      ROS_INFO("Shorten Success? %d Path length: %f Vertices: %d", success,
+               path_length, num_vertices);
+      shorten_timer.Stop();
 
       if (visualize_) {
         marker_array.markers.push_back(createMarkerForPath(
             short_path, frame_id_, mav_visualization::Color::Pink(),
             "short_plan", 0.05));
       }
-      shorten_timer.Stop();
+
+      if (smooth_path) {
+        mav_msgs::EigenTrajectoryPointVector loco_path;
+        mav_trajectory_generation::timing::Timer loco_timer("plan/graph/loco");
+        loco_smoother_.setResampleTrajectory(true);
+        loco_smoother_.setAddWaypoints(false);
+        loco_smoother_.setNumSegments(5);
+        loco_smoother_.getPathBetweenWaypoints(short_path, &loco_path);
+
+        loco_timer.Stop();
+        if (visualize_) {
+          marker_array.markers.push_back(createMarkerForPath(
+              loco_path, frame_id_, mav_visualization::Color::Orange(),
+              "loco_plan", 0.05));
+        }
+      }
     }
   }
 

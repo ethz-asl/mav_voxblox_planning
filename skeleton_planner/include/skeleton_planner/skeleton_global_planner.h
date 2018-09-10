@@ -7,6 +7,7 @@
 #include <string>
 
 #include <mav_msgs/conversions.h>
+#include <mav_path_smoothing/loco_smoother.h>
 #include <mav_planning_common/physical_constraints.h>
 #include <mav_planning_msgs/PlannerService.h>
 #include <mav_trajectory_generation/timing.h>
@@ -73,6 +74,7 @@ class SkeletonGlobalPlanner {
   voxblox::SkeletonAStar skeleton_planner_;
   voxblox::SparseGraphPlanner sparse_graph_planner_;
   EsdfPathShortener path_shortener_;
+  LocoSmoother loco_smoother_;
 };
 
 }  // namespace mav_planning
