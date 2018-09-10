@@ -4,7 +4,7 @@
 #include <mav_msgs/eigen_mav_msgs.h>
 #include <ros/ros.h>
 
-#include "mav_planning_common/physical_constraints.h"
+#include <mav_planning_common/physical_constraints.h>
 
 namespace mav_planning {
 

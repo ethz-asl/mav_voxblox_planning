@@ -18,6 +18,8 @@
 #include <voxblox_skeleton/skeleton_planner.h>
 #include <voxblox_skeleton/sparse_graph_planner.h>
 
+#include "skeleton_planner/path_shortening.h"
+
 namespace mav_planning {
 
 class SkeletonGlobalPlanner {
@@ -70,6 +72,7 @@ class SkeletonGlobalPlanner {
   // Planners of all sorts.
   voxblox::SkeletonAStar skeleton_planner_;
   voxblox::SparseGraphPlanner sparse_graph_planner_;
+  EsdfPathShortener path_shortener_;
 };
 
 }  // namespace mav_planning

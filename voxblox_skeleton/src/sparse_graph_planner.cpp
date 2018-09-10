@@ -173,10 +173,8 @@ size_t SparseGraphPlanner::getNClosestVertices(
   nanoflann::SearchParams params;  // Defaults are fine.
   size_t num_results = kd_tree_->knnSearch(point.data(), num_vertices,
                                            &ret_index[0], &out_dist_sqr[0]);
-  LOG(INFO) << "Requested: " << num_vertices << " got: " << num_results;
   for (size_t i = 0; i < num_results; i++) {
     vertex_inds->push_back(ret_index[i]);
-    LOG(INFO) << "Result: " << ret_index[i];
   }
   return num_results;
 }

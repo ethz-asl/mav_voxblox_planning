@@ -89,6 +89,11 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr());
   skeleton_planner_.setMinEsdfDistance(constraints_.robot_radius);
 
+  // Set up shortener.
+  path_shortener_.setEsdfLayer(
+      voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr());
+  path_shortener_.setConstraints(constraints_);
+
   if (visualize_) {
     voxblox_server_.generateMesh();
     voxblox_server_.publishSlices();
@@ -167,6 +172,7 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
   bool run_astar_esdf = false;
   bool run_astar_diagram = true;
   bool run_astar_graph = true;
+  bool shorten_graph = true;
 
   if (run_astar_esdf) {
     // First, run just the ESDF A*...
@@ -190,26 +196,6 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
     }
   }
 
-  if (run_astar_graph) {
-    voxblox::AlignedVector<voxblox::Point> graph_coordinate_path;
-    mav_trajectory_generation::timing::Timer graph_timer("plan/graph");
-    bool success = sparse_graph_planner_.getPath(start_point, goal_point,
-                                                 &graph_coordinate_path);
-    mav_msgs::EigenTrajectoryPointVector graph_path;
-    convertCoordinatePathToPath(graph_coordinate_path, &graph_path);
-    double path_length = computePathLength(graph_path);
-    int num_vertices = graph_path.size();
-    graph_timer.Stop();
-    ROS_INFO("Graph Planning Success? %d Path length: %f Vertices: %d", success,
-             path_length, num_vertices);
-
-    if (visualize_) {
-      marker_array.markers.push_back(createMarkerForPath(
-          graph_path, frame_id_, mav_visualization::Color::Teal(), "graph_plan",
-          0.25));
-    }
-  }
-
   if (run_astar_diagram) {
     voxblox::AlignedVector<voxblox::Point> diagram_coordinate_path;
     mav_trajectory_generation::timing::Timer astar_diag_timer(
@@ -228,6 +214,40 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
       marker_array.markers.push_back(createMarkerForPath(
           diagram_path, frame_id_, mav_visualization::Color::Orange(),
           "astar_diag", 0.35));
+    }
+  }
+
+  if (run_astar_graph) {
+    voxblox::AlignedVector<voxblox::Point> graph_coordinate_path;
+    mav_trajectory_generation::timing::Timer graph_timer("plan/graph");
+    bool success = sparse_graph_planner_.getPath(start_point, goal_point,
+                                                 &graph_coordinate_path);
+    mav_msgs::EigenTrajectoryPointVector graph_path;
+    convertCoordinatePathToPath(graph_coordinate_path, &graph_path);
+    double path_length = computePathLength(graph_path);
+    int num_vertices = graph_path.size();
+    graph_timer.Stop();
+    ROS_INFO("Graph Planning Success? %d Path length: %f Vertices: %d", success,
+             path_length, num_vertices);
+
+    if (visualize_) {
+      marker_array.markers.push_back(createMarkerForPath(
+          graph_path, frame_id_, mav_visualization::Color::Teal(), "graph_plan",
+          0.25));
+    }
+
+    if (shorten_graph) {
+      mav_trajectory_generation::timing::Timer shorten_timer(
+          "plan/graph/shorten");
+      mav_msgs::EigenTrajectoryPointVector short_path;
+      path_shortener_.shortenPath(graph_path, &short_path);
+
+      if (visualize_) {
+        marker_array.markers.push_back(createMarkerForPath(
+            short_path, frame_id_, mav_visualization::Color::Pink(),
+            "short_plan", 0.05));
+      }
+      shorten_timer.Stop();
     }
   }
 
