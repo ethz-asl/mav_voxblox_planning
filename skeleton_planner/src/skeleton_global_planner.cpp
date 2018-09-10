@@ -278,7 +278,12 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
       mav_trajectory_generation::timing::Timer shorten_timer(
           "plan/graph/shorten");
       mav_msgs::EigenTrajectoryPointVector short_path;
-      path_shortener_.shortenPath(graph_path, &short_path);
+      success = path_shortener_.shortenPath(graph_path, &short_path);
+      path_length = computePathLength(short_path);
+      num_vertices = short_path.size();
+      ROS_INFO("Shorten Success? %d Path length: %f Vertices: %d",
+               success, path_length, num_vertices);
+
 
       if (visualize_) {
         marker_array.markers.push_back(createMarkerForPath(
