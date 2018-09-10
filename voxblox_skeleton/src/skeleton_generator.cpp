@@ -736,6 +736,7 @@ bool SkeletonGenerator::followEdge(const BlockIndex& start_block_index,
       }
     }
 
+    j++;
     if (still_got_neighbors && best_neighbor >= 0) {
       // Get the best one out AGAIN...
       BlockIndex neighbor_block_index = neighbors[best_neighbor].first;
@@ -765,7 +766,6 @@ bool SkeletonGenerator::followEdge(const BlockIndex& start_block_index,
       last_direction = directions[best_neighbor];
       // Direction is FROM neighbor TO the voxel, so gotta reverse it.
       direction_to_here -= last_direction;
-      j++;
     } else {
       // If we don't have neighbors, check out one from to-check and see
       // if we can do something there!

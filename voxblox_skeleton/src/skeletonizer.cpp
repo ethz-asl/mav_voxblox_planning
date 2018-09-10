@@ -91,7 +91,7 @@ void SkeletonizerNode::init() {
   }
   //esdf_server_.disableIncrementalUpdate();
 
-  //const bool full_euclidean_distance = true;
+  //const bool full_euclidean_distance = false;
   //esdf_server_.updateEsdfBatch(full_euclidean_distance);
 
   // Visualize all parts.
