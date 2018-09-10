@@ -173,6 +173,7 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
   bool run_astar_diagram = true;
   bool run_astar_graph = true;
   bool shorten_graph = true;
+  bool exact_start_and_goal = true;
 
   if (run_astar_esdf) {
     // First, run just the ESDF A*...
@@ -215,6 +216,20 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
           diagram_path, frame_id_, mav_visualization::Color::Orange(),
           "astar_diag", 0.35));
     }
+
+    if (shorten_graph) {
+      mav_trajectory_generation::timing::Timer shorten_timer(
+          "plan/astar_diag/shorten");
+      mav_msgs::EigenTrajectoryPointVector short_path;
+      path_shortener_.shortenPath(diagram_path, &short_path);
+
+      if (visualize_) {
+        marker_array.markers.push_back(createMarkerForPath(
+            short_path, frame_id_, mav_visualization::Color::Green(),
+            "short_astar_plan", 0.05));
+      }
+      shorten_timer.Stop();
+    }
   }
 
   if (run_astar_graph) {
@@ -230,6 +245,29 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
     ROS_INFO("Graph Planning Success? %d Path length: %f Vertices: %d", success,
              path_length, num_vertices);
 
+    if (exact_start_and_goal && success) {
+      mav_trajectory_generation::timing::Timer exact_timer(
+          "plan/graph/start_goal");
+      voxblox::AlignedVector<voxblox::Point> exact_start_path, exact_goal_path;
+
+      success &= skeleton_planner_.getPathInEsdf(
+          start_point, graph_coordinate_path.front(), &exact_start_path);
+      success &= skeleton_planner_.getPathInEsdf(graph_coordinate_path.back(),
+                                                 goal_point, &exact_goal_path);
+
+      graph_coordinate_path.insert(graph_coordinate_path.begin(),
+                                   exact_start_path.begin(),
+                                   exact_start_path.end());
+      graph_coordinate_path.insert(graph_coordinate_path.end(),
+                                   exact_goal_path.begin(),
+                                   exact_goal_path.end());
+      convertCoordinatePathToPath(graph_coordinate_path, &graph_path);
+
+      path_length = computePathLength(graph_path);
+      num_vertices = graph_path.size();
+      ROS_INFO("Exact Planning Success? %d Path length: %f Vertices: %d",
+               success, path_length, num_vertices);
+    }
     if (visualize_) {
       marker_array.markers.push_back(createMarkerForPath(
           graph_path, frame_id_, mav_visualization::Color::Teal(), "graph_plan",
@@ -264,6 +302,7 @@ void SkeletonGlobalPlanner::convertCoordinatePathToPath(
     const voxblox::AlignedVector<voxblox::Point>& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) const {
   CHECK_NOTNULL(path);
+  path->clear();
   path->reserve(coordinate_path.size());
 
   for (const voxblox::Point& voxblox_point : coordinate_path) {
