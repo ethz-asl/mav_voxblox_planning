@@ -12,17 +12,22 @@ bool EsdfPathShortener::shortenPath(
   EigenTrajectoryPointList path_list(path.begin(), path.end());
 
   // Do one round of path shorterning.
-  ROS_INFO("Initial size: %zu", path.size());
-  bool success =
-      shortenPathList(path_list.begin(), path_list.end(), &path_list);
-  ROS_INFO("First round: %d : %zu", success, path_list.size());
-  success = shortenPathList(path_list.begin(), path_list.end(), &path_list);
-  ROS_INFO("Second round: %d : %zu", success, path_list.size());
-  success = shortenPathList(path_list.begin(), path_list.end(), &path_list);
-  ROS_INFO("Third round: %d : %zu", success, path_list.size());
+  int i = 0;
+  constexpr int kMaxShortens = 10;
+
+  bool any_success = false;
+
+  for (int i = 0; i < kMaxShortens; i++) {
+    bool success =
+        shortenPathList(path_list.begin(), path_list.end(), &path_list);
+    any_success |= success;
+    if (!success) {
+      break;
+    }
+  }
 
   shortened_path->assign(path_list.begin(), path_list.end());
-  return success;
+  return any_success;
 }
 
 // Shortens the path inside the iterator, leaving start and end the same.
@@ -44,7 +49,6 @@ bool EsdfPathShortener::shortenPathList(
     iter++;
     int i = 0;
     while (iter != last_iter && iter != end_iter) {
-      ROS_INFO_STREAM("Erasing: " << iter->position_W.transpose());
       iter = path_list->erase(iter);
       i++;
     }
@@ -61,11 +65,6 @@ bool EsdfPathShortener::shortenPathList(
     if (middle_iter == start_iter || middle_iter == end_iter) {
       return false;
     }
-
-    ROS_INFO_STREAM("Start iter: "
-                    << start_iter->position_W.transpose()
-                    << " Last iter: " << last_iter->position_W.transpose()
-                    << " Middle iter: " << middle_iter->position_W.transpose());
 
     bool left_success = shortenPathList(start_iter, middle_iter, path_list);
     bool right_success = shortenPathList(middle_iter, end_iter, path_list);
