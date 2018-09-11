@@ -221,8 +221,8 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
 
     if (visualize_) {
       marker_array.markers.push_back(createMarkerForPath(
-          diagram_path, frame_id_, mav_visualization::Color::Orange(),
-          "astar_diag", 0.35));
+          diagram_path, frame_id_, mav_visualization::Color::Purple(),
+          "astar_diag", 0.1));
     }
 
     if (shorten_graph) {
@@ -236,8 +236,8 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
                success, path_length, num_vertices);
       if (visualize_) {
         marker_array.markers.push_back(createMarkerForPath(
-            short_path, frame_id_, mav_visualization::Color::Green(),
-            "short_astar_plan", 0.05));
+            short_path, frame_id_, mav_visualization::Color::Pink(),
+            "short_astar_plan", 0.1));
       }
       shorten_timer.Stop();
     }
@@ -281,8 +281,8 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
     }
     if (visualize_) {
       marker_array.markers.push_back(createMarkerForPath(
-          graph_path, frame_id_, mav_visualization::Color::Teal(), "graph_plan",
-          0.25));
+          graph_path, frame_id_, mav_visualization::Color::Blue(), "graph_plan",
+          0.1));
     }
 
     if (shorten_graph) {
@@ -298,8 +298,8 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
 
       if (visualize_) {
         marker_array.markers.push_back(createMarkerForPath(
-            short_path, frame_id_, mav_visualization::Color::Pink(),
-            "short_plan", 0.05));
+            short_path, frame_id_, mav_visualization::Color::Green(),
+            "short_plan", 0.1));
       }
 
       if (smooth_path) {
@@ -313,8 +313,8 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
         loco_timer.Stop();
         if (visualize_) {
           marker_array.markers.push_back(createMarkerForPath(
-              loco_path, frame_id_, mav_visualization::Color::Orange(),
-              "loco_plan", 0.05));
+              loco_path, frame_id_, mav_visualization::Color::Teal(),
+              "loco_plan", 0.1));
         }
       }
     }
