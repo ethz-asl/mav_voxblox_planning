@@ -12,7 +12,6 @@ class VelocityRampSmoother : public PathSmootherBase {
 
   virtual void setParametersFromRos(const ros::NodeHandle& nh);
 
-
   virtual bool getPathBetweenTwoPoints(
       const mav_msgs::EigenTrajectoryPoint& start,
       const mav_msgs::EigenTrajectoryPoint& goal,

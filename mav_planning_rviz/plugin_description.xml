@@ -1,0 +1,9 @@
+<library path="libmav_planning_rviz">
+  <class name="mav_planning_rviz/PlanningPanel"
+         type="mav_planning_rviz::PlanningPanel"
+         base_class_type="rviz::Panel">
+    <description>
+      A panel that allows easy control for MAV pathplanning.
+    </description>
+  </class>
+</library>
