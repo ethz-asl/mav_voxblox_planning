@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>rrt_planner_voxblox</name>
+  <name>mav_path_smoothing</name>
   <version>0.0.0</version>
   <description>
-    Global planning with voxblox.
+    Path smoothing and trajectory generation between waypoints for MAVs.
   </description>
 
   <author email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</author>
@@ -16,10 +16,8 @@
   <buildtool_depend>catkin_simple</buildtool_depend>
 
   <depend>mav_msgs</depend>
-  <depend>mav_path_smoothing</depend>
   <depend>mav_planning_common</depend>
   <depend>mav_trajectory_generation_ros</depend>
-  <depend>ompl</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>tf</depend>

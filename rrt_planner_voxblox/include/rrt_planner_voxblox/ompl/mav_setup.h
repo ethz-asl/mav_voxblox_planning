@@ -54,18 +54,29 @@ class MavSetup : public geometric::SimpleSetup {
   }
 
   void setTsdfVoxbloxCollisionChecking(
-      voxblox::Layer<voxblox::TsdfVoxel>* tsdf_layer, double robot_radius) {
-    setStateValidityChecker(
-        base::StateValidityCheckerPtr(new TsdfVoxbloxValidityChecker(
-            getSpaceInformation(), tsdf_layer, robot_radius)));
+      double robot_radius, voxblox::Layer<voxblox::TsdfVoxel>* tsdf_layer) {
+    std::shared_ptr<TsdfVoxbloxValidityChecker> validity_checker(
+        new TsdfVoxbloxValidityChecker(getSpaceInformation(), robot_radius,
+                                       tsdf_layer));
+
+    setStateValidityChecker(base::StateValidityCheckerPtr(validity_checker));
+    si_->setMotionValidator(
+        base::MotionValidatorPtr(new VoxbloxMotionValidator<voxblox::TsdfVoxel>(
+            getSpaceInformation(), validity_checker)));
   }
 
   void setEsdfVoxbloxCollisionChecking(
-      voxblox::Layer<voxblox::EsdfVoxel>* esdf_layer, double robot_radius) {
-    setStateValidityChecker(
-        base::StateValidityCheckerPtr(new EsdfVoxbloxValidityChecker(
-            getSpaceInformation(), esdf_layer, robot_radius)));
+      double robot_radius, voxblox::Layer<voxblox::EsdfVoxel>* esdf_layer) {
+    std::shared_ptr<EsdfVoxbloxValidityChecker> validity_checker(
+        new EsdfVoxbloxValidityChecker(getSpaceInformation(), robot_radius,
+                                       esdf_layer));
+
+    setStateValidityChecker(base::StateValidityCheckerPtr(validity_checker));
+    si_->setMotionValidator(
+        base::MotionValidatorPtr(new VoxbloxMotionValidator<voxblox::EsdfVoxel>(
+            getSpaceInformation(), validity_checker)));
   }
+
   // Uses the path simplifier WITHOUT using B-spline smoothing which leads to
   // a lot of issues for us.
   void reduceVertices() {

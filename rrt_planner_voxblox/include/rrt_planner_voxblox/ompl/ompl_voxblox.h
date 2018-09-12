@@ -5,26 +5,23 @@
 
 #include <voxblox/core/tsdf_map.h>
 #include <voxblox/core/esdf_map.h>
+#include <voxblox/utils/planning_utils.h>
 
 #include "rrt_planner_voxblox/ompl/ompl_types.h"
-
 
 namespace ompl {
 namespace mav {
 
-class TsdfVoxbloxValidityChecker : public base::StateValidityChecker {
+template <typename VoxelType>
+class VoxbloxValidityChecker : public base::StateValidityChecker {
  public:
-  typedef voxblox::AnyIndexHashMapType<voxblox::VoxelIndexList>::type
-      BlockVoxelListMap;
-
-  TsdfVoxbloxValidityChecker(const base::SpaceInformationPtr& space_info,
-                             voxblox::Layer<voxblox::TsdfVoxel>* tsdf_layer,
-                             double robot_radius)
+  VoxbloxValidityChecker(const base::SpaceInformationPtr& space_info,
+                         double robot_radius, voxblox::Layer<VoxelType>* layer)
       : base::StateValidityChecker(space_info),
-        tsdf_layer_(tsdf_layer),
+        layer_(layer),
         robot_radius_(robot_radius) {
-    CHECK_NOTNULL(tsdf_layer_);
-    tsdf_voxel_size_ = tsdf_layer_->voxel_size();
+    CHECK_NOTNULL(layer);
+    voxel_size_ = layer->voxel_size();
   }
 
   virtual bool isValid(const base::State* state) const {
@@ -39,18 +36,46 @@ class TsdfVoxbloxValidityChecker : public base::StateValidityChecker {
     return !collision;
   }
 
-  inline bool checkCollisionWithRobot(
+  // Returns whether there is a collision: true if yes, false if not.
+  virtual bool checkCollisionWithRobot(
+      const Eigen::Vector3d& robot_position) const = 0;
+
+  float voxel_size() const { return voxel_size_; }
+
+ protected:
+  voxblox::Layer<VoxelType>* layer_;
+
+  float voxel_size_;
+  double robot_radius_;
+};
+
+class TsdfVoxbloxValidityChecker
+    : public VoxbloxValidityChecker<voxblox::TsdfVoxel> {
+ public:
+  TsdfVoxbloxValidityChecker(const base::SpaceInformationPtr& space_info,
+                             double robot_radius,
+                             voxblox::Layer<voxblox::TsdfVoxel>* tsdf_layer)
+      : VoxbloxValidityChecker(space_info, robot_radius, tsdf_layer),
+        treat_unknown_as_occupied_(false) {}
+
+  bool getTreatUnknownAsOccupied() const { return treat_unknown_as_occupied_; }
+  void setTreatUnknownAsOccupied(bool treat_unknown_as_occupied) {
+    treat_unknown_as_occupied_ = treat_unknown_as_occupied;
+  }
+
+  virtual bool checkCollisionWithRobot(
       const Eigen::Vector3d& robot_position) const {
     voxblox::Point robot_point = robot_position.cast<voxblox::FloatingPoint>();
 
-    BlockVoxelListMap block_voxel_list;
-    getSphereAroundPoint(robot_point, robot_radius_, &block_voxel_list);
+    voxblox::HierarchicalIndexMap block_voxel_list;
+    voxblox::utils::getSphereAroundPoint(*layer_, robot_point, robot_radius_,
+                                         &block_voxel_list);
 
     for (const std::pair<voxblox::BlockIndex, voxblox::VoxelIndexList>& kv :
          block_voxel_list) {
       // Get block -- only already existing blocks are in the list.
       voxblox::Block<voxblox::TsdfVoxel>::Ptr block_ptr =
-          tsdf_layer_->getBlockPtrByIndex(kv.first);
+          layer_->getBlockPtrByIndex(kv.first);
 
       if (!block_ptr) {
         continue;
@@ -58,11 +83,17 @@ class TsdfVoxbloxValidityChecker : public base::StateValidityChecker {
 
       for (const voxblox::VoxelIndex& voxel_index : kv.second) {
         if (!block_ptr->isValidVoxelIndex(voxel_index)) {
+          if (treat_unknown_as_occupied_) {
+            return true;
+          }
           continue;
         }
         const voxblox::TsdfVoxel& tsdf_voxel =
             block_ptr->getVoxelByVoxelIndex(voxel_index);
         if (tsdf_voxel.weight < voxblox::kEpsilon) {
+          if (treat_unknown_as_occupied_) {
+            return true;
+          }
           continue;
         }
         if (tsdf_voxel.distance <= 0.0f) {
@@ -77,75 +108,20 @@ class TsdfVoxbloxValidityChecker : public base::StateValidityChecker {
     return false;
   }
 
-  inline void getSphereAroundPoint(const voxblox::Point& center,
-                                   voxblox::FloatingPoint radius,
-                                   BlockVoxelListMap* block_voxel_list) const {
-    CHECK_NOTNULL(block_voxel_list);
-    block_voxel_list->clear();
-    // search a cube with side length 2*radius
-    for (voxblox::FloatingPoint x = -radius; x <= radius;
-         x += tsdf_voxel_size_) {
-      for (voxblox::FloatingPoint y = -radius; y <= radius;
-           y += tsdf_voxel_size_) {
-        for (voxblox::FloatingPoint z = -radius; z <= radius;
-             z += tsdf_voxel_size_) {
-          voxblox::Point point(x, y, z);
-
-          // check if point is inside the spheres radius
-          if (point.squaredNorm() <= radius * radius) {
-            // convert to global coordinate
-            point += center;
-
-            voxblox::BlockIndex block_index =
-                tsdf_layer_->computeBlockIndexFromCoordinates(point);
-
-            const voxblox::Block<voxblox::TsdfVoxel>::Ptr block_ptr =
-                tsdf_layer_->getBlockPtrByIndex(block_index);
-            if (block_ptr) {
-              (*block_voxel_list)[block_index].push_back(
-                  block_ptr->computeVoxelIndexFromCoordinates(point));
-            }
-          }
-        }
-      }
-    }
-  }
-
  protected:
-  // We're gonna use the TSDF map because this way we can choose how to treat
-  // actually unknown space. This is kind of a massive hack... And slower ;)
-  // But it's all OK I guess, this is just for benchmarking.
-  voxblox::Layer<voxblox::TsdfVoxel>* tsdf_layer_;
-
-  double robot_radius_;
-  double tsdf_voxel_size_;
+  bool treat_unknown_as_occupied_;
 };
 
-class EsdfVoxbloxValidityChecker : public base::StateValidityChecker {
+class EsdfVoxbloxValidityChecker
+    : public VoxbloxValidityChecker<voxblox::EsdfVoxel> {
  public:
   EsdfVoxbloxValidityChecker(const base::SpaceInformationPtr& space_info,
-                             voxblox::Layer<voxblox::EsdfVoxel>* esdf_layer,
-                             double robot_radius)
-      : base::StateValidityChecker(space_info),
-        esdf_layer_(esdf_layer),
-        interpolator_(esdf_layer),
-        robot_radius_(robot_radius) {
-    CHECK_NOTNULL(esdf_layer_);
-  }
+                             double robot_radius,
+                             voxblox::Layer<voxblox::EsdfVoxel>* esdf_layer)
+      : VoxbloxValidityChecker(space_info, robot_radius, esdf_layer),
+        interpolator_(esdf_layer) {}
 
-  virtual bool isValid(const base::State* state) const {
-    Eigen::Vector3d robot_position = omplToEigen(state);
-    if (!si_->satisfiesBounds(state)) {
-      return false;
-    }
-
-    bool collision = checkCollisionWithRobot(robot_position);
-    // We check the VALIDITY of the state, and the function above returns
-    // whether the state was in COLLISION.
-    return !collision;
-  }
-
-  inline bool checkCollisionWithRobot(
+  virtual bool checkCollisionWithRobot(
       const Eigen::Vector3d& robot_position) const {
     voxblox::Point robot_point = robot_position.cast<voxblox::FloatingPoint>();
     constexpr bool interpolate = true;
@@ -160,12 +136,67 @@ class EsdfVoxbloxValidityChecker : public base::StateValidityChecker {
   }
 
  protected:
-  voxblox::Layer<voxblox::EsdfVoxel>* esdf_layer_;
-
   // Interpolator for the layer.
   voxblox::Interpolator<voxblox::EsdfVoxel> interpolator_;
+};
 
-  double robot_radius_;
+// Motion validator that uses either of the validity checkers above to
+// validate motions at voxel resolution.
+template <typename VoxelType>
+class VoxbloxMotionValidator : public base::MotionValidator {
+ public:
+  VoxbloxMotionValidator(
+      const base::SpaceInformationPtr& space_info,
+      typename std::shared_ptr<VoxbloxValidityChecker<VoxelType> >
+          validity_checker)
+      : base::MotionValidator(space_info), validity_checker_(validity_checker) {
+    CHECK(validity_checker);
+  }
+
+  virtual bool checkMotion(const base::State* s1, const base::State* s2) const {
+    std::pair<base::State*, double> unused;
+    return checkMotion(s1, s2, unused);
+  }
+
+  // Check motion returns *false* if invalid, *true* if valid.
+  // So opposite of checkCollision, but same as isValid.
+  // last_valid is the state and percentage along the trajectory that's
+  // a valid state.
+  virtual bool checkMotion(const base::State* s1, const base::State* s2,
+                           std::pair<base::State*, double>& last_valid) const {
+    Eigen::Vector3d start = omplToEigen(s1);
+    Eigen::Vector3d goal = omplToEigen(s2);
+    double voxel_size = validity_checker_->voxel_size();
+    Eigen::Vector3d direction = (goal - start).normalized();
+    double total_distance = (goal - start).norm();
+
+    for (double travelled_distance = 0.0; travelled_distance < total_distance;
+         travelled_distance += voxel_size) {
+      Eigen::Vector3d pos = start + travelled_distance * direction;
+      bool collision = validity_checker_->checkCollisionWithRobot(pos);
+
+      if (collision) {
+        if (last_valid.first != nullptr) {
+          ompl::base::ScopedState<ompl::mav::StateSpace> last_valid_state(
+              si_->getStateSpace());
+          last_valid_state->values[0] = pos.x();
+          last_valid_state->values[1] = pos.y();
+          last_valid_state->values[2] = pos.z();
+
+          si_->copyState(last_valid.first, last_valid_state.get());
+        }
+
+        last_valid.second = travelled_distance / total_distance;
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+ protected:
+  typename std::shared_ptr<VoxbloxValidityChecker<VoxelType> >
+      validity_checker_;
 };
 
 }  // namespace mav

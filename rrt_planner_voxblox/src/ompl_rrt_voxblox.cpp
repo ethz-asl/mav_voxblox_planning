@@ -7,7 +7,7 @@ OmplRrtVoxblox::OmplRrtVoxblox(const ros::NodeHandle& nh,
     : nh_(nh),
       nh_private_(nh_private),
       num_seconds_to_plan_(2.5),
-      simplify_solution_(false),
+      simplify_solution_(true),
       robot_radius_(1.0),
       verbose_(false),
       optimistic_(true),
@@ -46,10 +46,10 @@ void OmplRrtVoxblox::setEsdfLayer(
 void OmplRrtVoxblox::setupProblem() {
   if (optimistic_) {
     CHECK_NOTNULL(tsdf_layer_);
-    problem_setup_.setTsdfVoxbloxCollisionChecking(tsdf_layer_, robot_radius_);
+    problem_setup_.setTsdfVoxbloxCollisionChecking(robot_radius_, tsdf_layer_);
   } else {
     CHECK_NOTNULL(esdf_layer_);
-    problem_setup_.setEsdfVoxbloxCollisionChecking(esdf_layer_, robot_radius_);
+    problem_setup_.setEsdfVoxbloxCollisionChecking(robot_radius_, esdf_layer_);
   }
   problem_setup_.setDefaultObjective();
   problem_setup_.setRRTStar();
@@ -62,7 +62,8 @@ void OmplRrtVoxblox::setupProblem() {
     validity_checking_resolution =
         voxel_size_ / (upper_bound_ - lower_bound_).norm() / 2.0;
   }
-  problem_setup_.setStateValidityCheckingResolution(0.01);
+  problem_setup_.setStateValidityCheckingResolution(
+      validity_checking_resolution);
 }
 
 bool OmplRrtVoxblox::getPathBetweenWaypoints(
