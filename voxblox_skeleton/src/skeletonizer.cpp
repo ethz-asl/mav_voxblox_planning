@@ -89,10 +89,10 @@ void SkeletonizerNode::init() {
 
     esdf_server_.TsdfServer::generateMesh();
   }
-  //esdf_server_.disableIncrementalUpdate();
+  esdf_server_.disableIncrementalUpdate();
 
-  //const bool full_euclidean_distance = false;
-  //esdf_server_.updateEsdfBatch(full_euclidean_distance);
+  const bool full_euclidean_distance = true;
+  esdf_server_.updateEsdfBatch(full_euclidean_distance);
 
   // Visualize all parts.
   esdf_server_.updateMesh();
