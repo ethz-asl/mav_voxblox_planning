@@ -8,6 +8,7 @@ SkeletonGenerator::SkeletonGenerator()
     : min_separation_angle_(0.785),
       generate_by_layer_neighbors_(true),
       num_neighbors_for_edge_(18),
+      check_edges_on_construction_(true),
       vertex_pruning_radius_(0.35),
       min_gvd_distance_(0.4),
       cleanup_style_(kSimplify) {
@@ -134,8 +135,8 @@ void SkeletonGenerator::generateSkeleton() {
       AlignedVector<float> distances;
       AlignedVector<Eigen::Vector3i> directions;
       neighbor_tools_.getNeighborIndexesAndDistances(
-          block_index, voxel_index, Connectivity::kTwentySix, &neighbors, &distances,
-          &directions);
+          block_index, voxel_index, Connectivity::kTwentySix, &neighbors,
+          &distances, &directions);
 
       // Just go though the 6-connectivity set of this to start.
       SkeletonPoint skeleton_point;
@@ -611,6 +612,20 @@ void SkeletonGenerator::generateSparseGraph() {
         }
         if (already_exists) {
           continue;
+        }
+
+        if (check_edges_on_construction_) {
+          const FloatingPoint kMaxThreshold = 4 * skeleton_layer_->voxel_size();
+          // Get the shortest path through the graph.
+          size_t max_d_ind = 0;
+          AlignedVector<Point> coordinate_path;
+          FloatingPoint max_d = getMaxEdgeDistanceFromStraightLine(
+              vertex.point, graph_.getVertex(connected_vertex_id).point,
+              &coordinate_path, &max_d_ind);
+
+          if (max_d >= kMaxThreshold) {
+            continue;
+          }
         }
 
         // Ok it's new, let's add this little guy.

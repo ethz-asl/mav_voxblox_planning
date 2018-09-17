@@ -159,6 +159,8 @@ class SkeletonGenerator {
   // or number of neighbors on the discretized medial axis (true).
   bool generate_by_layer_neighbors_;
   int num_neighbors_for_edge_;
+  // Checks the straight-line distance
+  bool check_edges_on_construction_;
 
   // What minimum radius to prune vertices within.
   FloatingPoint vertex_pruning_radius_;
