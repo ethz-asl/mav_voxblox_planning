@@ -5,7 +5,7 @@
 namespace voxblox {
 
 SkeletonGenerator::SkeletonGenerator()
-    : min_separation_angle_(0.7),
+    : min_separation_angle_(0.785),
       generate_by_layer_neighbors_(true),
       num_neighbors_for_edge_(18),
       vertex_pruning_radius_(0.35),
@@ -134,7 +134,7 @@ void SkeletonGenerator::generateSkeleton() {
       AlignedVector<float> distances;
       AlignedVector<Eigen::Vector3i> directions;
       neighbor_tools_.getNeighborIndexesAndDistances(
-          block_index, voxel_index, Connectivity::kSix, &neighbors, &distances,
+          block_index, voxel_index, Connectivity::kTwentySix, &neighbors, &distances,
           &directions);
 
       // Just go though the 6-connectivity set of this to start.
@@ -183,7 +183,7 @@ void SkeletonGenerator::generateSkeleton() {
 
         // Compute the dot product between the two...
         float dot_prod = relative_direction.dot(parent_dir);
-        if (dot_prod <= min_separation_angle_) {
+        if (acos(dot_prod) >= min_separation_angle_) {
           // Then this is a ridge or something! Probably. Who knows.
           on_skeleton = true;
           skeleton_point.num_basis_points++;
@@ -203,9 +203,9 @@ void SkeletonGenerator::generateSkeleton() {
         skeleton_voxel.distance = skeleton_point.distance;
         skeleton_voxel.num_basis_points = skeleton_point.num_basis_points;
         if (!generate_by_layer_neighbors_) {
-          skeleton_voxel.is_face = (skeleton_voxel.num_basis_points == 2);
-          skeleton_voxel.is_edge = (skeleton_voxel.num_basis_points >= 3);
-          skeleton_voxel.is_vertex = (skeleton_voxel.num_basis_points == 4);
+          skeleton_voxel.is_face = (skeleton_voxel.num_basis_points == 9);
+          skeleton_voxel.is_edge = (skeleton_voxel.num_basis_points >= 12);
+          skeleton_voxel.is_vertex = (skeleton_voxel.num_basis_points == 16);
 
           if (skeleton_voxel.is_edge) {
             skeleton_.getEdgePoints().push_back(skeleton_point);
@@ -222,7 +222,10 @@ void SkeletonGenerator::generateSkeleton() {
     }
   }
 
-  LOG(INFO) << "[GVD] Finished finding GVD candidates.";
+  LOG(INFO)
+      << "[GVD] Finished finding GVD candidates. Number of skeleton points: "
+      << skeleton_.getSkeletonPoints().size()
+      << " edges: " << skeleton_.getEdgePoints().size();
   if (generate_by_layer_neighbors_) {
     generateEdgesByLayerNeighbors();
     // Keep going until a certain small percentage remains...
@@ -365,11 +368,10 @@ size_t SkeletonGenerator::pruneDiagramEdges() {
   size_t num_removed = removal_indices.size();
   timing::Timer removal_timer("skeleton/prune_edges/removal");
 
-  AlignedList<SkeletonPoint>& non_const_edge_points =
-      skeleton_.getEdgePoints();
+  AlignedList<SkeletonPoint>& non_const_edge_points = skeleton_.getEdgePoints();
   // They are necessarily already sorted, as we iterate over this vector
   // to build the removal indices.
-  //std::reverse(removal_indices.begin(), removal_indices.end());
+  // std::reverse(removal_indices.begin(), removal_indices.end());
 
   auto iter = non_const_edge_points.begin();
   size_t current_index = 0;
@@ -1724,7 +1726,7 @@ void SkeletonGenerator::simplifyVertices() {
   size_t edges_added = 0;
 
   // We're a bit more generous here.
-  const FloatingPoint kMaxThreshold = 4 * skeleton_layer_->voxel_size();
+  const FloatingPoint kMaxThreshold = 2 * skeleton_layer_->voxel_size();
 
   for (const int64_t vertex_id : vertex_ids) {
     SkeletonVertex& vertex = graph_.getVertex(vertex_id);

@@ -1,16 +1,16 @@
 <launch>
    <!-- <arg name="voxblox_path" default="/Users/helen/data/arche/day4/flight10_new/_2_opt/voxblox/tsdf.0.10.vxblx" /> -->
   <arg name="voxblox_path" default="/home/helen/data/arche/arche_week/flight_6_raw_voxblox/esdf.0.10.vxblx" />
-  <arg name="output_path" default="/home/helen/data/arche/arche_week/flight_6_raw_voxblox/skeleton.0.10d.vxblx" />
-  <arg name="sparse_graph_filepath" default="/home/helen/data/arche/arche_week/flight_6_raw_voxblox/sparse_graph.0.10d.vxskl" />
+  <arg name="output_path" default="/home/helen/data/arche/arche_week/flight_6_raw_voxblox/skeleton.0.10_devel.vxblx" />
+  <arg name="sparse_graph_filepath" default="/home/helen/data/arche/arche_week/flight_6_raw_voxblox/sparse_graph.0.10_devel.vxskl" />
    <!--<arg name="voxblox_path" default="/Users/helen/data/arche/day5/indoor_flight1_voxblox/tsdf.0.10.vxblx" /> -->
   <arg name="frame_id" default="map" />
 
-  <node name="voxblox_skeletonizer" pkg="voxblox_skeleton" type="skeletonizer" output="screen" clear_params="true" args="-v=3">
+  <node name="voxblox_skeletonizer" pkg="voxblox_skeleton" type="skeletonizer" output="screen" clear_params="true" args="-v=1">
    <param name="input_filepath" value="$(arg voxblox_path)" />
     <param name="output_filepath" value="$(arg output_path)" />
     <param name="sparse_graph_filepath" value="$(arg sparse_graph_filepath)" />
-
+    <param name="generate_by_layer_neighbors" value="false" />
     <param name="min_gvd_distance" value="0.5" />
     <param name="tsdf_voxel_size" value="0.1" />
     <param name="esdf_max_distance_m" value="5.0" />
