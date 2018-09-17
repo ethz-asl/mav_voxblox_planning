@@ -30,14 +30,16 @@ class SkeletonGenerator {
 
   void setEsdfLayer(Layer<EsdfVoxel>* esdf_layer);
 
+  // Generate a skeleton diagram (a voxel layer containing skeleton voxels).
   void generateSkeleton();
-  void generateSparseGraph();
-  // Split non-straight edges on the sparse graph.
-  void splitEdges();
 
-  // Additional helper functions, in case generate by neighbor layers is set.
-  void generateEdgesByLayerNeighbors();
-  void generateVerticesByLayerNeighbors();
+  // Generate a sparse graph, representing the underlying diagram.
+  // This method is what is presented in the IROS 2018 paper.
+  void generateSparseGraph();
+
+  // Alternative method of generating the sparse graph from a diagram using
+  // flood-fill. Presented in the JFR 2018 paper.
+  void generateSparseGraphThroughFloodfill();
 
   // Clear the current points in the skeleton and re-construct it based on
   // the layer.
@@ -89,6 +91,21 @@ class SkeletonGenerator {
     num_neighbors_for_edge_ = num_neighbors_for_edge;
   }
 
+  // Get the skeleton layer.
+  Layer<SkeletonVoxel>* getSkeletonLayer() { return skeleton_layer_.get(); }
+
+  // Set the skeleton layer! Takes ownership.
+  void setSkeletonLayer(Layer<SkeletonVoxel>* skeleton_layer);
+
+  // ====== Helper functions below! =======
+
+  // Split non-straight edges on the sparse graph.
+  void splitEdges();
+
+  // Additional helper functions, in case generate by neighbor layers is set.
+  void generateEdgesByLayerNeighbors();
+  void generateVerticesByLayerNeighbors();
+
   // Follow an edge through the layer, aborting when either no more neighbors
   // exist or a vertex is found.
   bool followEdge(const BlockIndex& start_block_index,
@@ -114,12 +131,6 @@ class SkeletonGenerator {
       const Point& start, const Point& end,
       const AlignedVector<Point>& coordinate_path, size_t* max_index);
 
-  // Get the skeleton layer.
-  Layer<SkeletonVoxel>* getSkeletonLayer() { return skeleton_layer_.get(); }
-
-  // Set the skeleton layer! Takes ownership.
-  void setSkeletonLayer(Layer<SkeletonVoxel>* skeleton_layer);
-
   int recursivelyLabel(int64_t vertex_id, int subgraph_id);
   void tryToFindEdgesInCoordinatePath(
       const AlignedVector<Point>& coordinate_path, int subgraph_id_start,
@@ -128,7 +139,6 @@ class SkeletonGenerator {
 
   // Newer simplification functions.
   void simplifyGraph();
-
   void simplifyVertices();
   void reconnectSubgraphsAlongEsdf();
   void mergeSubgraphs(int subgraph_1, int subgraph_2,
@@ -152,6 +162,7 @@ class SkeletonGenerator {
       DynamicVertexGraphKdTree;
 
   float min_separation_angle_;
+  float esdf_voxel_size_;
   int esdf_voxels_per_side_;
 
   // Whether generate vertices/edges by number of basis points (false,
@@ -159,6 +170,7 @@ class SkeletonGenerator {
   // or number of neighbors on the discretized medial axis (true).
   bool generate_by_layer_neighbors_;
   int num_neighbors_for_edge_;
+
   // Checks the straight-line distance
   bool check_edges_on_construction_;
 

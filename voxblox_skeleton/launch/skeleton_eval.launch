@@ -8,7 +8,7 @@
     <param name="min_gvd_distance" value="0.5" />
     <param name="apply_noise" value="true" />
     <param name="noise_sigma" value="0.01" />
-    <param name="generate_from_robot_poses" value="true" />
+    <param name="generate_from_robot_poses" value="false" />
     <param name="tsdf_voxel_size" value="0.1" />
     <param name="esdf_max_distance_m" value="5.0" />
     <param name="esdf_min_diff_m" value="0.0" />
