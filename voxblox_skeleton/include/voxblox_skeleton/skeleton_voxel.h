@@ -13,7 +13,7 @@ struct SkeletonVoxel {
   bool is_edge = false;
   bool is_vertex = false;
   int64_t vertex_id = -1;
-  int32_t subgraph_id = 0;
+  int32_t subgraph_id = -1;
 };
 
 // Used for serialization only.

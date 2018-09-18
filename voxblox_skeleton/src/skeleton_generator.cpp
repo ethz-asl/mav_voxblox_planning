@@ -231,14 +231,14 @@ void SkeletonGenerator::generateSkeleton() {
   if (generate_by_layer_neighbors_) {
     generateEdgesByLayerNeighbors();
   }
-    // Keep going until a certain small percentage remains...
-    size_t num_pruned = 1;
-    while (num_pruned > 0) {
-      num_pruned = pruneDiagramEdges();
-    }
+  // Keep going until a certain small percentage remains...
+  size_t num_pruned = 1;
+  while (num_pruned > 0) {
+    num_pruned = pruneDiagramEdges();
+  }
 
-    generateVerticesByLayerNeighbors();
-    pruneDiagramVertices();
+  generateVerticesByLayerNeighbors();
+  pruneDiagramVertices();
 }
 
 void SkeletonGenerator::generateEdgesByLayerNeighbors() {
@@ -501,8 +501,10 @@ void SkeletonGenerator::generateVerticesByLayerNeighbors() {
         num_neighbors_on_edges++;
       }
     }
-    if (num_neighbors_on_edges >= 3 || num_neighbors_on_edges == 1) {
+    if ((num_neighbors_on_edges >= 3 || num_neighbors_on_edges == 1) &&
+        !voxel.is_vertex) {
       voxel.is_vertex = true;
+      voxel.is_edge = true;
       skeleton_.getVertexPoints().push_back(point);
     }
   }
@@ -1975,14 +1977,15 @@ void SkeletonGenerator::generateSparseGraphThroughFloodfill() {
   const AlignedVector<SkeletonPoint>& vertex_points =
       skeleton_.getVertexPoints();
   // Store all the IDs we need to iterate over later.
-  std::set<int64_t> vertex_ids;
+  std::vector<int64_t> vertex_ids;
+  vertex_ids.reserve(vertex_points.size());
 
   for (const SkeletonPoint& point : vertex_points) {
     SkeletonVertex vertex;
     vertex.point = point.point;
     vertex.distance = point.distance;
     int64_t vertex_id = graph_.addVertex(vertex);
-    vertex_ids.insert(vertex_id);
+    vertex_ids.push_back(vertex_id);
 
     // Also set the vertex ids in the layer (uuuughhhh)
     Block<SkeletonVoxel>::Ptr block_ptr;
@@ -2017,21 +2020,15 @@ void SkeletonGenerator::generateSparseGraphThroughFloodfill() {
     }
 
     // Now floodfill to our hearts' desire!
-    subgraph_id++;
-    LOG(INFO) << "New subgraph: " << subgraph_id
-              << " for vertex id: " << vertex_id;
-    vertex.subgraph_id = subgraph_id;
-    size_t i = 0;
     while (!floodfill_queue.empty()) {
-      if (i++ > 10000000) {
-        break;
-      }
       // Get the next voxel in the queue.
-      std::pair<GlobalIndex, int64_t> kv = floodfill_queue.front();
+      GlobalIndex floodfill_global_index = floodfill_queue.front();
       floodfill_queue.pop();
 
+      int64_t connected_vertex_id = -1;
+
       SkeletonVoxel* neighbor_voxel =
-          skeleton_layer_->getVoxelPtrByGlobalIndex(kv.first);
+          skeleton_layer_->getVoxelPtrByGlobalIndex(floodfill_global_index);
       if (neighbor_voxel == nullptr) {
         continue;
       }
@@ -2044,27 +2041,34 @@ void SkeletonGenerator::generateSparseGraphThroughFloodfill() {
         // If it's an edge, check if it's already checked (i.e., colored by us).
         // There's no way we should have to re-color or merge subgraphs if we
         // are doing flood-fill correctly so only 1 case here.
-        if (neighbor_voxel->subgraph_id == subgraph_id) {
+        if (neighbor_voxel->subgraph_id == vertex_id) {
           continue;
         }
-        // Otherwise mark this thing as visited and throw its neighbors into the
-        // fray.
-        neighbor_voxel->subgraph_id = subgraph_id;
-        neighbor_tools_.getNeighborsByGlobalIndex(
-            kv.first, Connectivity::kTwentySix, &neighbors);
-        for (const GlobalIndex& neighbor : neighbors) {
-          floodfill_queue.emplace(neighbor, kv.second);
+        if (false) {//(neighbor_voxel->subgraph_id != -1) {
+          // There is another vertex here.
+          connected_vertex_id = neighbor_voxel->subgraph_id;
+        } else {
+          // Otherwise mark this thing as visited and throw its neighbors into
+          // the fray.
+          neighbor_voxel->subgraph_id = vertex_id;
+          neighbors.clear();
+          neighbor_tools_.getNeighborsByGlobalIndex(
+              floodfill_global_index, Connectivity::kTwentySix, &neighbors);
+          for (const GlobalIndex& neighbor : neighbors) {
+            floodfill_queue.push(neighbor);
+          }
         }
       } else {
         // Now it MUST be a vertex.
-        neighbor_voxel->subgraph_id = subgraph_id;
-        int64_t connected_vertex_id = neighbor_voxel->vertex_id;
-        if (connected_vertex_id == kv.second) {
+        connected_vertex_id = neighbor_voxel->vertex_id;
+        if (connected_vertex_id == vertex_id) {
           continue;
         }
+      }
+
+      if (connected_vertex_id >= 0) {
         SkeletonVertex& connected_vertex =
             graph_.getVertex(connected_vertex_id);
-        connected_vertex.subgraph_id = subgraph_id;
 
         // TODO(helenol): some more checks, for instance merge directly adjacent
         // vertices.
@@ -2079,28 +2083,17 @@ void SkeletonGenerator::generateSparseGraphThroughFloodfill() {
           }
         }
         if (already_exists) {
-          LOG(INFO) << "Somehow replicating edge!!!";
           continue;
         }
 
         // Ok it's new, let's add this little guy.
         SkeletonEdge edge;
-        edge.start_vertex = kv.second;
+        edge.start_vertex = vertex_id;
         edge.end_vertex = connected_vertex_id;
         edge.start_distance = 0.0;
         edge.end_distance = 0.0;
         // Start and end are filled in by the addEdge function.
         int64_t edge_id = graph_.addEdge(edge);
-
-        // Take this vertex out of the set to search.
-        vertex_ids.erase(connected_vertex_id);
-
-        // Add its neighbors, marking the connected vertex as the parent now.
-        neighbor_tools_.getNeighborsByGlobalIndex(
-            kv.first, Connectivity::kTwentySix, &neighbors);
-        for (const GlobalIndex& neighbor : neighbors) {
-          floodfill_queue.emplace(neighbor, connected_vertex_id);
-        }
       }
     }
   }
@@ -2109,6 +2102,19 @@ void SkeletonGenerator::generateSparseGraphThroughFloodfill() {
 
   LOG(INFO) << "[Sparse Graph] Vertices: " << graph_.getVertexMap().size()
             << " Edges: " << graph_.getEdgeMap().size();
+
+  std::vector<int64_t> graph_vertex_ids, graph_edge_ids;
+  graph_.getAllVertexIds(&graph_vertex_ids);
+  graph_.getAllEdgeIds(&graph_edge_ids);
+  for (int64_t vertex_id : graph_vertex_ids) {
+    LOG(INFO) << "Vertex " << vertex_id << " pos "
+              << graph_.getVertex(vertex_id).point.transpose();
+  }
+  for (int64_t edge_id : graph_edge_ids) {
+    LOG(INFO) << "Edge " << edge_id << " start "
+              << graph_.getEdge(edge_id).start_vertex << " end"
+              << graph_.getEdge(edge_id).end_vertex;
+  }
 }
 
 bool SkeletonGenerator::loadSparseGraphFromFile(const std::string& filename) {
