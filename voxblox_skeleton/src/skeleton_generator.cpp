@@ -8,10 +8,10 @@ SkeletonGenerator::SkeletonGenerator()
     : min_separation_angle_(0.785),
       generate_by_layer_neighbors_(true),
       num_neighbors_for_edge_(18),
-      check_edges_on_construction_(true),
+      check_edges_on_construction_(false),
       vertex_pruning_radius_(0.35),
       min_gvd_distance_(0.4),
-      cleanup_style_(kSimplify) {
+      cleanup_style_(kNone) {
   // Initialize the template matchers.
   pruning_template_matcher_.setDeletionTemplates();
   corner_template_matcher_.setCornerTemplates();
@@ -1997,104 +1997,100 @@ void SkeletonGenerator::generateSparseGraphThroughFloodfill() {
 
   // Flood-fill from whatever is left in the vertex_ids set, annotating
   // disconnected subgraphs as we go.
-  int subgraph_id = 0;
   // The floodfill queue contains the global voxel index and vertex id parent.
   // This allows us to easily do breadth-first search....
   AlignedQueue<std::pair<GlobalIndex, int64_t>> floodfill_queue;
+  GlobalIndexVector neighbors;
   const FloatingPoint grid_size_inv = 1.0 / esdf_voxel_size_;
-  while (!vertex_ids.empty()) {
-    int64_t vertex_id = *vertex_ids.begin();
-    vertex_ids.erase(vertex_id);
+  for (const int64_t vertex_id : vertex_ids) {
     SkeletonVertex& vertex = graph_.getVertex(vertex_id);
 
     // Get the global index of this voxel.
     GlobalIndex global_index =
         getGridIndexFromPoint<GlobalIndex>(vertex.point, grid_size_inv);
 
-    GlobalIndexVector neighbors;
     neighbor_tools_.getNeighborsByGlobalIndex(
         global_index, Connectivity::kTwentySix, &neighbors);
 
     for (const GlobalIndex& neighbor : neighbors) {
       floodfill_queue.emplace(neighbor, vertex_id);
     }
+  }
 
-    // Now floodfill to our hearts' desire!
-    while (!floodfill_queue.empty()) {
-      // Get the next voxel in the queue.
-      GlobalIndex floodfill_global_index = floodfill_queue.front();
-      floodfill_queue.pop();
+  // Now floodfill to our hearts' desire!
+  while (!floodfill_queue.empty()) {
+    // Get the next voxel in the queue.
+    std::pair<GlobalIndex, int64_t> kv = floodfill_queue.front();
+    floodfill_queue.pop();
 
-      int64_t connected_vertex_id = -1;
+    int64_t connected_vertex_id = -1;
 
-      SkeletonVoxel* neighbor_voxel =
-          skeleton_layer_->getVoxelPtrByGlobalIndex(floodfill_global_index);
-      if (neighbor_voxel == nullptr) {
+    SkeletonVoxel* neighbor_voxel =
+        skeleton_layer_->getVoxelPtrByGlobalIndex(kv.first);
+    if (neighbor_voxel == nullptr) {
+      continue;
+    }
+    // This works because all vertices are also edges.
+    if (!neighbor_voxel->is_edge) {
+      continue;
+    }
+    // Two different options. Let's first handle that it's NOT a vertex.
+    if (!neighbor_voxel->is_vertex) {
+      // If it's an edge, check if it's already checked (i.e., colored by us).
+      // There's no way we should have to re-color or merge subgraphs if we
+      // are doing flood-fill correctly so only 1 case here.
+      if (neighbor_voxel->vertex_id == kv.second) {
         continue;
       }
-      // This works because all vertices are also edges.
-      if (!neighbor_voxel->is_edge) {
-        continue;
-      }
-      // Two different options. Let's first handle that it's NOT a vertex.
-      if (!neighbor_voxel->is_vertex) {
-        // If it's an edge, check if it's already checked (i.e., colored by us).
-        // There's no way we should have to re-color or merge subgraphs if we
-        // are doing flood-fill correctly so only 1 case here.
-        if (neighbor_voxel->subgraph_id == vertex_id) {
-          continue;
-        }
-        if (false) {//(neighbor_voxel->subgraph_id != -1) {
-          // There is another vertex here.
-          connected_vertex_id = neighbor_voxel->subgraph_id;
-        } else {
-          // Otherwise mark this thing as visited and throw its neighbors into
-          // the fray.
-          neighbor_voxel->subgraph_id = vertex_id;
-          neighbors.clear();
-          neighbor_tools_.getNeighborsByGlobalIndex(
-              floodfill_global_index, Connectivity::kTwentySix, &neighbors);
-          for (const GlobalIndex& neighbor : neighbors) {
-            floodfill_queue.push(neighbor);
-          }
-        }
-      } else {
-        // Now it MUST be a vertex.
+      if (neighbor_voxel->vertex_id != -1) {
+        // There is another vertex here.
         connected_vertex_id = neighbor_voxel->vertex_id;
-        if (connected_vertex_id == vertex_id) {
-          continue;
+      } else {
+        // Otherwise mark this thing as visited and throw its neighbors into
+        // the fray.
+        neighbor_voxel->vertex_id = kv.second;
+        neighbors.clear();
+        neighbor_tools_.getNeighborsByGlobalIndex(
+            kv.first, Connectivity::kTwentySix, &neighbors);
+        for (const GlobalIndex& neighbor : neighbors) {
+          floodfill_queue.emplace(neighbor, kv.second);
         }
       }
-
-      if (connected_vertex_id >= 0) {
-        SkeletonVertex& connected_vertex =
-            graph_.getVertex(connected_vertex_id);
-
-        // TODO(helenol): some more checks, for instance merge directly adjacent
-        // vertices.
-        // Before adding an edge, make sure it's not already in there...
-        bool already_exists = false;
-        for (int64_t edge_id : vertex.edge_list) {
-          SkeletonEdge& edge = graph_.getEdge(edge_id);
-          if (edge.start_vertex == connected_vertex_id ||
-              edge.end_vertex == connected_vertex_id) {
-            already_exists = true;
-            break;
-          }
-        }
-        if (already_exists) {
-          continue;
-        }
-
-        // Ok it's new, let's add this little guy.
-        SkeletonEdge edge;
-        edge.start_vertex = vertex_id;
-        edge.end_vertex = connected_vertex_id;
-        edge.start_distance = 0.0;
-        edge.end_distance = 0.0;
-        // Start and end are filled in by the addEdge function.
-        int64_t edge_id = graph_.addEdge(edge);
+    } else {
+      // Now it MUST be a vertex.
+      connected_vertex_id = neighbor_voxel->vertex_id;
+      if (connected_vertex_id == kv.second) {
+        continue;
       }
+    }
+
+    if (connected_vertex_id >= 0) {
+      SkeletonVertex& connected_vertex = graph_.getVertex(connected_vertex_id);
+
+      // TODO(helenol): some more checks, for instance merge directly adjacent
+      // vertices.
+      // Before adding an edge, make sure it's not already in there...
+      bool already_exists = false;
+      for (int64_t edge_id : connected_vertex.edge_list) {
+        SkeletonEdge& edge = graph_.getEdge(edge_id);
+        if (edge.start_vertex == kv.second ||
+            edge.end_vertex == kv.second) {
+          already_exists = true;
+          break;
+        }
+      }
+      if (already_exists) {
+        continue;
+      }
+
+      // Ok it's new, let's add this little guy.
+      SkeletonEdge edge;
+      edge.start_vertex = kv.second;
+      edge.end_vertex = connected_vertex_id;
+      edge.start_distance = 0.0;
+      edge.end_distance = 0.0;
+      // Start and end are filled in by the addEdge function.
+      int64_t edge_id = graph_.addEdge(edge);
     }
   }
 
@@ -2102,19 +2098,6 @@ void SkeletonGenerator::generateSparseGraphThroughFloodfill() {
 
   LOG(INFO) << "[Sparse Graph] Vertices: " << graph_.getVertexMap().size()
             << " Edges: " << graph_.getEdgeMap().size();
-
-  std::vector<int64_t> graph_vertex_ids, graph_edge_ids;
-  graph_.getAllVertexIds(&graph_vertex_ids);
-  graph_.getAllEdgeIds(&graph_edge_ids);
-  for (int64_t vertex_id : graph_vertex_ids) {
-    LOG(INFO) << "Vertex " << vertex_id << " pos "
-              << graph_.getVertex(vertex_id).point.transpose();
-  }
-  for (int64_t edge_id : graph_edge_ids) {
-    LOG(INFO) << "Edge " << edge_id << " start "
-              << graph_.getEdge(edge_id).start_vertex << " end"
-              << graph_.getEdge(edge_id).end_vertex;
-  }
 }
 
 bool SkeletonGenerator::loadSparseGraphFromFile(const std::string& filename) {

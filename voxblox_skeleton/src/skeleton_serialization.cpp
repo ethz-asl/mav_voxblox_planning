@@ -8,7 +8,7 @@ namespace voxblox {
 template <>
 void Block<SkeletonVoxel>::deserializeFromIntegers(
     const std::vector<uint32_t>& data) {
-  constexpr size_t kNumDataPacketsPerVoxel = 4u;
+  constexpr size_t kNumDataPacketsPerVoxel = 3u;
   const size_t num_data_packets = data.size();
   CHECK_EQ(num_voxels_ * kNumDataPacketsPerVoxel, num_data_packets);
   for (size_t voxel_idx = 0u, data_idx = 0u;
@@ -17,7 +17,6 @@ void Block<SkeletonVoxel>::deserializeFromIntegers(
     const uint32_t bytes_1 = data[data_idx];
     const uint32_t bytes_2 = data[data_idx + 1u];
     const int32_t bytes_3 = data[data_idx + 2u];
-    const int32_t bytes_4 = data[data_idx + 3u];
     SkeletonVoxel& voxel = voxels_[voxel_idx];
 
     memcpy(&(voxel.distance), &bytes_1, sizeof(bytes_1));
@@ -28,7 +27,6 @@ void Block<SkeletonVoxel>::deserializeFromIntegers(
     voxel.is_vertex = static_cast<bool>(bytes_2 & 0xFF000000);
 
     voxel.vertex_id = static_cast<int64_t>(bytes_3);
-    voxel.subgraph_id = bytes_4;
   }
 }
 
@@ -36,7 +34,7 @@ template <>
 void Block<SkeletonVoxel>::serializeToIntegers(
     std::vector<uint32_t>* data) const {
   CHECK_NOTNULL(data);
-  constexpr size_t kNumDataPacketsPerVoxel = 4u;
+  constexpr size_t kNumDataPacketsPerVoxel = 3u;
   data->clear();
   data->reserve(num_voxels_ * kNumDataPacketsPerVoxel);
   for (size_t voxel_idx = 0u; voxel_idx < num_voxels_; ++voxel_idx) {
@@ -61,8 +59,6 @@ void Block<SkeletonVoxel>::serializeToIntegers(
       bytes_3 = static_cast<int32_t>(voxel.vertex_id);
     }
     data->push_back(bytes_3);
-    int32_t bytes_4 = voxel.subgraph_id;
-    data->push_back(bytes_4);
   }
 
   CHECK_EQ(num_voxels_ * kNumDataPacketsPerVoxel, data->size());
