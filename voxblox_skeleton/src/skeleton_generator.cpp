@@ -6,7 +6,7 @@ namespace voxblox {
 
 SkeletonGenerator::SkeletonGenerator()
     : min_separation_angle_(0.785),
-      generate_by_layer_neighbors_(true),
+      generate_by_layer_neighbors_(false),
       num_neighbors_for_edge_(18),
       check_edges_on_construction_(false),
       vertex_pruning_radius_(0.35),
