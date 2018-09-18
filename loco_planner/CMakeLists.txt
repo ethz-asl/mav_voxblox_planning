@@ -6,13 +6,6 @@ catkin_simple(ALL_DEPS_REQUIRED)
 
 add_definitions(-std=c++11)
 
-#############
-# LIBRARIES #
-#############
-#cs_add_library(${PROJECT_NAME}
-#  src/trajectory_sampler.cpp
-#)
-
 ############
 # BINARIES #
 ############
