@@ -1,12 +1,10 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>mav_path_smoothing</name>
+  <name>loco_planner</name>
   <version>0.0.0</version>
   <description>
-    Path smoothing and trajectory generation between waypoints for MAVs.
+    LOcal Continuous Optimization (LOCO!) for polynomial spline paths for MAV planning. This library takes an arbitrary distance and gradient function and pushes trajectories out of collision.
   </description>
-
-  <author email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</author>
 
   <maintainer email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</maintainer>
 
@@ -15,12 +13,12 @@
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>catkin_simple</buildtool_depend>
 
-  <depend>loco_planner</depend>
+  <depend>ceres_catkin</depend>
+  <depend>eigen_checks</depend>
+  <depend>glog_catkin</depend>
   <depend>mav_msgs</depend>
-  <depend>mav_planning_common</depend>
-  <depend>mav_trajectory_generation_ros</depend>
+  <depend>mav_trajectory_generation</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>tf</depend>
-  <depend>visualization_msgs</depend>
 </package>

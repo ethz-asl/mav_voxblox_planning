@@ -64,6 +64,8 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
       }
     }
   }
+  double voxel_size =
+      voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxel_size();
 
   ROS_INFO(
       "Size: %f VPS: %lu",
@@ -93,8 +95,15 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
 
   // Set up the path smoother as well.
   smoother_.setParametersFromRos(nh_private_);
+  smoother_.setMinCollisionCheckResolution(voxel_size);
   smoother_.setMapDistanceCallback(std::bind(&RrtPlannerVoxblox::getMapDistance,
                                              this, std::placeholders::_1));
+
+  // Loco smoother!
+  loco_smoother_.setParametersFromRos(nh_private_);
+  loco_smoother_.setMinCollisionCheckResolution(voxel_size);
+  loco_smoother_.setMapDistanceCallback(std::bind(
+      &RrtPlannerVoxblox::getMapDistance, this, std::placeholders::_1));
 
   if (visualize_) {
     voxblox_server_.generateMesh();
@@ -214,12 +223,26 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
   } else {
     mav_msgs::EigenTrajectoryPointVector poly_path;
     mav_trajectory_generation::timing::Timer poly_timer("plan/poly");
-    generateFeasibleTrajectory(waypoints, &poly_path);
+    bool poly_has_collisions =
+        !generateFeasibleTrajectory(waypoints, &poly_path);
     poly_timer.Stop();
 
-    // Check all the paths.
-    bool poly_has_collisions = checkPathForCollisions(poly_path, NULL);
-    ROS_INFO("Smoothed path has collisions? %d", poly_has_collisions);
+    mav_msgs::EigenTrajectoryPointVector loco_path;
+    mav_trajectory_generation::timing::Timer loco_timer("plan/loco");
+    bool loco_has_collisions =
+        !generateFeasibleTrajectoryLoco(waypoints, &loco_path);
+    loco_timer.Stop();
+
+    mav_msgs::EigenTrajectoryPointVector loco2_path;
+    mav_trajectory_generation::timing::Timer loco2_timer("plan/loco2");
+    bool loco2_has_collisions =
+        !generateFeasibleTrajectoryLoco2(waypoints, &loco2_path);
+    loco2_timer.Stop();
+
+    ROS_INFO(
+        "Poly Smoothed Path has collisions? %d Loco Path has collisions? %d "
+        "Loco 2 has collisions? %d",
+        poly_has_collisions, loco_has_collisions, loco2_has_collisions);
 
     if (!poly_has_collisions) {
       last_trajectory_valid_ = true;
@@ -228,6 +251,10 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
     if (visualize_) {
       marker_array.markers.push_back(createMarkerForPath(
           poly_path, mav_visualization::Color::Orange(), "poly", 0.075));
+      marker_array.markers.push_back(createMarkerForPath(
+          loco_path, mav_visualization::Color::Pink(), "loco", 0.075));
+      marker_array.markers.push_back(createMarkerForPath(
+          loco2_path, mav_visualization::Color::Teal(), "loco2", 0.075));
     }
   }
 
@@ -333,6 +360,38 @@ bool RrtPlannerVoxblox::generateFeasibleTrajectory(
   return true;
 }
 
+bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco(
+    const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
+    mav_msgs::EigenTrajectoryPointVector* path) {
+  loco_smoother_.setResampleTrajectory(true);
+  loco_smoother_.setAddWaypoints(false);
+
+  loco_smoother_.getPathBetweenWaypoints(coordinate_path, path);
+
+  bool path_in_collision = checkPathForCollisions(*path, NULL);
+
+  if (path_in_collision) {
+    return false;
+  }
+  return true;
+}
+
+bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco2(
+    const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
+    mav_msgs::EigenTrajectoryPointVector* path) {
+  loco_smoother_.setResampleTrajectory(true);
+  loco_smoother_.setAddWaypoints(true);
+
+  loco_smoother_.getPathBetweenWaypoints(coordinate_path, path);
+
+  bool path_in_collision = checkPathForCollisions(*path, NULL);
+
+  if (path_in_collision) {
+    return false;
+  }
+  return true;
+}
+
 bool RrtPlannerVoxblox::checkPathForCollisions(
     const mav_msgs::EigenTrajectoryPointVector& path, double* t) const {
   for (const mav_msgs::EigenTrajectoryPoint& point : path) {
@@ -363,7 +422,6 @@ bool RrtPlannerVoxblox::checkPhysicalConstraints(
     const mav_trajectory_generation::Trajectory& trajectory) {
   // Check min/max manually.
   // Evaluate min/max extrema
-
   std::vector<int> dimensions = {0, 1, 2};  // Evaluate dimensions in x, y and z
   mav_trajectory_generation::Extremum v_min, v_max, a_min, a_max;
   trajectory.computeMinMaxMagnitude(

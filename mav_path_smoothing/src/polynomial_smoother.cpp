@@ -34,8 +34,8 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
       "smoothing/poly_linear");
 
   constexpr int N = 10;
-  constexpr int K = 3;
-  mav_trajectory_generation::PolynomialOptimization<N> poly_opt(K);
+  constexpr int D = 3;
+  mav_trajectory_generation::PolynomialOptimization<N> poly_opt(D);
 
   int num_vertices = waypoints.size();
 
@@ -43,7 +43,7 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
       mav_trajectory_generation::derivative_order::JERK;
 
   mav_trajectory_generation::Vertex::Vector vertices(
-      num_vertices, mav_trajectory_generation::Vertex(K));
+      num_vertices, mav_trajectory_generation::Vertex(D));
 
   // Add the first and last.
   vertices.front().makeStartOrEnd(0, derivative_to_optimize);
@@ -85,7 +85,7 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
         NonlinearOptimizationParameters::kMellingerOuterLoop;
     nlopt_parameters.print_debug_info_time_allocation = true;
     mav_trajectory_generation::PolynomialOptimizationNonLinear<N> nlopt(
-        K, nlopt_parameters);
+        D, nlopt_parameters);
     nlopt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
     nlopt.addMaximumMagnitudeConstraint(
         mav_trajectory_generation::derivative_order::VELOCITY,
@@ -138,7 +138,7 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
       mav_trajectory_generation::NonlinearOptimizationParameters
           nlopt_parameters;
       mav_trajectory_generation::PolynomialOptimizationNonLinear<N> nlopt(
-          K, nlopt_parameters);
+          D, nlopt_parameters);
       nlopt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
       nlopt.addMaximumMagnitudeConstraint(
           mav_trajectory_generation::derivative_order::VELOCITY,

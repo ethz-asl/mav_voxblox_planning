@@ -129,7 +129,7 @@ class EsdfVoxbloxValidityChecker
     bool success = interpolator_.getDistance(
         robot_position.cast<voxblox::FloatingPoint>(), &distance, interpolate);
     if (!success) {
-      return false;
+      return true;
     }
 
     return robot_radius_ > distance;

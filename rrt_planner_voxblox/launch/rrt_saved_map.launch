@@ -9,7 +9,7 @@
     <node name="rrt_planner_voxblox" pkg="rrt_planner_voxblox" type="rrt_planner_voxblox_node" output="screen">
       <param name="voxblox_path" value="$(arg voxblox_path)" />
       <param name="visualize" value="true" />
-      <param name="robot_radius" value="1.0" />
+      <param name="robot_radius" value="0.5" />
       <param name="tsdf_voxel_size" value="0.10" />
       <param name="tsdf_voxels_per_side" value="16" />
       <param name="update_mesh_every_n_sec" value="0.0" />

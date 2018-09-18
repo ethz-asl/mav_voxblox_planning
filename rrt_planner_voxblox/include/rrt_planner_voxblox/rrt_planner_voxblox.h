@@ -8,6 +8,7 @@
 
 #include <mav_msgs/conversions.h>
 #include <mav_path_smoothing/polynomial_smoother.h>
+#include <mav_path_smoothing/loco_smoother.h>
 #include <mav_planning_common/physical_constraints.h>
 #include <mav_planning_msgs/PlannerService.h>
 #include <mav_planning_msgs/PolynomialTrajectory4D.h>
@@ -42,6 +43,13 @@ class RrtPlannerVoxblox {
   bool generateFeasibleTrajectory(
       const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
       mav_msgs::EigenTrajectoryPointVector* path);
+  bool generateFeasibleTrajectoryLoco(
+      const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
+      mav_msgs::EigenTrajectoryPointVector* path);
+  bool generateFeasibleTrajectoryLoco2(
+      const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
+      mav_msgs::EigenTrajectoryPointVector* path);
+
   double getMapDistance(const Eigen::Vector3d& position) const;
   bool checkPathForCollisions(const mav_msgs::EigenTrajectoryPointVector& path,
                               double* t) const;
@@ -114,6 +122,7 @@ class RrtPlannerVoxblox {
 
   // Smoothing!
   PolynomialSmoother smoother_;
+  LocoSmoother loco_smoother_;
 };
 
 }  // namespace mav_planning
