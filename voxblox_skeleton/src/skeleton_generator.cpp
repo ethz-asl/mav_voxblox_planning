@@ -11,7 +11,7 @@ SkeletonGenerator::SkeletonGenerator()
       check_edges_on_construction_(false),
       vertex_pruning_radius_(0.35),
       min_gvd_distance_(0.4),
-      cleanup_style_(kNone) {
+      cleanup_style_(kSimplify) {
   // Initialize the template matchers.
   pruning_template_matcher_.setDeletionTemplates();
   corner_template_matcher_.setCornerTemplates();
@@ -538,105 +538,100 @@ void SkeletonGenerator::generateSparseGraph() {
     voxel.vertex_id = vertex_id;
   }
 
-  // Then figure out how to connect them to other vertices by following the
-  // skeleton layer voxels.
-  for (int64_t vertex_id : vertex_ids) {
+  // The floodfill queue contains the global voxel index and vertex id parent.
+  // This allows us to easily do breadth-first search....
+  AlignedQueue<std::pair<GlobalIndex, int64_t>> floodfill_queue;
+  GlobalIndexVector neighbors;
+  const FloatingPoint grid_size_inv = 1.0 / esdf_voxel_size_;
+  for (const int64_t vertex_id : vertex_ids) {
     SkeletonVertex& vertex = graph_.getVertex(vertex_id);
 
-    // Search the edge map for this guy's neighbors.
-    BlockIndex block_index =
-        skeleton_layer_->computeBlockIndexFromCoordinates(vertex.point);
-    Block<SkeletonVoxel>::Ptr block_ptr;
-    block_ptr = skeleton_layer_->getBlockPtrByIndex(block_index);
-    CHECK(block_ptr);
-    VoxelIndex voxel_index =
-        block_ptr->computeVoxelIndexFromCoordinates(vertex.point);
+    // Get the global index of this voxel.
+    GlobalIndex global_index =
+        getGridIndexFromPoint<GlobalIndex>(vertex.point, grid_size_inv);
 
-    // Ok get its neighbors and check them all.
-    // If one of them is an edge, follow it as far as you can.
-    AlignedVector<VoxelKey> neighbors;
-    AlignedVector<float> distances;
-    AlignedVector<Eigen::Vector3i> directions;
-    neighbor_tools_.getNeighborIndexesAndDistances(
-        block_index, voxel_index, Connectivity::kTwentySix, &neighbors,
-        &distances, &directions);
+    neighbor_tools_.getNeighborsByGlobalIndex(
+        global_index, Connectivity::kTwentySix, &neighbors);
 
-    for (size_t i = 0; i < neighbors.size(); ++i) {
-      // Get this voxel with way too many checks.
-      // Get the block for this voxel.
-      BlockIndex neighbor_block_index = neighbors[i].first;
-      VoxelIndex neighbor_voxel_index = neighbors[i].second;
-      Block<SkeletonVoxel>::Ptr neighbor_block;
-      if (neighbor_block_index == block_index) {
-        neighbor_block = block_ptr;
+    for (const GlobalIndex& neighbor : neighbors) {
+      floodfill_queue.emplace(neighbor, vertex_id);
+    }
+  }
+
+  // Now floodfill to our hearts' desire!
+  while (!floodfill_queue.empty()) {
+    // Get the next voxel in the queue.
+    std::pair<GlobalIndex, int64_t> kv = floodfill_queue.front();
+    floodfill_queue.pop();
+
+    int64_t connected_vertex_id = -1;
+
+    SkeletonVoxel* neighbor_voxel =
+        skeleton_layer_->getVoxelPtrByGlobalIndex(kv.first);
+    if (neighbor_voxel == nullptr) {
+      continue;
+    }
+    // This works because all vertices are also edges.
+    if (!neighbor_voxel->is_edge) {
+      continue;
+    }
+    // Two different options. Let's first handle that it's NOT a vertex.
+    if (!neighbor_voxel->is_vertex) {
+      // If it's an edge, check if it's already checked (i.e., colored by us).
+      // There's no way we should have to re-color or merge subgraphs if we
+      // are doing flood-fill correctly so only 1 case here.
+      if (neighbor_voxel->vertex_id == kv.second) {
+        continue;
+      }
+      if (neighbor_voxel->vertex_id != -1) {
+        // There is another vertex here.
+        connected_vertex_id = neighbor_voxel->vertex_id;
       } else {
-        neighbor_block =
-            skeleton_layer_->getBlockPtrByIndex(neighbor_block_index);
+        // Otherwise mark this thing as visited and throw its neighbors into
+        // the fray.
+        neighbor_voxel->vertex_id = kv.second;
+        neighbors.clear();
+        neighbor_tools_.getNeighborsByGlobalIndex(
+            kv.first, Connectivity::kTwentySix, &neighbors);
+        for (const GlobalIndex& neighbor : neighbors) {
+          floodfill_queue.emplace(neighbor, kv.second);
+        }
       }
-      if (!neighbor_block) {
+    } else {
+      // Now it MUST be a vertex.
+      connected_vertex_id = neighbor_voxel->vertex_id;
+      if (connected_vertex_id == kv.second) {
         continue;
       }
-      CHECK(neighbor_block->isValidVoxelIndex(neighbor_voxel_index))
-          << "Neigbor voxel index: " << neighbor_voxel_index.transpose();
+    }
 
-      SkeletonVoxel& neighbor_voxel =
-          neighbor_block->getVoxelByVoxelIndex(neighbor_voxel_index);
+    if (connected_vertex_id >= 0) {
+      SkeletonVertex& connected_vertex = graph_.getVertex(connected_vertex_id);
 
-      if (!neighbor_voxel.is_edge) {
+      // TODO(helenol): some more checks, for instance merge directly adjacent
+      // vertices.
+      // Before adding an edge, make sure it's not already in there...
+      bool already_exists = false;
+      for (int64_t edge_id : connected_vertex.edge_list) {
+        SkeletonEdge& edge = graph_.getEdge(edge_id);
+        if (edge.start_vertex == kv.second ||
+            edge.end_vertex == kv.second) {
+          already_exists = true;
+          break;
+        }
+      }
+      if (already_exists) {
         continue;
       }
-      // We should probably just ignore adjacent vertices anyway, but figure
-      // out how to deal with this later.
-      // Let's see what we can do by following one edge at a time...
-      // For now just take the first vertex it finds...
-      int64_t connected_vertex_id = -1;
-      float min_distance = 0.0, max_distance = 0.0;
-      bool vertex_found =
-          followEdge(neighbor_block_index, neighbor_voxel_index, directions[i],
-                     &connected_vertex_id, &min_distance, &max_distance);
 
-      if (vertex_found) {
-        if (connected_vertex_id == vertex_id) {
-          // I am still unclear on how this happens but apparently it does.
-          continue;
-        }
-        // Before adding an edge, make sure it's not already in there...
-        bool already_exists = false;
-        for (int64_t edge_id : vertex.edge_list) {
-          SkeletonEdge& edge = graph_.getEdge(edge_id);
-          if (edge.start_vertex == connected_vertex_id ||
-              edge.end_vertex == connected_vertex_id) {
-            already_exists = true;
-            break;
-          }
-        }
-        if (already_exists) {
-          continue;
-        }
-
-        if (check_edges_on_construction_) {
-          const FloatingPoint kMaxThreshold = 4 * skeleton_layer_->voxel_size();
-          // Get the shortest path through the graph.
-          size_t max_d_ind = 0;
-          AlignedVector<Point> coordinate_path;
-          FloatingPoint max_d = getMaxEdgeDistanceFromStraightLine(
-              vertex.point, graph_.getVertex(connected_vertex_id).point,
-              &coordinate_path, &max_d_ind);
-
-          if (max_d >= kMaxThreshold) {
-            continue;
-          }
-        }
-
-        // Ok it's new, let's add this little guy.
-        SkeletonEdge edge;
-        edge.start_vertex = vertex_id;
-        edge.end_vertex = connected_vertex_id;
-        edge.start_distance = min_distance;
-        edge.end_distance = max_distance;
-        // Start and end are filled in by the addEdge function.
-        int64_t edge_id = graph_.addEdge(edge);
-      }
+      // Ok it's new, let's add this little guy.
+      SkeletonEdge edge;
+      edge.start_vertex = kv.second;
+      edge.end_vertex = connected_vertex_id;
+      edge.start_distance = 0.0;
+      edge.end_distance = 0.0;
+      // Start and end are filled in by the addEdge function.
+      int64_t edge_id = graph_.addEdge(edge);
     }
   }
 
@@ -651,165 +646,6 @@ void SkeletonGenerator::generateSparseGraph() {
 
   LOG(INFO) << "[Sparse Graph] Vertices: " << graph_.getVertexMap().size()
             << " Edges: " << graph_.getEdgeMap().size();
-}
-
-bool SkeletonGenerator::followEdge(const BlockIndex& start_block_index,
-                                   const VoxelIndex& start_voxel_index,
-                                   const Eigen::Vector3i& direction_from_vertex,
-                                   int64_t* connected_vertex_id,
-                                   float* min_distance, float* max_distance) {
-  BlockIndex block_index = start_block_index;
-  VoxelIndex voxel_index = start_voxel_index;
-
-  Block<SkeletonVoxel>::Ptr block_ptr =
-      skeleton_layer_->getBlockPtrByIndex(start_block_index);
-  CHECK(block_ptr);
-  SkeletonVoxel& voxel = block_ptr->getVoxelByVoxelIndex(start_voxel_index);
-
-  *min_distance = voxel.distance;
-  *max_distance = voxel.distance;
-  Eigen::Vector3i last_direction = direction_from_vertex;
-
-  // Lists to keep track of what voxels we've checked for the edge, with the
-  // contents being the RELATIVE INDICES starting at the start voxel.
-  AlignedStack<Eigen::Vector3i> directions_to_check;
-  IndexSet directions_checked;
-
-  bool vertex_found = false;
-  bool still_got_neighbors = true;
-  const int kMaxFollows = 300;
-  int j = 0;
-
-  // The sum total of the directions from the START VOXEL to the current
-  // checked voxel. Subtract the direction from vertex to this to get the
-  // directions from the vertex.
-  Eigen::Vector3i direction_to_here = Eigen::Vector3i::Zero();
-
-  // For now only ever search the first edge for some reason.
-  while (vertex_found == false && still_got_neighbors == true &&
-         j < kMaxFollows) {
-    // Mark this voxel as checked.
-    directions_checked.insert(direction_to_here);
-
-    AlignedVector<VoxelKey> neighbors;
-    AlignedVector<float> distances;
-    AlignedVector<Eigen::Vector3i> directions;
-
-    neighbor_tools_.getNeighborIndexesAndDistances(
-        block_index, voxel_index, Connectivity::kTwentySix, &neighbors,
-        &distances, &directions);
-    still_got_neighbors = false;
-
-    // Choose the best candidate neighbor with the biggest dot product to the
-    // parent vertex direction (attempt to follow straight line away from
-    // vertex).
-    int best_neighbor = -1;
-    float best_dot_prod = -2.0;
-
-    for (size_t i = 0; i < neighbors.size(); ++i) {
-      // We JUST came from here.
-      if (directions[i] == -last_direction) {
-        continue;
-      }
-      // Also already checked this neighbor.
-      if (directions_checked.count(direction_to_here - directions[i]) > 0) {
-        continue;
-      }
-
-      BlockIndex neighbor_block_index = neighbors[i].first;
-      VoxelIndex neighbor_voxel_index = neighbors[i].second;
-      Block<SkeletonVoxel>::Ptr neighbor_block;
-      if (neighbor_block_index == block_index) {
-        neighbor_block = block_ptr;
-      } else {
-        neighbor_block =
-            skeleton_layer_->getBlockPtrByIndex(neighbor_block_index);
-      }
-      if (!neighbor_block) {
-        continue;
-      }
-      SkeletonVoxel& neighbor_voxel =
-          neighbor_block->getVoxelByVoxelIndex(neighbor_voxel_index);
-      if (neighbor_voxel.is_vertex) {
-        // Have to get which vertex this voxel belongs to.
-        *connected_vertex_id = neighbor_voxel.vertex_id;
-        return true;
-      }
-      if (neighbor_voxel.is_edge) {
-        still_got_neighbors = true;
-        float dot_prod = ((direction_to_here - direction_from_vertex)
-                              .cast<float>()
-                              .normalized())
-                             .dot(-directions[i].cast<float>().normalized());
-        if (dot_prod > best_dot_prod) {
-          if (best_neighbor >= 0) {
-            // Then stick this in the checking stack...
-            directions_to_check.push(direction_to_here -
-                                     directions[best_neighbor]);
-          }
-          best_neighbor = i;
-          best_dot_prod = dot_prod;
-        }
-      }
-    }
-
-    j++;
-    if (still_got_neighbors && best_neighbor >= 0) {
-      // Get the best one out AGAIN...
-      BlockIndex neighbor_block_index = neighbors[best_neighbor].first;
-      VoxelIndex neighbor_voxel_index = neighbors[best_neighbor].second;
-      Block<SkeletonVoxel>::Ptr neighbor_block;
-      if (neighbor_block_index == block_index) {
-        neighbor_block = block_ptr;
-      } else {
-        neighbor_block =
-            skeleton_layer_->getBlockPtrByIndex(neighbor_block_index);
-      }
-      CHECK(neighbor_block);
-
-      SkeletonVoxel& neighbor_voxel =
-          neighbor_block->getVoxelByVoxelIndex(neighbor_voxel_index);
-
-      if (neighbor_voxel.distance < *min_distance) {
-        *min_distance = neighbor_voxel.distance;
-      }
-      if (neighbor_voxel.distance > *max_distance) {
-        *max_distance = neighbor_voxel.distance;
-      }
-
-      block_index = neighbor_block_index;
-      voxel_index = neighbor_voxel_index;
-      block_ptr = neighbor_block;
-      last_direction = directions[best_neighbor];
-      // Direction is FROM neighbor TO the voxel, so gotta reverse it.
-      direction_to_here -= last_direction;
-    } else {
-      // If we don't have neighbors, check out one from to-check and see
-      // if we can do something there!
-      while (!directions_to_check.empty()) {
-        Eigen::Vector3i next_to_check = directions_to_check.top();
-        directions_to_check.pop();
-        // We've already checked this.
-        if (directions_checked.count(next_to_check) > 0) {
-          continue;
-        }
-
-        direction_to_here = next_to_check;
-        // No idea where we're coming from.
-        last_direction = Eigen::Vector3i::Zero();
-        // Get Neighbor now supports any length of distance.
-        neighbor_tools_.getNeighborIndex(start_block_index, start_voxel_index,
-                                         next_to_check, &block_index,
-                                         &voxel_index);
-        // Update block ptr to match block index.
-        block_ptr = skeleton_layer_->getBlockPtrByIndex(block_index);
-        still_got_neighbors = true;
-        break;
-      }
-    }
-  }
-
-  return false;
 }
 
 // Checks whether a point is simple, i.e., if its removal would not affect
@@ -1965,139 +1801,6 @@ void SkeletonGenerator::mergeSubgraphs(int subgraph_1, int subgraph_2,
       kv.second = new_subgraph;
     }
   }
-}
-
-void SkeletonGenerator::generateSparseGraphThroughFloodfill() {
-  timing::Timer generate_timer("skeleton/graph");
-  graph_.clear();
-
-  // First we create all the vertices and have a set of the ones not yet
-  // processed.
-  // Put them into the graph structure.
-  const AlignedVector<SkeletonPoint>& vertex_points =
-      skeleton_.getVertexPoints();
-  // Store all the IDs we need to iterate over later.
-  std::vector<int64_t> vertex_ids;
-  vertex_ids.reserve(vertex_points.size());
-
-  for (const SkeletonPoint& point : vertex_points) {
-    SkeletonVertex vertex;
-    vertex.point = point.point;
-    vertex.distance = point.distance;
-    int64_t vertex_id = graph_.addVertex(vertex);
-    vertex_ids.push_back(vertex_id);
-
-    // Also set the vertex ids in the layer (uuuughhhh)
-    Block<SkeletonVoxel>::Ptr block_ptr;
-    block_ptr = skeleton_layer_->getBlockPtrByCoordinates(vertex.point);
-    CHECK(block_ptr);
-    SkeletonVoxel& voxel = block_ptr->getVoxelByCoordinates(vertex.point);
-    voxel.vertex_id = vertex_id;
-  }
-
-  // Flood-fill from whatever is left in the vertex_ids set, annotating
-  // disconnected subgraphs as we go.
-  // The floodfill queue contains the global voxel index and vertex id parent.
-  // This allows us to easily do breadth-first search....
-  AlignedQueue<std::pair<GlobalIndex, int64_t>> floodfill_queue;
-  GlobalIndexVector neighbors;
-  const FloatingPoint grid_size_inv = 1.0 / esdf_voxel_size_;
-  for (const int64_t vertex_id : vertex_ids) {
-    SkeletonVertex& vertex = graph_.getVertex(vertex_id);
-
-    // Get the global index of this voxel.
-    GlobalIndex global_index =
-        getGridIndexFromPoint<GlobalIndex>(vertex.point, grid_size_inv);
-
-    neighbor_tools_.getNeighborsByGlobalIndex(
-        global_index, Connectivity::kTwentySix, &neighbors);
-
-    for (const GlobalIndex& neighbor : neighbors) {
-      floodfill_queue.emplace(neighbor, vertex_id);
-    }
-  }
-
-  // Now floodfill to our hearts' desire!
-  while (!floodfill_queue.empty()) {
-    // Get the next voxel in the queue.
-    std::pair<GlobalIndex, int64_t> kv = floodfill_queue.front();
-    floodfill_queue.pop();
-
-    int64_t connected_vertex_id = -1;
-
-    SkeletonVoxel* neighbor_voxel =
-        skeleton_layer_->getVoxelPtrByGlobalIndex(kv.first);
-    if (neighbor_voxel == nullptr) {
-      continue;
-    }
-    // This works because all vertices are also edges.
-    if (!neighbor_voxel->is_edge) {
-      continue;
-    }
-    // Two different options. Let's first handle that it's NOT a vertex.
-    if (!neighbor_voxel->is_vertex) {
-      // If it's an edge, check if it's already checked (i.e., colored by us).
-      // There's no way we should have to re-color or merge subgraphs if we
-      // are doing flood-fill correctly so only 1 case here.
-      if (neighbor_voxel->vertex_id == kv.second) {
-        continue;
-      }
-      if (neighbor_voxel->vertex_id != -1) {
-        // There is another vertex here.
-        connected_vertex_id = neighbor_voxel->vertex_id;
-      } else {
-        // Otherwise mark this thing as visited and throw its neighbors into
-        // the fray.
-        neighbor_voxel->vertex_id = kv.second;
-        neighbors.clear();
-        neighbor_tools_.getNeighborsByGlobalIndex(
-            kv.first, Connectivity::kTwentySix, &neighbors);
-        for (const GlobalIndex& neighbor : neighbors) {
-          floodfill_queue.emplace(neighbor, kv.second);
-        }
-      }
-    } else {
-      // Now it MUST be a vertex.
-      connected_vertex_id = neighbor_voxel->vertex_id;
-      if (connected_vertex_id == kv.second) {
-        continue;
-      }
-    }
-
-    if (connected_vertex_id >= 0) {
-      SkeletonVertex& connected_vertex = graph_.getVertex(connected_vertex_id);
-
-      // TODO(helenol): some more checks, for instance merge directly adjacent
-      // vertices.
-      // Before adding an edge, make sure it's not already in there...
-      bool already_exists = false;
-      for (int64_t edge_id : connected_vertex.edge_list) {
-        SkeletonEdge& edge = graph_.getEdge(edge_id);
-        if (edge.start_vertex == kv.second ||
-            edge.end_vertex == kv.second) {
-          already_exists = true;
-          break;
-        }
-      }
-      if (already_exists) {
-        continue;
-      }
-
-      // Ok it's new, let's add this little guy.
-      SkeletonEdge edge;
-      edge.start_vertex = kv.second;
-      edge.end_vertex = connected_vertex_id;
-      edge.start_distance = 0.0;
-      edge.end_distance = 0.0;
-      // Start and end are filled in by the addEdge function.
-      int64_t edge_id = graph_.addEdge(edge);
-    }
-  }
-
-  generate_timer.Stop();
-
-  LOG(INFO) << "[Sparse Graph] Vertices: " << graph_.getVertexMap().size()
-            << " Edges: " << graph_.getEdgeMap().size();
 }
 
 bool SkeletonGenerator::loadSparseGraphFromFile(const std::string& filename) {

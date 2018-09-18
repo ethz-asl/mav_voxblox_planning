@@ -165,7 +165,7 @@ void SkeletonizerNode::skeletonize(Layer<EsdfVoxel>* esdf_layer,
                                                                    distances);
   ROS_INFO("Finished generating skeleton.");
 
-  skeleton_generator_.generateSparseGraphThroughFloodfill();
+  skeleton_generator_.generateSparseGraph();
   ROS_INFO("Finished generating sparse graph.");
 
   ROS_INFO_STREAM("Total Timings: " << std::endl << timing::Timing::Print());
