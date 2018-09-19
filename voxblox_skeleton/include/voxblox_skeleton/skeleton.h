@@ -26,13 +26,13 @@ class Skeleton {
   const AlignedVector<SkeletonPoint>& getSkeletonPoints() const {
     return points_;
   }
-  const AlignedVector<SkeletonPoint>& getEdgePoints() const { return edges_; }
+  const AlignedList<SkeletonPoint>& getEdgePoints() const { return edges_; }
   const AlignedVector<SkeletonPoint>& getVertexPoints() const {
     return vertices_;
   }
 
   AlignedVector<SkeletonPoint>& getSkeletonPoints() { return points_; }
-  AlignedVector<SkeletonPoint>& getEdgePoints() { return edges_; }
+  AlignedList<SkeletonPoint>& getEdgePoints() { return edges_; }
   AlignedVector<SkeletonPoint>& getVertexPoints() { return vertices_; }
 
   // Converts the points to a pointcloud with no other information, for all
@@ -52,7 +52,7 @@ class Skeleton {
 
   // Subsets of points (just copies because we don't care)
   AlignedVector<SkeletonPoint> vertices_;
-  AlignedVector<SkeletonPoint> edges_;
+  AlignedList<SkeletonPoint> edges_;
 };
 
 struct SkeletonVertex {
@@ -122,6 +122,12 @@ class SparseSkeletonGraph {
   const std::map<int64_t, SkeletonEdge>& getEdgeMap() const {
     return edge_map_;
   }
+
+  // These are the barebones version: does not enforce any connections, used
+  // only for de-serializing sparse skeleton graphs. Also sets ids to the ids
+  // already in the structure.
+  void addSerializedVertex(const SkeletonVertex& vertex);
+  void addSerializedEdge(const SkeletonEdge& edge);
 
  private:
   // Vertex and edge IDs are separate.

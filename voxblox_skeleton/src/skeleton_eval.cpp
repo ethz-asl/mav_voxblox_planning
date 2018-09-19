@@ -87,6 +87,7 @@ SkeletonEvalNode::SkeletonEvalNode(const ros::NodeHandle& nh,
                     tsdf_max_distance_);
   nh_private_.param("apply_noise", apply_noise_, apply_noise_);
   nh_private_.param("noise_sigma", noise_sigma_, noise_sigma_);
+  nh_private_.param("frame_id", frame_id_, frame_id_);
 
   skeleton_pub_ = nh_private_.advertise<pcl::PointCloud<pcl::PointXYZ> >(
       "skeleton", 1, true);
@@ -321,7 +322,11 @@ int main(int argc, char** argv) {
 
   node.generateWorld();
 
-  bool generate_from_robot_poses = false;
+  bool generate_from_robot_poses = true;
+
+  nh_private.param("generate_from_robot_poses", generate_from_robot_poses,
+                   generate_from_robot_poses);
+
   if (generate_from_robot_poses) {
     node.generateMapFromRobotPoses(200, 1);
   } else {

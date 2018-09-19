@@ -13,6 +13,7 @@
 #include <voxblox/utils/neighbor_tools.h>
 #include <voxblox/utils/timing.h>
 
+#include "voxblox_skeleton/nanoflann_interface.h"
 #include "voxblox_skeleton/skeleton.h"
 #include "voxblox_skeleton/skeleton_planner.h"
 #include "voxblox_skeleton/voxel_template_matcher.h"
@@ -22,23 +23,30 @@ namespace voxblox {
 // TODO(helenol): move as an integrator?
 class SkeletonGenerator {
  public:
+  enum CleanupStyle { kNone = 0, kMatchUnderlyingDiagram, kSimplify };
+
   SkeletonGenerator();
   SkeletonGenerator(Layer<EsdfVoxel>* esdf_layer);
 
   void setEsdfLayer(Layer<EsdfVoxel>* esdf_layer);
 
+  // Generate a skeleton diagram (a voxel layer containing skeleton voxels).
   void generateSkeleton();
-  void generateSparseGraph();
-  // Split non-straight edges on the sparse graph.
-  void splitEdges();
 
-  // Additional helper functions, in case generate by neighbor layers is set.
-  void generateEdgesByLayerNeighbors();
-  void generateVerticesByLayerNeighbors();
+  // Generate a sparse graph, representing the underlying diagram.
+  // This method is what is presented in the IROS 2018 paper.
+  void generateSparseGraph();
+
+  // Alternative method of generating the sparse graph from a diagram using
+  // flood-fill. Presented in the JFR 2018 paper.
+  void generateSparseGraphThroughFloodfill();
 
   // Clear the current points in the skeleton and re-construct it based on
   // the layer.
   void updateSkeletonFromLayer();
+
+  bool loadSparseGraphFromFile(const std::string& filename);
+  bool saveSparseGraphToFile(const std::string& filename);
 
   // Pruning function by fitting template neighbors.
   size_t pruneDiagramEdges();
@@ -75,12 +83,28 @@ class SkeletonGenerator {
   FloatingPoint getMinGvdDistance() const { return min_gvd_distance_; }
   void setMinGvdDistance(FloatingPoint min_gvd_distance) {
     min_gvd_distance_ = min_gvd_distance;
+    skeleton_planner_.setMinEsdfDistance(min_gvd_distance_);
   }
 
   int getNumNeighborsForEdge() const { return num_neighbors_for_edge_; }
   void setNumNeighborsForEdge(int num_neighbors_for_edge) {
     num_neighbors_for_edge_ = num_neighbors_for_edge;
   }
+
+  // Get the skeleton layer.
+  Layer<SkeletonVoxel>* getSkeletonLayer() { return skeleton_layer_.get(); }
+
+  // Set the skeleton layer! Takes ownership.
+  void setSkeletonLayer(Layer<SkeletonVoxel>* skeleton_layer);
+
+  // ====== Helper functions below! =======
+
+  // Split non-straight edges on the sparse graph.
+  void splitEdges();
+
+  // Additional helper functions, in case generate by neighbor layers is set.
+  void generateEdgesByLayerNeighbors();
+  void generateVerticesByLayerNeighbors();
 
   // Follow an edge through the layer, aborting when either no more neighbors
   // exist or a vertex is found.
@@ -107,21 +131,38 @@ class SkeletonGenerator {
       const Point& start, const Point& end,
       const AlignedVector<Point>& coordinate_path, size_t* max_index);
 
-  // Get the skeleton layer.
-  Layer<SkeletonVoxel>* getSkeletonLayer() { return skeleton_layer_.get(); }
-
-  // Set the skeleton layer! Takes ownership.
-  void setSkeletonLayer(Layer<SkeletonVoxel>* skeleton_layer);
-
   int recursivelyLabel(int64_t vertex_id, int subgraph_id);
   void tryToFindEdgesInCoordinatePath(
       const AlignedVector<Point>& coordinate_path, int subgraph_id_start,
       int subgraph_id_end, std::vector<int64_t>* new_edge_ids);
-void splitSpecificEdges(const std::vector<int64_t>& starting_edge_ids);
+  void splitSpecificEdges(const std::vector<int64_t>& starting_edge_ids);
 
+  // Newer simplification functions.
+  void simplifyGraph();
+  void simplifyVertices();
+  void reconnectSubgraphsAlongEsdf();
+  void mergeSubgraphs(int subgraph_1, int subgraph_2,
+                      std::map<int, int>* subgraph_map) const;
 
  private:
+  // KD tree adapters.
+  typedef nanoflann::KDTreeSingleIndexAdaptor<
+      nanoflann::L2_Simple_Adaptor<FloatingPoint,
+                                   DirectSkeletonVertexMapAdapter>,
+      DirectSkeletonVertexMapAdapter, 3>
+      VertexGraphKdTree;
+  typedef nanoflann::KDTreeSingleIndexAdaptor<
+      nanoflann::L2_Simple_Adaptor<FloatingPoint, SkeletonPointVectorAdapter>,
+      SkeletonPointVectorAdapter, 3>
+      SkeletonPointKdTree;
+  typedef nanoflann::KDTreeSingleIndexDynamicAdaptor<
+      nanoflann::L2_Simple_Adaptor<FloatingPoint,
+                                   DirectSkeletonVertexMapAdapter>,
+      DirectSkeletonVertexMapAdapter, 3>
+      DynamicVertexGraphKdTree;
+
   float min_separation_angle_;
+  float esdf_voxel_size_;
   int esdf_voxels_per_side_;
 
   // Whether generate vertices/edges by number of basis points (false,
@@ -130,11 +171,17 @@ void splitSpecificEdges(const std::vector<int64_t>& starting_edge_ids);
   bool generate_by_layer_neighbors_;
   int num_neighbors_for_edge_;
 
+  // Checks the straight-line distance
+  bool check_edges_on_construction_;
+
   // What minimum radius to prune vertices within.
   FloatingPoint vertex_pruning_radius_;
 
   // Minimum distance that the GVD is computed at. 0 by default.
   FloatingPoint min_gvd_distance_;
+
+  // How to clean up the skeleton, if any.
+  CleanupStyle cleanup_style_;
 
   // Template matchers.
   VoxelTemplateMatcher pruning_template_matcher_;

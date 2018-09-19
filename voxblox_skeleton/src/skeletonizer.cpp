@@ -1,5 +1,5 @@
-#include <voxblox/core/tsdf_map.h>
 #include <voxblox/core/esdf_map.h>
+#include <voxblox/core/tsdf_map.h>
 #include <voxblox/integrator/merge_integration.h>
 
 #include <voxblox_ros/conversions.h>
@@ -8,15 +8,19 @@
 #include <voxblox_ros/mesh_vis.h>
 #include <voxblox_ros/ptcloud_vis.h>
 
-#include "voxblox_skeleton/skeleton_generator.h"
+#include "voxblox_skeleton/io/skeleton_io.h"
 #include "voxblox_skeleton/ros/skeleton_vis.h"
+#include "voxblox_skeleton/skeleton_generator.h"
 
 namespace voxblox {
 
 class SkeletonizerNode {
  public:
   SkeletonizerNode(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
-      : nh_(nh), nh_private_(nh_private), esdf_server_(nh_, nh_private_) {
+      : nh_(nh),
+        nh_private_(nh_private),
+        frame_id_("map"),
+        esdf_server_(nh_, nh_private_) {
     skeleton_pub_ = nh_private_.advertise<pcl::PointCloud<pcl::PointXYZ> >(
         "skeleton", 1, true);
     sparse_graph_pub_ = nh_private_.advertise<visualization_msgs::MarkerArray>(
@@ -34,6 +38,8 @@ class SkeletonizerNode {
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
+  std::string frame_id_;
+
   ros::Publisher skeleton_pub_;
   ros::Publisher sparse_graph_pub_;
 
@@ -44,9 +50,13 @@ class SkeletonizerNode {
 
 void SkeletonizerNode::init() {
   // Load a file from the params.
-  std::string input_filepath, output_filepath;
+  std::string input_filepath, output_filepath, sparse_graph_filepath;
   nh_private_.param("input_filepath", input_filepath, input_filepath);
   nh_private_.param("output_filepath", output_filepath, output_filepath);
+  nh_private_.param("sparse_graph_filepath", sparse_graph_filepath,
+                    sparse_graph_filepath);
+
+  nh_private_.param("frame_id", frame_id_, frame_id_);
 
   if (input_filepath.empty()) {
     return;
@@ -79,6 +89,7 @@ void SkeletonizerNode::init() {
 
     esdf_server_.TsdfServer::generateMesh();
   }
+  esdf_server_.disableIncrementalUpdate();
 
   const bool full_euclidean_distance = true;
   esdf_server_.updateEsdfBatch(full_euclidean_distance);
@@ -87,6 +98,8 @@ void SkeletonizerNode::init() {
   esdf_server_.updateMesh();
   esdf_server_.publishPointclouds();
   esdf_server_.publishMap();
+
+  ROS_INFO("Finished updating ESDF.");
 
   // Skeletonize????
   voxblox::Pointcloud pointcloud;
@@ -97,7 +110,7 @@ void SkeletonizerNode::init() {
   // Publish the skeleton.
   pcl::PointCloud<pcl::PointXYZI> ptcloud_pcl;
   pointcloudToPclXYZI(pointcloud, distances, &ptcloud_pcl);
-  ptcloud_pcl.header.frame_id = "world";
+  ptcloud_pcl.header.frame_id = frame_id_;
   skeleton_pub_.publish(ptcloud_pcl);
 
   // Optionally save back to file.
@@ -110,6 +123,14 @@ void SkeletonizerNode::init() {
       ROS_INFO("Output map to: %s", output_filepath.c_str());
     } else {
       ROS_ERROR("Couldn't output map to: %s", output_filepath.c_str());
+    }
+  }
+  if (!sparse_graph_filepath.empty()) {
+    if (skeleton_generator_.saveSparseGraphToFile(sparse_graph_filepath)) {
+      ROS_INFO("Output sparse graph to: %s", sparse_graph_filepath.c_str());
+    } else {
+      ROS_ERROR("Couldn't output sparse graph to: %s",
+                sparse_graph_filepath.c_str());
     }
   }
 }
@@ -152,7 +173,7 @@ void SkeletonizerNode::skeletonize(Layer<EsdfVoxel>* esdf_layer,
   // Now visualize the graph.
   const SparseSkeletonGraph& graph = skeleton_generator_.getSparseGraph();
   visualization_msgs::MarkerArray marker_array;
-  visualizeSkeletonGraph(graph, "world", &marker_array);
+  visualizeSkeletonGraph(graph, frame_id_, &marker_array);
   sparse_graph_pub_.publish(marker_array);
 }
 
