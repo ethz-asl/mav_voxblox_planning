@@ -8,8 +8,8 @@
 
 namespace mav_planning {
 
-RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
-                                     const ros::NodeHandle& nh_private)
+RrtPlannerVoxblox::RrtPlannerVoxblox(
+    const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
     : nh_(nh),
       nh_private_(nh_private),
       frame_id_("odom"),
@@ -19,19 +19,66 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
       lower_bound_(Eigen::Vector3d::Zero()),
       upper_bound_(Eigen::Vector3d::Zero()),
       voxblox_server_(nh_, nh_private_),
-      rrt_(nh_, nh_private_) {
+      rrt_(nh_, nh_private_),
+      enable_loco_(true),
+      enable_loco_2_(true),
+      enable_poly_(true),
+      marker_font_size_(1.f),
+      status_position_x_(0.f),
+      status_position_y_(0.f),
+      status_position_z_(0.f) {
   constraints_.setParametersFromRos(nh_private_);
 
   std::string input_filepath;
   nh_private_.param("voxblox_path", input_filepath, input_filepath);
   nh_private_.param("visualize", visualize_, visualize_);
   nh_private_.param("frame_id", frame_id_, frame_id_);
+  nh_private_.param(
+      "robot_radius_margin", robot_radius_margin_, robot_radius_margin_);
+
+  nh_private_.param("num_repetitions", num_repetitions_, num_repetitions_);
+  CHECK_GT(num_repetitions_, 0);
+
+  nh_private_.param("enable_loco", enable_loco_, enable_loco_);
+  nh_private_.param("enable_loco_2", enable_loco_2_, enable_loco_2_);
+  nh_private_.param("enable_poly", enable_poly_, enable_poly_);
+
+  nh_private_.param("marker_font_size", marker_font_size_, marker_font_size_);
+  nh_private_.param(
+      "status_position_x", status_position_x_, status_position_x_);
+  nh_private_.param(
+      "status_position_y", status_position_y_, status_position_y_);
+  nh_private_.param(
+      "status_position_z", status_position_z_, status_position_z_);
+
+  ROS_WARN_STREAM("num_repetitions: " << num_repetitions_);
+  ROS_WARN_STREAM("robot_radius: " << constraints_.robot_radius);
+  ROS_WARN_STREAM("robot_radius_margin: " << robot_radius_margin_);
+  ROS_WARN_STREAM("enable_loco: " << enable_loco_);
+  ROS_WARN_STREAM("enable_loco_2: " << enable_loco_2_);
+  ROS_WARN_STREAM("enable_poly: " << enable_poly_);
+
+  ROS_WARN_STREAM("status_position_x: " << status_position_x_);
+  ROS_WARN_STREAM("status_position_y: " << status_position_y_);
+  ROS_WARN_STREAM("status_position_z: " << status_position_z_);
+
+  std::string gt_esdf_file;
+  nh_private_.param("esdf_ground_truth_map", gt_esdf_file, gt_esdf_file);
+  if (!gt_esdf_file.empty()) {
+    voxblox::Layer<voxblox::EsdfVoxel>::Ptr layer;
+    voxblox::io::LoadLayer<voxblox::EsdfVoxel>(
+        gt_esdf_file, true /*multi layer support on*/, &layer);
+    esdf_ground_truth_map_.reset(new voxblox::EsdfMap(layer));
+  }
 
   path_marker_pub_ =
       nh_private_.advertise<visualization_msgs::MarkerArray>("path", 1, true);
   polynomial_trajectory_pub_ =
       nh_.advertise<mav_planning_msgs::PolynomialTrajectory4D>(
           "polynomial_trajectory", 1);
+
+  status_pub_ = nh_private_.advertise<visualization_msgs::Marker>(
+      "planner_status", 1, true);
 
   waypoint_list_pub_ =
       nh_.advertise<geometry_msgs::PoseArray>("waypoint_list", 1);
@@ -73,7 +120,7 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxels_per_side());
 
   // TODO(helenol): figure out what to do with optimistic/pessimistic here.
-  rrt_.setRobotRadius(constraints_.robot_radius);
+  rrt_.setRobotRadius(constraints_.robot_radius * (1.0 + robot_radius_margin_));
   rrt_.setOptimistic(false);
 
   rrt_.setTsdfLayer(voxblox_server_.getTsdfMapPtr()->getTsdfLayerPtr());
@@ -85,10 +132,11 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
   // Inflate the bounds a bit.
   constexpr double kBoundInflationMeters = 0.5;
   // Don't in flate in z. ;)
-  rrt_.setBounds(lower_bound_ - Eigen::Vector3d(kBoundInflationMeters,
-                                                kBoundInflationMeters, 0.0),
-                 upper_bound_ + Eigen::Vector3d(kBoundInflationMeters,
-                                                kBoundInflationMeters, 0.0));
+  rrt_.setBounds(
+      lower_bound_ -
+          Eigen::Vector3d(kBoundInflationMeters, kBoundInflationMeters, 0.0),
+      upper_bound_ +
+          Eigen::Vector3d(kBoundInflationMeters, kBoundInflationMeters, 0.0));
   rrt_.setupProblem();
 
   voxblox_server_.setTraversabilityRadius(constraints_.robot_radius);
@@ -96,8 +144,8 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
   // Set up the path smoother as well.
   smoother_.setParametersFromRos(nh_private_);
   smoother_.setMinCollisionCheckResolution(voxel_size);
-  smoother_.setMapDistanceCallback(std::bind(&RrtPlannerVoxblox::getMapDistance,
-                                             this, std::placeholders::_1));
+  smoother_.setMapDistanceCallback(std::bind(
+      &RrtPlannerVoxblox::getMapDistance, this, std::placeholders::_1));
 
   // Loco smoother!
   loco_smoother_.setParametersFromRos(nh_private_);
@@ -113,8 +161,8 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
   }
 }
 
-bool RrtPlannerVoxblox::publishPathCallback(std_srvs::EmptyRequest& request,
-                                            std_srvs::EmptyResponse& response) {
+bool RrtPlannerVoxblox::publishPathCallback(
+    std_srvs::EmptyRequest& request, std_srvs::EmptyResponse& response) {
   if (!last_trajectory_valid_) {
     ROS_ERROR("Can't publish trajectory, marked as invalid.");
     return false;
@@ -145,8 +193,8 @@ bool RrtPlannerVoxblox::publishPathCallback(std_srvs::EmptyRequest& request,
   return true;
 }
 
-void RrtPlannerVoxblox::computeMapBounds(Eigen::Vector3d* lower_bound,
-                                         Eigen::Vector3d* upper_bound) const {
+void RrtPlannerVoxblox::computeMapBounds(
+    Eigen::Vector3d* lower_bound, Eigen::Vector3d* upper_bound) const {
   voxblox::BlockIndexList all_blocks;
   tsdf_map_->getTsdfLayerPtr()->getAllAllocatedBlocks(&all_blocks);
 
@@ -165,8 +213,8 @@ void RrtPlannerVoxblox::computeMapBounds(Eigen::Vector3d* lower_bound,
     }
 
     lower_bound_pt = lower_bound_pt.array().min(block->origin().array());
-    upper_bound_pt = upper_bound_pt.array().max(block->origin().array() +
-                                                block->block_size());
+    upper_bound_pt = upper_bound_pt.array().max(
+        block->origin().array() + block->block_size());
   }
 
   *lower_bound = lower_bound_pt.cast<double>();
@@ -192,85 +240,232 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
     return false;
   }
 
-  mav_msgs::EigenTrajectoryPoint::Vector waypoints;
-  mav_trajectory_generation::timing::Timer rrtstar_timer("plan/rrt_star");
+  PlanningResult result;
 
-  bool success =
-      rrt_.getPathBetweenWaypoints(start_pose, goal_pose, &waypoints);
-  rrtstar_timer.Stop();
-  double path_length = computePathLength(waypoints);
-  int num_vertices = waypoints.size();
-  ROS_INFO("RRT* Success? %d Path length: %f Vertices: %d", success,
-           path_length, num_vertices);
+  bool rrt_success = false;
+  for (size_t repetition_idx = 0u;
+       repetition_idx < static_cast<size_t>(num_repetitions_);
+       ++repetition_idx) {
+    result.paths_planned++;
 
-  if (!success) {
-    return false;
-  }
+    mav_msgs::EigenTrajectoryPoint::Vector waypoints;
+    mav_trajectory_generation::timing::Timer rrtstar_timer("plan/rrt_star");
 
-  visualization_msgs::MarkerArray marker_array;
-  if (visualize_) {
-    marker_array.markers.push_back(createMarkerForPath(
-        waypoints, mav_visualization::Color::Green(), "rrt_star", 0.075));
-    marker_array.markers.push_back(
-        createMarkerForWaypoints(waypoints, mav_visualization::Color::Green(),
-                                 "rrt_star_waypoints", 0.15));
-  }
-
-  last_waypoints_ = waypoints;
-
-  if (!do_smoothing_) {
-    last_trajectory_valid_ = true;
-  } else {
-    mav_msgs::EigenTrajectoryPointVector poly_path;
-    mav_trajectory_generation::timing::Timer poly_timer("plan/poly");
-    bool poly_has_collisions =
-        !generateFeasibleTrajectory(waypoints, &poly_path);
-    poly_timer.Stop();
-
-    mav_msgs::EigenTrajectoryPointVector loco_path;
-    mav_trajectory_generation::timing::Timer loco_timer("plan/loco");
-    bool loco_has_collisions =
-        !generateFeasibleTrajectoryLoco(waypoints, &loco_path);
-    loco_timer.Stop();
-
-    mav_msgs::EigenTrajectoryPointVector loco2_path;
-    mav_trajectory_generation::timing::Timer loco2_timer("plan/loco2");
-    bool loco2_has_collisions =
-        !generateFeasibleTrajectoryLoco2(waypoints, &loco2_path);
-    loco2_timer.Stop();
-
+    rrt_success =
+        rrt_.getPathBetweenWaypoints(start_pose, goal_pose, &waypoints);
+    rrtstar_timer.Stop();
+    double path_length = computePathLength(waypoints);
+    int num_vertices = waypoints.size();
     ROS_INFO(
-        "Poly Smoothed Path has collisions? %d Loco Path has collisions? %d "
-        "Loco 2 has collisions? %d",
-        poly_has_collisions, loco_has_collisions, loco2_has_collisions);
+        "RRT* Success? %d Path length: %f Vertices: %d", rrt_success,
+        path_length, num_vertices);
 
-    if (!poly_has_collisions) {
+    visualization_msgs::MarkerArray marker_array;
+    if (visualize_) {
+      if (rrt_success) {
+        marker_array.markers.push_back(createMarkerForPath(
+            waypoints, mav_visualization::Color::Green(), "rrt_star", 0.075));
+        marker_array.markers.push_back(createMarkerForWaypoints(
+            waypoints, mav_visualization::Color::Green(), "rrt_star_waypoints",
+            0.15));
+      } else {
+        mav_msgs::EigenTrajectoryPoint::Vector empty_waypoints;
+        marker_array.markers.push_back(createMarkerForPath(
+            empty_waypoints, mav_visualization::Color::Green(), "rrt_star",
+            0.075));
+        marker_array.markers.push_back(createMarkerForWaypoints(
+            empty_waypoints, mav_visualization::Color::Green(),
+            "rrt_star_waypoints", 0.15));
+
+        // Push empty markers to erase old path.
+        mav_msgs::EigenTrajectoryPointVector empty_path;
+        marker_array.markers.push_back(createMarkerForPath(
+            empty_path, mav_visualization::Color::Pink(), "loco", 0.075));
+        // Push empty markers to erase old path.
+        marker_array.markers.push_back(createMarkerForPath(
+            empty_path, mav_visualization::Color::Teal(), "loco_2", 0.075));
+        // Push empty markers to erase old path.
+        marker_array.markers.push_back(createMarkerForPath(
+            empty_path, mav_visualization::Color::Orange(), "poly", 0.075));
+      }
+    }
+
+    if (!rrt_success) {
+      visualization_msgs::Marker status_marker = createPlanningStatusMarker(
+          repetition_idx, false /*rrt success*/, false, true, false, true,
+          false, true);
+      status_pub_.publish(status_marker);
+      continue;
+    }
+
+    last_waypoints_ = waypoints;
+
+    if (!do_smoothing_) {
       last_trajectory_valid_ = true;
+    } else {
+      ROS_ERROR_STREAM(
+          "Ground truth available: "
+          << static_cast<bool>(esdf_ground_truth_map_));
+
+      bool poly_path_is_in_collision_with_gt = true;
+      bool poly_has_collisions = true;
+      if (enable_poly_) {
+        mav_msgs::EigenTrajectoryPointVector poly_path;
+        mav_trajectory_generation::timing::Timer poly_timer("plan/poly");
+        poly_has_collisions = !generateFeasibleTrajectory(
+            waypoints, &poly_path, &poly_path_is_in_collision_with_gt);
+        poly_timer.Stop();
+
+        const double poly_path_length_m = computePathLength(poly_path);
+
+        result.poly_self_collisions += poly_has_collisions ? 1u : 0u;
+        result.poly_gt_collisions +=
+            poly_path_is_in_collision_with_gt ? 1u : 0u;
+
+        if (!(poly_path_is_in_collision_with_gt || poly_has_collisions)) {
+          result.average_successful_poly_path_length_m =
+              ((result.average_successful_poly_path_length_m *
+                static_cast<double>(result.poly_success)) +
+               poly_path_length_m) /
+              static_cast<double>(result.poly_success + 1.0);
+          result.poly_success++;
+        }
+
+        ROS_ERROR_STREAM(
+            "POLY - path length: "
+            << poly_path_length_m << "m | is in collision with ground truth: "
+            << (poly_path_is_in_collision_with_gt && esdf_ground_truth_map_)
+            << " | is in collision with own map: " << poly_has_collisions);
+
+        if (!poly_has_collisions) {
+          last_trajectory_valid_ = true;
+        }
+
+        if (visualize_) {
+          // add node if in collision
+          if (!poly_has_collisions && !poly_path_is_in_collision_with_gt) {
+            marker_array.markers.push_back(createMarkerForPath(
+                poly_path, mav_visualization::Color::Orange(), "poly", 0.075));
+          } else {
+            // Push empty markers to erase old path.
+            mav_msgs::EigenTrajectoryPointVector empty_path;
+            marker_array.markers.push_back(createMarkerForPath(
+                empty_path, mav_visualization::Color::Orange(), "poly", 0.075));
+          }
+        }
+      }
+      bool loco_path_is_in_collision_with_gt = true;
+      bool loco_has_collisions = true;
+      if (enable_loco_) {
+        mav_msgs::EigenTrajectoryPointVector loco_path;
+        mav_trajectory_generation::timing::Timer loco_timer("plan/loco");
+        loco_has_collisions = !generateFeasibleTrajectoryLoco(
+            waypoints, &loco_path, &loco_path_is_in_collision_with_gt);
+        loco_timer.Stop();
+
+        const double loco_path_length_m = computePathLength(loco_path);
+
+        result.loco_self_collisions += loco_has_collisions ? 1u : 0u;
+        result.loco_gt_collisions +=
+            loco_path_is_in_collision_with_gt ? 1u : 0u;
+
+        result.average_successful_poly_path_length_m += 0.0;
+
+        if (!(loco_path_is_in_collision_with_gt || loco_has_collisions)) {
+          result.average_successful_loco_path_length_m =
+              ((result.average_successful_loco_path_length_m *
+                static_cast<double>(result.loco_success)) +
+               loco_path_length_m) /
+              static_cast<double>(result.loco_success + 1.0);
+          result.loco_success++;
+        }
+
+        ROS_ERROR_STREAM(
+            "LOCO - path length: "
+            << loco_path_length_m << "m | is in collision with ground truth: "
+            << (loco_path_is_in_collision_with_gt && esdf_ground_truth_map_)
+            << " | is in collision with own map: " << loco_has_collisions);
+
+        if (visualize_) {
+          // optmization based on esdf, no soft constraints, resampling
+          if (!loco_has_collisions && !loco_path_is_in_collision_with_gt) {
+            marker_array.markers.push_back(createMarkerForPath(
+                loco_path, mav_visualization::Color::Pink(), "loco", 0.075));
+          } else {
+            // Push empty markers to erase old path.
+            mav_msgs::EigenTrajectoryPointVector empty_path;
+            marker_array.markers.push_back(createMarkerForPath(
+                empty_path, mav_visualization::Color::Pink(), "loco", 0.075));
+          }
+        }
+      }
+
+      bool loco_2_path_is_in_collision_with_gt = true;
+      bool loco_2_has_collisions = true;
+      if (enable_loco_2_) {
+        mav_msgs::EigenTrajectoryPointVector loco_2_path;
+        mav_trajectory_generation::timing::Timer loco_2_timer("plan/loco_2");
+        loco_2_has_collisions = !generateFeasibleTrajectoryLoco2(
+            waypoints, &loco_2_path, &loco_2_path_is_in_collision_with_gt);
+        loco_2_timer.Stop();
+
+        const double loco_2_path_length_m = computePathLength(loco_2_path);
+
+        result.loco_2_self_collisions += loco_2_has_collisions ? 1u : 0u;
+        result.loco_2_gt_collisions +=
+            loco_2_path_is_in_collision_with_gt ? 1u : 0u;
+
+        result.average_successful_poly_path_length_m += 0.0;
+
+        if (!(loco_2_path_is_in_collision_with_gt || loco_2_has_collisions)) {
+          result.average_successful_loco_2_path_length_m =
+              ((result.average_successful_loco_2_path_length_m *
+                static_cast<double>(result.loco_2_success)) +
+               loco_2_path_length_m) /
+              static_cast<double>(result.loco_2_success + 1.0);
+          result.loco_2_success++;
+        }
+
+        if (visualize_) {
+          // optmization based on esdf, soft constraints, resampling
+          if (!loco_2_has_collisions) {
+            marker_array.markers.push_back(createMarkerForPath(
+                loco_2_path, mav_visualization::Color::Teal(), "loco_2",
+                0.075));
+          } else {
+            // Push empty markers to erase old path.
+            mav_msgs::EigenTrajectoryPointVector empty_path;
+            marker_array.markers.push_back(createMarkerForPath(
+                empty_path, mav_visualization::Color::Teal(), "loco_2", 0.075));
+          }
+        }
+      }
+
+      visualization_msgs::Marker status_marker = createPlanningStatusMarker(
+          repetition_idx, true /*rrt success*/, !loco_has_collisions,
+          loco_path_is_in_collision_with_gt, !loco_2_has_collisions,
+          loco_2_path_is_in_collision_with_gt, !poly_has_collisions,
+          poly_path_is_in_collision_with_gt);
+      status_pub_.publish(status_marker);
     }
 
     if (visualize_) {
-      marker_array.markers.push_back(createMarkerForPath(
-          poly_path, mav_visualization::Color::Orange(), "poly", 0.075));
-      marker_array.markers.push_back(createMarkerForPath(
-          loco_path, mav_visualization::Color::Pink(), "loco", 0.075));
-      marker_array.markers.push_back(createMarkerForPath(
-          loco2_path, mav_visualization::Color::Teal(), "loco2", 0.075));
+      path_marker_pub_.publish(marker_array);
     }
+
+    response.success = rrt_success;
   }
 
-  if (visualize_) {
-    path_marker_pub_.publish(marker_array);
-  }
+  ROS_WARN_STREAM(result.print());
 
-  response.success = success;
-
-  ROS_INFO_STREAM("All timings: "
-                  << std::endl
-                  << mav_trajectory_generation::timing::Timing::Print());
-  ROS_INFO_STREAM("Finished planning with start point: "
-                  << start_pose.position_W.transpose()
-                  << " and goal point: " << goal_pose.position_W.transpose());
-  return success;
+  ROS_INFO_STREAM(
+      "All timings: " << std::endl
+                      << mav_trajectory_generation::timing::Timing::Print());
+  ROS_INFO_STREAM(
+      "Finished planning with start point: "
+      << start_pose.position_W.transpose()
+      << " and goal point: " << goal_pose.position_W.transpose());
+  return rrt_success;
 }
 
 visualization_msgs::Marker RrtPlannerVoxblox::createMarkerForPath(
@@ -349,10 +544,16 @@ visualization_msgs::Marker RrtPlannerVoxblox::createMarkerForWaypoints(
 
 bool RrtPlannerVoxblox::generateFeasibleTrajectory(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
-    mav_msgs::EigenTrajectoryPointVector* path) {
+    mav_msgs::EigenTrajectoryPointVector* path,
+    bool* path_is_in_collision_with_gt) {
   smoother_.getPathBetweenWaypoints(coordinate_path, path);
 
   bool path_in_collision = checkPathForCollisions(*path, NULL);
+
+  if (path_is_in_collision_with_gt != nullptr && esdf_ground_truth_map_) {
+    *path_is_in_collision_with_gt =
+        checkPathForCollisionsWithGroundTruth(*path, NULL);
+  }
 
   if (path_in_collision) {
     return false;
@@ -362,13 +563,19 @@ bool RrtPlannerVoxblox::generateFeasibleTrajectory(
 
 bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
-    mav_msgs::EigenTrajectoryPointVector* path) {
+    mav_msgs::EigenTrajectoryPointVector* path,
+    bool* path_is_in_collision_with_gt) {
   loco_smoother_.setResampleTrajectory(true);
   loco_smoother_.setAddWaypoints(false);
 
   loco_smoother_.getPathBetweenWaypoints(coordinate_path, path);
 
   bool path_in_collision = checkPathForCollisions(*path, NULL);
+
+  if (path_is_in_collision_with_gt != nullptr) {
+    *path_is_in_collision_with_gt =
+        checkPathForCollisionsWithGroundTruth(*path, NULL);
+  }
 
   if (path_in_collision) {
     return false;
@@ -378,13 +585,19 @@ bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco(
 
 bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco2(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
-    mav_msgs::EigenTrajectoryPointVector* path) {
+    mav_msgs::EigenTrajectoryPointVector* path,
+    bool* path_is_in_collision_with_gt) {
   loco_smoother_.setResampleTrajectory(true);
   loco_smoother_.setAddWaypoints(true);
 
   loco_smoother_.getPathBetweenWaypoints(coordinate_path, path);
 
   bool path_in_collision = checkPathForCollisions(*path, NULL);
+
+  if (path_is_in_collision_with_gt != nullptr) {
+    *path_is_in_collision_with_gt =
+        checkPathForCollisionsWithGroundTruth(*path, NULL);
+  }
 
   if (path_in_collision) {
     return false;
@@ -405,14 +618,41 @@ bool RrtPlannerVoxblox::checkPathForCollisions(
   return false;
 }
 
+bool RrtPlannerVoxblox::checkPathForCollisionsWithGroundTruth(
+    const mav_msgs::EigenTrajectoryPointVector& path, double* t) const {
+  for (const mav_msgs::EigenTrajectoryPoint& point : path) {
+    if (getMapDistanceGroundTruth(point.position_W) <
+        (constraints_.robot_radius * (1.0 - robot_radius_margin_))) {
+      if (t != NULL) {
+        *t = mav_msgs::nanosecondsToSeconds(point.time_from_start_ns);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+double RrtPlannerVoxblox::getMapDistanceGroundTruth(
+    const Eigen::Vector3d& position) const {
+  if (!esdf_ground_truth_map_) {
+    LOG(FATAL) << "FUUUUCKED!";
+    return 0.0;
+  }
+  double distance = 0.0;
+  if (!esdf_ground_truth_map_->getDistanceAtPosition(position, &distance)) {
+    return 0.0;
+  }
+  return distance;
+}
+
 double RrtPlannerVoxblox::getMapDistance(
     const Eigen::Vector3d& position) const {
   if (!voxblox_server_.getEsdfMapPtr()) {
     return 0.0;
   }
   double distance = 0.0;
-  if (!voxblox_server_.getEsdfMapPtr()->getDistanceAtPosition(position,
-                                                              &distance)) {
+  if (!voxblox_server_.getEsdfMapPtr()->getDistanceAtPosition(
+          position, &distance)) {
     return 0.0;
   }
   return distance;
@@ -431,8 +671,9 @@ bool RrtPlannerVoxblox::checkPhysicalConstraints(
       mav_trajectory_generation::derivative_order::ACCELERATION, dimensions,
       &a_min, &a_max);
 
-  ROS_INFO("V min/max: %f/%f, A min/max: %f/%f", v_min.value, v_max.value,
-           a_min.value, a_max.value);
+  ROS_INFO(
+      "V min/max: %f/%f, A min/max: %f/%f", v_min.value, v_max.value,
+      a_min.value, a_max.value);
 
   // Create input constraints.
   // TODO(helenol): just store these as members...
@@ -460,10 +701,82 @@ bool RrtPlannerVoxblox::checkPhysicalConstraints(
     ROS_ERROR_STREAM(
         "Trajectory is input infeasible: "
         << mav_trajectory_generation::getInputFeasibilityResultName(
-            feasibility));
+               feasibility));
     return false;
   }
   return true;
+}
+
+visualization_msgs::Marker RrtPlannerVoxblox::createPlanningStatusMarker(
+    const size_t plan_number, const bool rrt_success, const bool loco_success,
+    const bool loco_gt_violation, const bool loco_2_success,
+    const bool loco_2_gt_violation, const bool poly_success,
+    const bool poly_gt_violation) const {
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = frame_id_;
+  marker.header.stamp = ros::Time::now();
+  marker.ns = "planning_status";
+  marker.id = 123;
+  marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+  marker.action = visualization_msgs::Marker::ADD;
+
+  marker.pose.position.x = status_position_x_;
+  marker.pose.position.y = status_position_y_;
+  marker.pose.position.z = status_position_z_;
+  marker.pose.orientation.x = 0.0;
+  marker.pose.orientation.y = 0.0;
+  marker.pose.orientation.z = 0.0;
+  marker.pose.orientation.w = 1.0;
+
+  marker.scale.x = marker_font_size_;
+  marker.scale.y = marker_font_size_;
+  marker.scale.z = marker_font_size_;
+
+  marker.color.r = 1.0f;
+  marker.color.g = rrt_success ? 1.0f : 0.0f;
+  marker.color.b = rrt_success ? 1.0f : 0.0f;
+  marker.color.a = 1.0f;
+
+  std::stringstream ss;
+  ss << "Plan                  " << plan_number << std::endl << std::endl;
+  ss << "green  - RRT*           " << (rrt_success ? "success" : "failed")
+     << std::endl;
+
+  if (enable_loco_ && rrt_success) {
+    ss << "pink   - ESDF planner     "
+       << ((loco_success && !loco_gt_violation)
+               ? "success"
+               : ((loco_success && loco_gt_violation) ? "GT collision"
+                                                      : "failed"))
+       << std::endl;
+  } else {
+    ss << std::endl;
+  }
+  if (enable_poly_ && rrt_success) {
+    ss << "orange - Polynomial planner  "
+       << ((poly_success && !poly_gt_violation)
+               ? "success"
+               : ((poly_success && poly_gt_violation) ? "GT collision"
+                                                      : "failed"))
+       << std::endl;
+  } else {
+    ss << std::endl;
+  }
+  if (enable_loco_2_ && rrt_success) {
+    ss << "teal    - ESDF planner V2  "
+       << ((loco_2_success && !loco_2_gt_violation)
+               ? "success"
+               : ((loco_2_success && loco_2_gt_violation) ? "GT collision"
+                                                          : "failed"))
+       << std::endl;
+  } else {
+    ss << std::endl;
+  }
+  ss << "                                                                    ";
+
+  marker.text = ss.str();
+
+  return marker;
 }
 
 }  // namespace mav_planning
