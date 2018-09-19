@@ -166,7 +166,7 @@ class VoxbloxMotionValidator : public base::MotionValidator {
                            std::pair<base::State*, double>& last_valid) const {
     Eigen::Vector3d start = omplToEigen(s1);
     Eigen::Vector3d goal = omplToEigen(s2);
-    double voxel_size = validity_checker_->voxel_size();
+    double voxel_size = validity_checker_->voxel_size() / 4.0;
     Eigen::Vector3d direction = (goal - start).normalized();
     double total_distance = (goal - start).norm();
 
