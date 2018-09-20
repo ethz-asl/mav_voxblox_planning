@@ -1,5 +1,5 @@
-#ifndef RRT_PLANNER_VOXBLOX_RRT_PLANNER_VOXBLOX_H
-#define RRT_PLANNER_VOXBLOX_RRT_PLANNER_VOXBLOX_H
+#ifndef VOXBLOX_RRT_PLANNER_VOXBLOX_RRT_PLANNER_H
+#define VOXBLOX_RRT_PLANNER_VOXBLOX_RRT_PLANNER_H
 
 #include <ros/package.h>
 #include <ros/ros.h>
@@ -20,17 +20,17 @@
 #include <minkindr_conversions/kindr_msg.h>
 #include <voxblox_ros/esdf_server.h>
 
-#include "rrt_planner_voxblox/ompl_rrt_voxblox.h"
+#include "voxblox_rrt_planner/voxblox_ompl_rrt.h"
 
 namespace mav_planning {
 
-class RrtPlannerVoxblox {
+class VoxbloxRrtPlanner {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  RrtPlannerVoxblox(const ros::NodeHandle& nh,
+  VoxbloxRrtPlanner(const ros::NodeHandle& nh,
                     const ros::NodeHandle& nh_private);
-  virtual ~RrtPlannerVoxblox() {}
+  virtual ~VoxbloxRrtPlanner() {}
 
   bool plannerServiceCallback(
       mav_planning_msgs::PlannerServiceRequest& request,
@@ -108,7 +108,7 @@ class RrtPlannerVoxblox {
   voxblox::TsdfMap::Ptr tsdf_map_;
 
   // Planners!
-  OmplRrtVoxblox rrt_;
+  VoxbloxOmplRrt rrt_;
 
   // Smoothing!
   PolynomialSmoother smoother_;
@@ -117,4 +117,4 @@ class RrtPlannerVoxblox {
 
 }  // namespace mav_planning
 
-#endif  // RRT_PLANNER_VOXBLOX_RRT_PLANNER_VOXBLOX_H
+#endif  // VOXBLOX_RRT_PLANNER_VOXBLOX_RRT_PLANNER_H

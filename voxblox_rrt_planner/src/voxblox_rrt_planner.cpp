@@ -5,11 +5,11 @@
 #include <mav_trajectory_generation/timing.h>
 #include <mav_trajectory_generation_ros/feasibility_analytic.h>
 
-#include "rrt_planner_voxblox/rrt_planner_voxblox.h"
+#include "voxblox_rrt_planner/voxblox_rrt_planner.h"
 
 namespace mav_planning {
 
-RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
+VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
                                      const ros::NodeHandle& nh_private)
     : nh_(nh),
       nh_private_(nh_private),
@@ -38,9 +38,9 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
       nh_.advertise<geometry_msgs::PoseArray>("waypoint_list", 1);
 
   planner_srv_ = nh_private_.advertiseService(
-      "plan", &RrtPlannerVoxblox::plannerServiceCallback, this);
+      "plan", &VoxbloxRrtPlanner::plannerServiceCallback, this);
   path_pub_srv_ = nh_private_.advertiseService(
-      "publish_path", &RrtPlannerVoxblox::publishPathCallback, this);
+      "publish_path", &VoxbloxRrtPlanner::publishPathCallback, this);
 
   esdf_map_ = voxblox_server_.getEsdfMapPtr();
   CHECK(esdf_map_);
@@ -83,6 +83,10 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
   // Figure out map bounds!
   computeMapBounds(&lower_bound_, &upper_bound_);
 
+  ROS_INFO_STREAM("Map bounds: " << lower_bound_.transpose() << " to "
+                                 << upper_bound_.transpose() << " size: "
+                                 << (upper_bound_ - lower_bound_).transpose());
+
   // Inflate the bounds a bit.
   constexpr double kBoundInflationMeters = 0.5;
   // Don't in flate in z. ;)
@@ -97,14 +101,14 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
   // Set up the path smoother as well.
   smoother_.setParametersFromRos(nh_private_);
   smoother_.setMinCollisionCheckResolution(voxel_size);
-  smoother_.setMapDistanceCallback(std::bind(&RrtPlannerVoxblox::getMapDistance,
+  smoother_.setMapDistanceCallback(std::bind(&VoxbloxRrtPlanner::getMapDistance,
                                              this, std::placeholders::_1));
 
   // Loco smoother!
   loco_smoother_.setParametersFromRos(nh_private_);
   loco_smoother_.setMinCollisionCheckResolution(voxel_size);
   loco_smoother_.setMapDistanceCallback(std::bind(
-      &RrtPlannerVoxblox::getMapDistance, this, std::placeholders::_1));
+      &VoxbloxRrtPlanner::getMapDistance, this, std::placeholders::_1));
 
   if (visualize_) {
     voxblox_server_.generateMesh();
@@ -114,7 +118,7 @@ RrtPlannerVoxblox::RrtPlannerVoxblox(const ros::NodeHandle& nh,
   }
 }
 
-bool RrtPlannerVoxblox::publishPathCallback(std_srvs::EmptyRequest& request,
+bool VoxbloxRrtPlanner::publishPathCallback(std_srvs::EmptyRequest& request,
                                             std_srvs::EmptyResponse& response) {
   if (!last_trajectory_valid_) {
     ROS_ERROR("Can't publish trajectory, marked as invalid.");
@@ -146,7 +150,7 @@ bool RrtPlannerVoxblox::publishPathCallback(std_srvs::EmptyRequest& request,
   return true;
 }
 
-void RrtPlannerVoxblox::computeMapBounds(Eigen::Vector3d* lower_bound,
+void VoxbloxRrtPlanner::computeMapBounds(Eigen::Vector3d* lower_bound,
                                          Eigen::Vector3d* upper_bound) const {
   voxblox::BlockIndexList all_blocks;
   tsdf_map_->getTsdfLayerPtr()->getAllAllocatedBlocks(&all_blocks);
@@ -174,7 +178,7 @@ void RrtPlannerVoxblox::computeMapBounds(Eigen::Vector3d* lower_bound,
   *upper_bound = upper_bound_pt.cast<double>();
 }
 
-bool RrtPlannerVoxblox::plannerServiceCallback(
+bool VoxbloxRrtPlanner::plannerServiceCallback(
     mav_planning_msgs::PlannerServiceRequest& request,
     mav_planning_msgs::PlannerServiceResponse& response) {
   mav_msgs::EigenTrajectoryPoint start_pose, goal_pose;
@@ -278,7 +282,7 @@ bool RrtPlannerVoxblox::plannerServiceCallback(
   return success;
 }
 
-bool RrtPlannerVoxblox::generateFeasibleTrajectory(
+bool VoxbloxRrtPlanner::generateFeasibleTrajectory(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) {
   smoother_.getPathBetweenWaypoints(coordinate_path, path);
@@ -291,7 +295,7 @@ bool RrtPlannerVoxblox::generateFeasibleTrajectory(
   return true;
 }
 
-bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco(
+bool VoxbloxRrtPlanner::generateFeasibleTrajectoryLoco(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) {
   loco_smoother_.setResampleTrajectory(false);
@@ -307,7 +311,7 @@ bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco(
   return true;
 }
 
-bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco2(
+bool VoxbloxRrtPlanner::generateFeasibleTrajectoryLoco2(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) {
   loco_smoother_.setResampleTrajectory(true);
@@ -323,7 +327,7 @@ bool RrtPlannerVoxblox::generateFeasibleTrajectoryLoco2(
   return true;
 }
 
-bool RrtPlannerVoxblox::checkPathForCollisions(
+bool VoxbloxRrtPlanner::checkPathForCollisions(
     const mav_msgs::EigenTrajectoryPointVector& path, double* t) const {
   for (const mav_msgs::EigenTrajectoryPoint& point : path) {
     if (getMapDistance(point.position_W) < constraints_.robot_radius) {
@@ -336,7 +340,7 @@ bool RrtPlannerVoxblox::checkPathForCollisions(
   return false;
 }
 
-double RrtPlannerVoxblox::getMapDistance(
+double VoxbloxRrtPlanner::getMapDistance(
     const Eigen::Vector3d& position) const {
   if (!voxblox_server_.getEsdfMapPtr()) {
     return 0.0;
@@ -349,7 +353,7 @@ double RrtPlannerVoxblox::getMapDistance(
   return distance;
 }
 
-bool RrtPlannerVoxblox::checkPhysicalConstraints(
+bool VoxbloxRrtPlanner::checkPhysicalConstraints(
     const mav_trajectory_generation::Trajectory& trajectory) {
   // Check min/max manually.
   // Evaluate min/max extrema

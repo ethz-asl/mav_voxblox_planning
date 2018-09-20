@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(rrt_planner_voxblox)
+project(voxblox_rrt_planner)
 
 find_package(catkin_simple REQUIRED)
 find_package(OMPL REQUIRED)
@@ -11,18 +11,18 @@ add_definitions(-std=c++11)
 # LIBRARIES #
 #############
 cs_add_library(${PROJECT_NAME}
-  src/ompl_rrt_voxblox.cpp
-  src/rrt_planner_voxblox.cpp
+  src/voxblox_ompl_rrt.cpp
+  src/voxblox_rrt_planner.cpp
 )
 target_link_libraries(${PROJECT_NAME} ${OMPL_LIBRARIES})
 
 ############
 # BINARIES #
 ############
-cs_add_executable(rrt_planner_voxblox_node
-  src/rrt_planner_voxblox_node.cpp
+cs_add_executable(voxblox_rrt_planner_node
+  src/voxblox_rrt_planner_node.cpp
 )
-target_link_libraries(rrt_planner_voxblox_node ${PROJECT_NAME})
+target_link_libraries(voxblox_rrt_planner_node ${PROJECT_NAME})
 
 ##########
 # EXPORT #

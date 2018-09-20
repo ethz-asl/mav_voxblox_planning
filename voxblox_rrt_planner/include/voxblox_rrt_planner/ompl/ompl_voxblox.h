@@ -1,5 +1,5 @@
-#ifndef RRT_PLANNER_VOXBLOX_OMPL_OMPL_VOXBLOX_H_
-#define RRT_PLANNER_VOXBLOX_OMPL_OMPL_VOXBLOX_H_
+#ifndef VOXBLOX_RRT_PLANNER_OMPL_OMPL_VOXBLOX_H_
+#define VOXBLOX_RRT_PLANNER_OMPL_OMPL_VOXBLOX_H_
 
 #include <ompl/base/StateValidityChecker.h>
 
@@ -7,7 +7,7 @@
 #include <voxblox/core/esdf_map.h>
 #include <voxblox/utils/planning_utils.h>
 
-#include "rrt_planner_voxblox/ompl/ompl_types.h"
+#include "voxblox_rrt_planner/ompl/ompl_types.h"
 
 namespace ompl {
 namespace mav {
@@ -202,4 +202,4 @@ class VoxbloxMotionValidator : public base::MotionValidator {
 }  // namespace mav
 }  // namespace ompl
 
-#endif  // RRT_PLANNER_VOXBLOX_OMPL_OMPL_VOXBLOX_H_
+#endif  // VOXBLOX_RRT_PLANNER_OMPL_OMPL_VOXBLOX_H_

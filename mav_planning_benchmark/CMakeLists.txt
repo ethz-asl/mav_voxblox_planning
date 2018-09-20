@@ -1,0 +1,24 @@
+cmake_minimum_required(VERSION 2.8.3)
+project(mav_planning_benchmark)
+
+find_package(catkin_simple REQUIRED)
+catkin_simple(ALL_DEPS_REQUIRED)
+
+add_definitions(-std=c++11)
+
+############
+# BINARIES #
+############
+#cs_add_executable(lcto_planner
+#  src/lcto_voxblox_planner_node.cpp
+#)
+
+#cs_add_executable(voxblox_benchmark_node
+#  src/voxblox_benchmark_node.cpp
+#)
+
+##########
+# EXPORT #
+##########
+cs_install()
+cs_export()

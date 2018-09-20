@@ -2,7 +2,7 @@
 #include <mav_planning_common/path_visualization.h>
 #include <mav_planning_common/utils.h>
 
-#include "skeleton_planner/skeleton_global_planner.h"
+#include "voxblox_skeleton_planner/skeleton_global_planner.h"
 
 namespace mav_planning {
 

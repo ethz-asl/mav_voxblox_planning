@@ -1,18 +1,18 @@
-#ifndef RRT_PLANNER_VOXBLOX_OMPL_RRT_VOXBLOX_H_
-#define RRT_PLANNER_VOXBLOX_OMPL_RRT_VOXBLOX_H_
+#ifndef VOXBLOX_RRT_PLANNER_VOXBLOX_OMPL_RRT_H_
+#define VOXBLOX_RRT_PLANNER_OMPL_RRT_VOXBLOX_H_
 
 #include <mav_msgs/eigen_mav_msgs.h>
 #include <mav_msgs/conversions.h>
 #include <ros/ros.h>
 
-#include "rrt_planner_voxblox/ompl/mav_setup.h"
+#include "voxblox_rrt_planner/ompl/mav_setup.h"
 
 namespace mav_planning {
 
-class OmplRrtVoxblox {
+class VoxbloxOmplRrt {
  public:
-  OmplRrtVoxblox(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
-  virtual ~OmplRrtVoxblox() {}
+  VoxbloxOmplRrt(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
+  virtual ~VoxbloxOmplRrt() {}
 
   inline void setRobotRadius(double robot_radius) {
     robot_radius_ = robot_radius;
@@ -89,4 +89,4 @@ class OmplRrtVoxblox {
 
 }  // namespace mav_planning
 
-#endif  // RRT_PLANNER_VOXBLOX_OMPL_RRT_VOXBLOX_H_
+#endif  // VOXBLOX_RRT_PLANNER_OMPL_RRT_VOXBLOX_H_

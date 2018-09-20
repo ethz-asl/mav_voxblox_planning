@@ -1,5 +1,5 @@
-#ifndef SKELETON_PLANNER_SKELETON_GLOBAL_PLANNER_H_
-#define SKELETON_PLANNER_SKELETON_GLOBAL_PLANNER_H_
+#ifndef VOXBLOX_SKELETON_PLANNER_SKELETON_GLOBAL_PLANNER_H_
+#define VOXBLOX_SKELETON_PLANNER_SKELETON_GLOBAL_PLANNER_H_
 
 #include <ros/package.h>
 #include <ros/ros.h>
@@ -19,7 +19,7 @@
 #include <voxblox_skeleton/skeleton_planner.h>
 #include <voxblox_skeleton/sparse_graph_planner.h>
 
-#include "skeleton_planner/path_shortening.h"
+#include "voxblox_skeleton_planner/path_shortening.h"
 
 namespace mav_planning {
 
@@ -79,4 +79,4 @@ class SkeletonGlobalPlanner {
 
 }  // namespace mav_planning
 
-#endif  // SKELETON_PLANNER_SKELETON_GLOBAL_PLANNER_H_
+#endif  // VOXBLOX_SKELETON_PLANNER_SKELETON_GLOBAL_PLANNER_H_

@@ -1,4 +1,4 @@
-#include "skeleton_planner/skeleton_global_planner.h"
+#include "voxblox_skeleton_planner/skeleton_global_planner.h"
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "skeleton_global_planner");

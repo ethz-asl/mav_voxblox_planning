@@ -1,5 +1,5 @@
-#ifndef RRT_PLANNER_VOXBLOX_OMPL_MAV_SETUP_H_
-#define RRT_PLANNER_VOXBLOX_OMPL_MAV_SETUP_H_
+#ifndef VOXBLOX_RRT_PLANNER_OMPL_MAV_SETUP_H_
+#define VOXBLOX_RRT_PLANNER_OMPL_MAV_SETUP_H_
 
 #include <ompl/base/spaces/SE3StateSpace.h>
 #include <ompl/geometric/SimpleSetup.h>
@@ -8,8 +8,8 @@
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
 #include <ompl/geometric/planners/rrt/InformedRRTstar.h>
 
-#include "rrt_planner_voxblox/ompl/ompl_types.h"
-#include "rrt_planner_voxblox/ompl/ompl_voxblox.h"
+#include "voxblox_rrt_planner/ompl/ompl_types.h"
+#include "voxblox_rrt_planner/ompl/ompl_voxblox.h"
 
 namespace ompl {
 namespace mav {
@@ -134,4 +134,4 @@ class MavSetup : public geometric::SimpleSetup {
 }  // namespace mav
 }  // namespace ompl
 
-#endif  // RRT_PLANNER_VOXBLOX_OMPL_MAV_SETUP_H_
+#endif  // VOXBLOX_RRT_PLANNER_OMPL_MAV_SETUP_H_

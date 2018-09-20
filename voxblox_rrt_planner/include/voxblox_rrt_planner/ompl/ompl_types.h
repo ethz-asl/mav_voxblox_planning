@@ -1,5 +1,5 @@
-#ifndef RRT_PLANNER_VOXBLOX_OMPL_OMPL_TYPES_H_
-#define RRT_PLANNER_VOXBLOX_OMPL_OMPL_TYPES_H_
+#ifndef VOXBLOX_RRT_PLANNER_OMPL_OMPL_TYPES_H_
+#define VOXBLOX_RRT_PLANNER_OMPL_OMPL_TYPES_H_
 
 #include <ompl/base/spaces/SE3StateSpace.h>
 #include <Eigen/Core>
@@ -22,4 +22,4 @@ inline Eigen::Vector3d omplToEigen(const base::State* state) {
 }  // namespace mav
 }  // namespace ompl
 
-#endif  // RRT_PLANNER_VOXBLOX_OMPL_OMPL_TYPES_H_
+#endif  // VOXBLOX_RRT_PLANNER_OMPL_OMPL_TYPES_H_

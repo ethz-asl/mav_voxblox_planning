@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>skeleton_planner</name>
+  <name>voxblox_rrt_planner</name>
   <version>0.0.0</version>
   <description>
-    Global planning with voxblox skeletons.
+    Global planning with voxblox.
   </description>
 
   <author email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</author>
@@ -19,10 +19,10 @@
   <depend>mav_path_smoothing</depend>
   <depend>mav_planning_common</depend>
   <depend>mav_trajectory_generation_ros</depend>
+  <depend>ompl</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>tf</depend>
   <depend>visualization_msgs</depend>
   <depend>voxblox_ros</depend>
-  <depend>voxblox_skeleton</depend>
 </package>

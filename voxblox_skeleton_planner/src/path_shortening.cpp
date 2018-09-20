@@ -1,4 +1,4 @@
-#include "skeleton_planner/path_shortening.h"
+#include "voxblox_skeleton_planner/path_shortening.h"
 
 namespace mav_planning {
 

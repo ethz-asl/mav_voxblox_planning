@@ -1,8 +1,8 @@
-#include "rrt_planner_voxblox/ompl_rrt_voxblox.h"
+#include "voxblox_rrt_planner/voxblox_ompl_rrt.h"
 
 namespace mav_planning {
 
-OmplRrtVoxblox::OmplRrtVoxblox(const ros::NodeHandle& nh,
+VoxbloxOmplRrt::VoxbloxOmplRrt(const ros::NodeHandle& nh,
                                const ros::NodeHandle& nh_private)
     : nh_(nh),
       nh_private_(nh_private),
@@ -23,27 +23,27 @@ OmplRrtVoxblox::OmplRrtVoxblox(const ros::NodeHandle& nh,
                     trust_approx_solution_);
 }
 
-void OmplRrtVoxblox::setBounds(const Eigen::Vector3d& lower_bound,
+void VoxbloxOmplRrt::setBounds(const Eigen::Vector3d& lower_bound,
                                const Eigen::Vector3d& upper_bound) {
   lower_bound_ = lower_bound;
   upper_bound_ = upper_bound;
 }
 
-void OmplRrtVoxblox::setTsdfLayer(
+void VoxbloxOmplRrt::setTsdfLayer(
     voxblox::Layer<voxblox::TsdfVoxel>* tsdf_layer) {
   tsdf_layer_ = tsdf_layer;
   CHECK_NOTNULL(tsdf_layer_);
   voxel_size_ = tsdf_layer_->voxel_size();
 }
 
-void OmplRrtVoxblox::setEsdfLayer(
+void VoxbloxOmplRrt::setEsdfLayer(
     voxblox::Layer<voxblox::EsdfVoxel>* esdf_layer) {
   esdf_layer_ = esdf_layer;
   CHECK_NOTNULL(esdf_layer_);
   voxel_size_ = esdf_layer_->voxel_size();
 }
 
-void OmplRrtVoxblox::setupProblem() {
+void VoxbloxOmplRrt::setupProblem() {
   if (optimistic_) {
     CHECK_NOTNULL(tsdf_layer_);
     problem_setup_.setTsdfVoxbloxCollisionChecking(robot_radius_, tsdf_layer_);
@@ -66,7 +66,7 @@ void OmplRrtVoxblox::setupProblem() {
       validity_checking_resolution);
 }
 
-bool OmplRrtVoxblox::getPathBetweenWaypoints(
+bool VoxbloxOmplRrt::getPathBetweenWaypoints(
     const mav_msgs::EigenTrajectoryPoint& start,
     const mav_msgs::EigenTrajectoryPoint& goal,
     mav_msgs::EigenTrajectoryPointVector* solution) {
@@ -98,7 +98,7 @@ bool OmplRrtVoxblox::getPathBetweenWaypoints(
   return false;
 }
 
-void OmplRrtVoxblox::setupFromStartAndGoal(
+void VoxbloxOmplRrt::setupFromStartAndGoal(
     const mav_msgs::EigenTrajectoryPoint& start,
     const mav_msgs::EigenTrajectoryPoint& goal) {
   problem_setup_.clear();
@@ -140,7 +140,7 @@ void OmplRrtVoxblox::setupFromStartAndGoal(
   }
 }
 
-void OmplRrtVoxblox::solutionPathToTrajectoryPoints(
+void VoxbloxOmplRrt::solutionPathToTrajectoryPoints(
     ompl::geometric::PathGeometric& path,
     mav_msgs::EigenTrajectoryPointVector* trajectory_points) const {
   CHECK_NOTNULL(trajectory_points);
@@ -161,7 +161,7 @@ void OmplRrtVoxblox::solutionPathToTrajectoryPoints(
   }
 }
 
-bool OmplRrtVoxblox::getBestPathTowardGoal(
+bool VoxbloxOmplRrt::getBestPathTowardGoal(
     const mav_msgs::EigenTrajectoryPoint& start,
     const mav_msgs::EigenTrajectoryPoint& goal,
     mav_msgs::EigenTrajectoryPoint::Vector* solution) {
@@ -257,7 +257,7 @@ bool OmplRrtVoxblox::getBestPathTowardGoal(
   return false;
 }
 
-double OmplRrtVoxblox::getDistanceEigenToState(
+double VoxbloxOmplRrt::getDistanceEigenToState(
     const Eigen::Vector3d& eigen, const ompl::base::State* state_ptr) {
   Eigen::Vector3d state_pos(
       state_ptr->as<ompl::mav::StateSpace::StateType>()->values[0],
