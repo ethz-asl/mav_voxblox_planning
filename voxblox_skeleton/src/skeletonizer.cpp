@@ -55,8 +55,9 @@ void SkeletonizerNode::init() {
   nh_private_.param("output_filepath", output_filepath, output_filepath);
   nh_private_.param("sparse_graph_filepath", sparse_graph_filepath,
                     sparse_graph_filepath);
-
   nh_private_.param("frame_id", frame_id_, frame_id_);
+  bool update_esdf = false;
+  nh_private_.param("update_esdf", update_esdf, update_esdf);
 
   if (input_filepath.empty()) {
     return;
@@ -64,35 +65,14 @@ void SkeletonizerNode::init() {
 
   esdf_server_.loadMap(input_filepath);
 
-  // Rotate the layer.
-  bool should_rotate = false;
-  if (should_rotate) {
-    // Copy the original layer.
-    Eigen::Matrix4f transform_mat;
-    transform_mat << -0.06003693612025088, -0.9981723400647389,
-        0.006895348502918008, -0.06239961565320997, -0.6113046304631935,
-        0.03130539682806774, -0.7907759612581153, -0.0011645461428879474,
-        0.7891148300948043, -0.05169092433997463, -0.6120668535914421,
-        -0.09136807240962909, 0.0, 0.0, 0.0, 1.0;
-    transform_mat = transform_mat.inverse();
-    Transformation T_out_in =
-        Transformation::constructAndRenormalizeRotation(transform_mat);
-    Rotation rot_adjust(Eigen::AngleAxisf(-0.05, Eigen::Vector3f::UnitY()) *
-                        Eigen::AngleAxisf(0.33, Eigen::Vector3f::UnitZ()));
-    Transformation T_adjust(rot_adjust, Point::Identity());
-
-    Layer<TsdfVoxel> temp_layer(
-        *esdf_server_.getTsdfMapPtr()->getTsdfLayerPtr());
-    esdf_server_.clear();
-    transformLayer<TsdfVoxel>(temp_layer, T_adjust * T_out_in,
-                              esdf_server_.getTsdfMapPtr()->getTsdfLayerPtr());
-
-    esdf_server_.TsdfServer::generateMesh();
-  }
   esdf_server_.disableIncrementalUpdate();
-
-  const bool full_euclidean_distance = true;
-  esdf_server_.updateEsdfBatch(full_euclidean_distance);
+  if (update_esdf ||
+      esdf_server_.getEsdfMapPtr()
+              ->getEsdfLayerPtr()
+              ->getNumberOfAllocatedBlocks() == 0) {
+    const bool full_euclidean_distance = true;
+    esdf_server_.updateEsdfBatch(full_euclidean_distance);
+  }
 
   // Visualize all parts.
   esdf_server_.updateMesh();
