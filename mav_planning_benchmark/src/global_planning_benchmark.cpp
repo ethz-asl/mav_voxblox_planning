@@ -1,4 +1,5 @@
 #include <mav_planning_common/utils.h>
+#include <mav_trajectory_generation/timing.h>
 #include <voxblox/utils/planning_utils.h>
 
 #include "mav_planning_benchmark/global_planning_benchmark.h"
@@ -20,6 +21,14 @@ GlobalPlanningBenchmark::GlobalPlanningBenchmark(
 
   path_marker_pub_ =
       nh_private_.advertise<visualization_msgs::MarkerArray>("path", 1, true);
+
+  global_planning_methods_.push_back(kRrtStar);
+  global_planning_methods_.push_back(kSkeletonGraph);
+
+  path_smoothing_methods_.push_back(kNone);
+  path_smoothing_methods_.push_back(kVelocityRamp);
+  path_smoothing_methods_.push_back(kPolynomial);
+  path_smoothing_methods_.push_back(kLoco);
 }
 
 void GlobalPlanningBenchmark::loadMap(const std::string& base_path,
@@ -43,6 +52,17 @@ void GlobalPlanningBenchmark::loadMap(const std::string& base_path,
     ROS_ERROR_STREAM(
         "Couldn't load skeleton sparse graph from file: " << sparse_graph_path);
     return;
+  }
+
+
+  if (visualize_) {
+    esdf_server_->disableIncrementalUpdate();
+    esdf_server_->updateMesh();
+    esdf_server_->publishSlices();
+    esdf_server_->publishPointclouds();
+    esdf_server_->publishTraversable();
+
+
   }
 
   setupPlanners();
@@ -112,9 +132,14 @@ void GlobalPlanningBenchmark::runBenchmark(int num_trials) {
   CHECK(esdf_server_);
 
   const double kMinimumDistanceMeters = 2.0;
+  GlobalBenchmarkResult result_template;
+  result_template.robot_radius_m = constraints_.robot_radius;
+  result_template.v_max = constraints_.v_max;
+  result_template.a_max = constraints_.a_max;
 
   for (int trial = 0; trial < num_trials; trial++) {
     srand(trial);
+
     // Get the start and goal positions.
     Eigen::Vector3d start, goal;
     if (!selectRandomStartAndGoal(kMinimumDistanceMeters, &start, &goal)) {
@@ -125,9 +150,44 @@ void GlobalPlanningBenchmark::runBenchmark(int num_trials) {
       return;
     }
 
-    // Go through a list of all the global planners to try...
+    result_template.trial_number = trial;
+    result_template.seed = trial;
+    result_template.straight_line_path_length_m = (goal - start).norm();
 
-    // Go through a list of all the path smoothers to try, per planner.
+    mav_msgs::EigenTrajectoryPoint start_point, goal_point;
+    start_point.position_W = start;
+    goal_point.position_W = goal;
+
+    // Go through a list of all the global planners to try...
+    for (GlobalPlanningMethod global_method : global_planning_methods_) {
+      srand(trial);
+
+      mav_msgs::EigenTrajectoryPointVector waypoints;
+      mav_trajectory_generation::timing::MiniTimer global_planner_timer;
+      bool global_success =
+          runGlobalPlanner(global_method, start_point, goal_point, &waypoints);
+      global_planner_timer.stop();
+
+      // Go through a list of all the path smoothers to try, per planner.
+      for (PathSmoothingMethod smoothing_method : path_smoothing_methods_) {
+        srand(trial);
+        mav_msgs::EigenTrajectoryPointVector path;
+
+        mav_trajectory_generation::timing::MiniTimer smoothing_timer;
+        bool local_success =
+            runPathSmoother(smoothing_method, waypoints, &path);
+        smoothing_timer.stop();
+
+        GlobalBenchmarkResult result = result_template;
+        result.global_planning_method = global_method;
+        result.path_smoothing_method = smoothing_method;
+        result.planning_success = global_success && local_success;
+        result.computation_time_sec =
+            global_planner_timer.getTime() + smoothing_timer.getTime();
+        fillInPathResults(path, &result);
+        results_.push_back(result);
+      }
+    }
   }
 }
 
@@ -195,5 +255,28 @@ bool GlobalPlanningBenchmark::isPathFeasible(
   }
   return true;
 }
+
+void GlobalPlanningBenchmark::fillInPathResults(
+    const mav_msgs::EigenTrajectoryPointVector& path,
+    GlobalBenchmarkResult* result) const {
+  if (path.empty()) {
+    return;
+  }
+  result->is_collision_free = isPathCollisionFree(path);
+  result->is_feasible = isPathFeasible(path);
+  result->total_path_time_sec =
+      mav_msgs::nanosecondsToSeconds(path.back().time_from_start_ns);
+  result->total_path_length_m = computePathLength(path);
+}
+
+bool GlobalPlanningBenchmark::runGlobalPlanner(
+    const GlobalPlanningMethod planning_method,
+    const mav_msgs::EigenTrajectoryPoint& start,
+    const mav_msgs::EigenTrajectoryPoint& goal,
+    mav_msgs::EigenTrajectoryPointVector* waypoints) {}
+bool GlobalPlanningBenchmark::runPathSmoother(
+    const PathSmoothingMethod smoothing_method,
+    const mav_msgs::EigenTrajectoryPointVector& waypoints,
+    mav_msgs::EigenTrajectoryPointVector* path) {}
 
 }  // namespace mav_planning

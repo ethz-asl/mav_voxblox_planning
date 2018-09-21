@@ -16,13 +16,10 @@ cs_add_library(${PROJECT_NAME}
 ############
 # BINARIES #
 ############
-#cs_add_executable(lcto_planner
-#  src/lcto_voxblox_planner_node.cpp
-#)
-
-#cs_add_executable(voxblox_benchmark_node
-#  src/voxblox_benchmark_node.cpp
-#)
+cs_add_executable(global_planning_benchmark_node
+  src/global_planning_benchmark_node.cpp
+)
+target_link_libraries(global_planning_benchmark_node ${PROJECT_NAME})
 
 ##########
 # EXPORT #

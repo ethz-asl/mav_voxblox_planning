@@ -14,22 +14,35 @@
 
 namespace mav_planning {
 
-struct GlobalBenchmarkResult {
-  int trial_number = 0;
-  int seed = 0;
-  std::string map_name;
-  double robot_radius_m = 0.0;
-  int global_planning_method;
-  int smoothing_method;
-  bool has_collisions = false;
-  double computation_time_sec = 0.0;
-  double total_path_time_sec = 0.0;
-  double total_path_length_m = 0.0;
-  double straight_line_path_length_m = 0.0;
-};
-
 class GlobalPlanningBenchmark {
  public:
+  enum GlobalPlanningMethod {
+    kStraightLine = 0,
+    kRrtConnect,
+    kRrtStar,
+    kSkeletonGraph,
+    kPrm,
+    kBitStar
+  };
+
+  enum PathSmoothingMethod { kNone = 0, kVelocityRamp, kPolynomial, kLoco };
+  struct GlobalBenchmarkResult {
+    int trial_number = 0;
+    int seed = 0;
+    double robot_radius_m = 0.0;
+    double v_max = 0.0;
+    double a_max = 0.0;
+    GlobalPlanningMethod global_planning_method;
+    PathSmoothingMethod path_smoothing_method;
+    bool planning_success = false;
+    bool is_collision_free = false;
+    bool is_feasible = false;
+    double computation_time_sec = 0.0;
+    double total_path_time_sec = 0.0;
+    double total_path_length_m = 0.0;
+    double straight_line_path_length_m = 0.0;
+  };
+
   GlobalPlanningBenchmark(const ros::NodeHandle& nh,
                           const ros::NodeHandle& nh_private);
 
@@ -45,9 +58,22 @@ class GlobalPlanningBenchmark {
   bool selectRandomStartAndGoal(double minimum_distance, Eigen::Vector3d* start,
                                 Eigen::Vector3d* goal) const;
   double getMapDistance(const Eigen::Vector3d& position) const;
+
+  // Evaluate what we've got here.
+  void fillInPathResults(const mav_msgs::EigenTrajectoryPointVector& path,
+                         GlobalBenchmarkResult* result) const;
   bool isPathCollisionFree(
       const mav_msgs::EigenTrajectoryPointVector& path) const;
   bool isPathFeasible(const mav_msgs::EigenTrajectoryPointVector& path) const;
+
+  // Functions to actually run the planners.
+  bool runGlobalPlanner(const GlobalPlanningMethod planning_method,
+                        const mav_msgs::EigenTrajectoryPoint& start,
+                        const mav_msgs::EigenTrajectoryPoint& goal,
+                        mav_msgs::EigenTrajectoryPointVector* waypoints);
+  bool runPathSmoother(const PathSmoothingMethod smoothing_method,
+                       const mav_msgs::EigenTrajectoryPointVector& waypoints,
+                       mav_msgs::EigenTrajectoryPointVector* path);
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
@@ -82,6 +108,10 @@ class GlobalPlanningBenchmark {
   VelocityRampSmoother ramp_smoother_;
   PolynomialSmoother poly_smoother_;
   LocoSmoother loco_smoother_;
+
+  // Which methods to use.
+  std::vector<GlobalPlanningMethod> global_planning_methods_;
+  std::vector<PathSmoothingMethod> path_smoothing_methods_;
 
   // Results.
   std::vector<GlobalBenchmarkResult> results_;
