@@ -6,6 +6,13 @@ catkin_simple(ALL_DEPS_REQUIRED)
 
 add_definitions(-std=c++11)
 
+#############
+# LIBRARIES #
+#############
+cs_add_library(${PROJECT_NAME}
+  src/global_planning_benchmark.cpp
+)
+
 ############
 # BINARIES #
 ############

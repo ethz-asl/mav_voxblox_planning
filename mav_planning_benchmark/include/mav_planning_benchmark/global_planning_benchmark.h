@@ -1,11 +1,16 @@
 #ifndef MAV_PLANNING_BENCHMKARK_GLOBAL_PLANNING_BENCHMARK_H_
 #define MAV_PLANNING_BENCHMKARK_GLOBAL_PLANNING_BENCHMARK_H_
 
+#include <mav_path_smoothing/loco_smoother.h>
+#include <mav_path_smoothing/polynomial_smoother.h>
+#include <mav_path_smoothing/velocity_ramp_smoother.h>
 #include <mav_planning_common/physical_constraints.h>
+#include <voxblox_ros/esdf_server.h>
 #include <voxblox_rrt_planner/voxblox_ompl_rrt.h>
-#include <voxblox_skeleton_planner/path_shortening.h>
+#include <voxblox_skeleton/io/skeleton_io.h>
 #include <voxblox_skeleton/skeleton_planner.h>
 #include <voxblox_skeleton/sparse_graph_planner.h>
+#include <voxblox_skeleton_planner/path_shortening.h>
 
 namespace mav_planning {
 
@@ -36,8 +41,19 @@ class GlobalPlanningBenchmark {
   void outputResults(const std::string& filename);
 
  private:
+  void setupPlanners();
+  bool selectRandomStartAndGoal(double minimum_distance, Eigen::Vector3d* start,
+                                Eigen::Vector3d* goal) const;
+  double getMapDistance(const Eigen::Vector3d& position) const;
+  bool isPathCollisionFree(
+      const mav_msgs::EigenTrajectoryPointVector& path) const;
+  bool isPathFeasible(const mav_msgs::EigenTrajectoryPointVector& path) const;
+
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
+
+  // ROS stuff.
+  ros::Publisher path_marker_pub_;
 
   // Settings for physical constriants.
   PhysicalConstraints constraints_;
@@ -49,6 +65,12 @@ class GlobalPlanningBenchmark {
 
   // Voxblox Server!
   std::unique_ptr<voxblox::EsdfServer> esdf_server_;
+  // Skeleton sparse graph!
+  voxblox::SparseSkeletonGraph skeleton_graph_;
+
+  // Map settings.
+  Eigen::Vector3d lower_bound_;
+  Eigen::Vector3d upper_bound_;
 
   // Global Planners!
   VoxbloxOmplRrt rrt_planner_;
@@ -57,6 +79,8 @@ class GlobalPlanningBenchmark {
   EsdfPathShortener path_shortener_;
 
   // Path Smoothers!
+  VelocityRampSmoother ramp_smoother_;
+  PolynomialSmoother poly_smoother_;
   LocoSmoother loco_smoother_;
 
   // Results.

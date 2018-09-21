@@ -15,13 +15,12 @@
 
   <depend>mav_msgs</depend>
   <depend>mav_trajectory_generation_ros</depend>
-  <depend>nbvp_voxblox</depend>
   <depend>mav_planning_common</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>tf</depend>
-  <depend>rrt_planner_voxblox</depend>
-  <depend>skeleton_planner</depend>
+  <depend>voxblox_rrt_planner</depend>
+  <depend>voxblox_skeleton_planner</depend>
   <depend>visualization_msgs</depend>
   <depend>voxblox_ros</depend>
 </package>
