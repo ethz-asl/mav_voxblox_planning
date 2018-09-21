@@ -9,6 +9,7 @@ catkin_simple(ALL_DEPS_REQUIRED)
 # LIBRARIES #
 #############
 cs_add_library(${PROJECT_NAME}
+  src/color_utils.cpp
   src/path_visualization.cpp
 )
 

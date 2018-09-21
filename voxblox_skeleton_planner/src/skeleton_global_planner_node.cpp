@@ -14,9 +14,6 @@ int main(int argc, char** argv) {
   ROS_INFO("Initialized skeleton global planner node.");
   planner_node.generateSparseGraph();
 
-  // benchmark_node.runBenchmarks();
-  // planner_node.runPlanningTest();
-
   ros::spin();
   return 0;
 }

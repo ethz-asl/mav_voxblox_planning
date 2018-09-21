@@ -1,5 +1,8 @@
+#include <mav_planning_common/color_utils.h>
+#include <mav_planning_common/path_visualization.h>
 #include <mav_planning_common/utils.h>
 #include <mav_trajectory_generation/timing.h>
+#include <mav_visualization/helpers.h>
 #include <voxblox/utils/planning_utils.h>
 
 #include "mav_planning_benchmark/global_planning_benchmark.h"
@@ -117,12 +120,17 @@ void GlobalPlanningBenchmark::setupPlanners() {
   poly_smoother_.setMinCollisionCheckResolution(voxel_size);
   poly_smoother_.setMapDistanceCallback(std::bind(
       &GlobalPlanningBenchmark::getMapDistance, this, std::placeholders::_1));
+  poly_smoother_.setOptimizeTime(true);
+  poly_smoother_.setSplitAtCollisions(true);
 
   // Loco smoother!
   loco_smoother_.setParametersFromRos(nh_private_);
   loco_smoother_.setMinCollisionCheckResolution(voxel_size);
   loco_smoother_.setMapDistanceCallback(std::bind(
       &GlobalPlanningBenchmark::getMapDistance, this, std::placeholders::_1));
+  loco_smoother_.setOptimizeTime(true);
+  loco_smoother_.setResampleTrajectory(true);
+  loco_smoother_.setResampleVisibility(true);
 }
 
 void GlobalPlanningBenchmark::runBenchmark(int num_trials) {
@@ -155,6 +163,8 @@ void GlobalPlanningBenchmark::runBenchmark(int num_trials) {
     start_point.position_W = start;
     goal_point.position_W = goal;
 
+    visualization_msgs::MarkerArray marker_array;
+
     // Go through a list of all the global planners to try...
     for (GlobalPlanningMethod global_method : global_planning_methods_) {
       srand(trial);
@@ -183,7 +193,19 @@ void GlobalPlanningBenchmark::runBenchmark(int num_trials) {
             global_planner_timer.getTime() + smoothing_timer.getTime();
         fillInPathResults(path, &result);
         results_.push_back(result);
+
+        if (visualize_) {
+          marker_array.markers.push_back(createMarkerForPath(
+              path, frame_id_, percentToRainbowColor(global_method / 5.0 +
+                                                     smoothing_method / 10.0),
+              std::to_string(global_method) + "_" +
+                  std::to_string(smoothing_method),
+              0.075));
+        }
       }
+    }
+    if (visualize_) {
+      path_marker_pub_.publish(marker_array);
     }
   }
 }
@@ -209,6 +231,8 @@ void GlobalPlanningBenchmark::outputResults(const std::string& filename) {
             result.total_path_length_m, result.straight_line_path_length_m);
   }
   fclose(fp);
+  ROS_INFO_STREAM(
+      "[Global Planning Benchmark] Output results to: " << filename);
 }
 
 bool GlobalPlanningBenchmark::selectRandomStartAndGoal(
@@ -230,7 +254,8 @@ bool GlobalPlanningBenchmark::selectRandomStartAndGoal(
                               << getMapDistance(*start)
                               << ") goal: " << goal->transpose() << " ("
                               << getMapDistance(*goal)
-                              << ") distance: " << (*start - *goal).norm()); */
+                              << ") distance: " << (*start - *goal).norm());
+       */
 
     if ((*start - *goal).norm() > minimum_distance) {
       if (getMapDistance(*start) > constraints_.robot_radius &&
@@ -267,8 +292,7 @@ bool GlobalPlanningBenchmark::isPathCollisionFree(
 bool GlobalPlanningBenchmark::isPathFeasible(
     const mav_msgs::EigenTrajectoryPointVector& path) const {
   // This is easier to check in the trajectory but then we are limited in how
-  // we
-  // do the smoothing.
+  // we do the smoothing.
   for (const mav_msgs::EigenTrajectoryPoint& point : path) {
     if (point.acceleration_W.norm() > constraints_.a_max) {
       return false;
@@ -297,10 +321,49 @@ bool GlobalPlanningBenchmark::runGlobalPlanner(
     const GlobalPlanningMethod planning_method,
     const mav_msgs::EigenTrajectoryPoint& start,
     const mav_msgs::EigenTrajectoryPoint& goal,
-    mav_msgs::EigenTrajectoryPointVector* waypoints) {}
+    mav_msgs::EigenTrajectoryPointVector* waypoints) {
+  CHECK_NOTNULL(waypoints);
+  if (planning_method == kStraightLine) {
+    waypoints->push_back(start);
+    waypoints->push_back(goal);
+    return true;
+  }
+  if (planning_method == kRrtStar) {
+    bool success = rrt_planner_.getPathBetweenWaypoints(start, goal, waypoints);
+    return success;
+  }
+  if (planning_method == kSkeletonGraph) {
+  }
+
+  return false;
+}
+
 bool GlobalPlanningBenchmark::runPathSmoother(
     const PathSmoothingMethod smoothing_method,
     const mav_msgs::EigenTrajectoryPointVector& waypoints,
-    mav_msgs::EigenTrajectoryPointVector* path) {}
+    mav_msgs::EigenTrajectoryPointVector* path) {
+  CHECK_NOTNULL(path);
+  if (smoothing_method == kNone) {
+    *path = waypoints;
+    return true;
+  }
+  if (smoothing_method == kVelocityRamp) {
+    ramp_smoother_.getPathBetweenWaypoints(waypoints, path);
+    for (const mav_msgs::EigenTrajectoryPoint& point : *path) {
+      ROS_INFO_STREAM(
+          "Time: " << mav_msgs::nanosecondsToSeconds(point.time_from_start_ns)
+                   << " Position: " << point.position_W.transpose()
+                   << " Velocity: " << point.velocity_W.transpose());
+    }
+  }
+
+  if (smoothing_method == kPolynomial) {
+    poly_smoother_.getPathBetweenWaypoints(waypoints, path);
+  }
+
+  if (smoothing_method == kLoco) {
+    loco_smoother_.getPathBetweenWaypoints(waypoints, path);
+  }
+}
 
 }  // namespace mav_planning
