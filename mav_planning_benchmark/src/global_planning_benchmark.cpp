@@ -45,6 +45,7 @@ void GlobalPlanningBenchmark::loadMap(const std::string& base_path,
     ROS_ERROR_STREAM("Couldn't load ESDF  from file: " << esdf_path);
     return;
   }
+  esdf_server_->setTraversabilityRadius(constraints_.robot_radius);
 
   skeleton_graph_.clear();
   if (!voxblox::io::loadSparseSkeletonGraphFromFile(sparse_graph_path,
@@ -54,15 +55,12 @@ void GlobalPlanningBenchmark::loadMap(const std::string& base_path,
     return;
   }
 
-
   if (visualize_) {
     esdf_server_->disableIncrementalUpdate();
     esdf_server_->updateMesh();
     esdf_server_->publishSlices();
     esdf_server_->publishPointclouds();
     esdf_server_->publishTraversable();
-
-
   }
 
   setupPlanners();
@@ -70,7 +68,6 @@ void GlobalPlanningBenchmark::loadMap(const std::string& base_path,
 
 void GlobalPlanningBenchmark::setupPlanners() {
   CHECK(esdf_server_);
-  esdf_server_->setTraversabilityRadius(constraints_.robot_radius);
 
   // For all planners:
   // Figure out map bounds!
@@ -191,14 +188,35 @@ void GlobalPlanningBenchmark::runBenchmark(int num_trials) {
   }
 }
 
-void GlobalPlanningBenchmark::outputResults(const std::string& filename) {}
+void GlobalPlanningBenchmark::outputResults(const std::string& filename) {
+  // Append? That's cool I guess.
+  FILE* fp = fopen(filename.c_str(), "w+");
+  if (fp == NULL) {
+    return;
+  }
+  fprintf(fp,
+          "#trial,seed,robot_radius,v_max,a_max,global_method,smoothing_method,"
+          "planning_success,is_collision_free,is_feasible,computation_time_sec,"
+          "total_path_time_sec,total_path_length_m,straight_line_path_length_"
+          "m\n");
+  for (const GlobalBenchmarkResult& result : results_) {
+    fprintf(fp, "%d,%d,%f,%f,%f,%d,%d,%d,%d,%d,%f,%f,%f,%f\n",
+            result.trial_number, result.seed, result.robot_radius_m,
+            result.v_max, result.a_max, result.global_planning_method,
+            result.path_smoothing_method, result.planning_success,
+            result.is_collision_free, result.is_feasible,
+            result.computation_time_sec, result.total_path_time_sec,
+            result.total_path_length_m, result.straight_line_path_length_m);
+  }
+  fclose(fp);
+}
 
 bool GlobalPlanningBenchmark::selectRandomStartAndGoal(
     double minimum_distance, Eigen::Vector3d* start,
     Eigen::Vector3d* goal) const {
   CHECK_NOTNULL(start);
   CHECK_NOTNULL(goal);
-  const int kMaxTries = 1000;
+  const int kMaxTries = 100000;
   bool solution_found = false;
   for (int i = 0; i < kMaxTries; i++) {
     *start << randMToN(lower_bound_.x(), upper_bound_.x()),
@@ -207,6 +225,12 @@ bool GlobalPlanningBenchmark::selectRandomStartAndGoal(
     *goal << randMToN(lower_bound_.x(), upper_bound_.x()),
         randMToN(lower_bound_.y(), upper_bound_.y()),
         randMToN(lower_bound_.z(), upper_bound_.z());
+
+    /* ROS_INFO_STREAM("Start: " << start->transpose() << " ("
+                              << getMapDistance(*start)
+                              << ") goal: " << goal->transpose() << " ("
+                              << getMapDistance(*goal)
+                              << ") distance: " << (*start - *goal).norm()); */
 
     if ((*start - *goal).norm() > minimum_distance) {
       if (getMapDistance(*start) > constraints_.robot_radius &&
