@@ -1,8 +1,8 @@
 #ifndef VOXBLOX_RRT_PLANNER_VOXBLOX_OMPL_RRT_H_
-#define VOXBLOX_RRT_PLANNER_OMPL_RRT_VOXBLOX_H_
+#define VOXBLOX_RRT_PLANNER_VOXBLOX_OMPL_RRT_H_
 
-#include <mav_msgs/eigen_mav_msgs.h>
 #include <mav_msgs/conversions.h>
+#include <mav_msgs/eigen_mav_msgs.h>
 #include <ros/ros.h>
 
 #include "voxblox_rrt_planner/ompl/mav_setup.h"
@@ -89,4 +89,4 @@ class VoxbloxOmplRrt {
 
 }  // namespace mav_planning
 
-#endif  // VOXBLOX_RRT_PLANNER_OMPL_RRT_VOXBLOX_H_
+#endif  // VOXBLOX_RRT_PLANNER_VOXBLOX_OMPL_RRT_H_

@@ -1,6 +1,12 @@
 #ifndef MAV_PLANNING_BENCHMKARK_GLOBAL_PLANNING_BENCHMARK_H_
 #define MAV_PLANNING_BENCHMKARK_GLOBAL_PLANNING_BENCHMARK_H_
 
+#include <mav_planning_common/physical_constraints.h>
+#include <voxblox_rrt_planner/voxblox_ompl_rrt.h>
+#include <voxblox_skeleton_planner/path_shortening.h>
+#include <voxblox_skeleton/skeleton_planner.h>
+#include <voxblox_skeleton/sparse_graph_planner.h>
+
 namespace mav_planning {
 
 struct GlobalBenchmarkResult {
@@ -19,14 +25,42 @@ struct GlobalBenchmarkResult {
 
 class GlobalPlanningBenchmark {
  public:
+  GlobalPlanningBenchmark(const ros::NodeHandle& nh,
+                          const ros::NodeHandle& nh_private);
 
+  void loadMap(const std::string& base_path, const std::string& esdf_name,
+               const std::string& sparse_graph_name);
 
+  void runBenchmark(int num_trials);
 
+  void outputResults(const std::string& filename);
 
+ private:
+  ros::NodeHandle nh_;
+  ros::NodeHandle nh_private_;
 
+  // Settings for physical constriants.
+  PhysicalConstraints constraints_;
 
+  // General settings.
+  bool verbose_;
+  bool visualize_;
+  std::string frame_id_;
 
+  // Voxblox Server!
+  std::unique_ptr<voxblox::EsdfServer> esdf_server_;
 
+  // Global Planners!
+  VoxbloxOmplRrt rrt_planner_;
+  voxblox::SkeletonAStar skeleton_planner_;
+  voxblox::SparseGraphPlanner sparse_graph_planner_;
+  EsdfPathShortener path_shortener_;
+
+  // Path Smoothers!
+  LocoSmoother loco_smoother_;
+
+  // Results.
+  std::vector<GlobalBenchmarkResult> results_;
 };
 
 }  // namespace mav_planning
