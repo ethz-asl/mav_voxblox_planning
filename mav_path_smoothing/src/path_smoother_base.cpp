@@ -1,3 +1,5 @@
+#include <mav_planning_common/path_utils.h>
+
 #include "mav_path_smoothing/velocity_ramp_smoother.h"
 
 namespace mav_planning {
@@ -24,7 +26,8 @@ bool PathSmootherBase::getPathBetweenWaypoints(
   mav_msgs::EigenTrajectoryPoint start = waypoints[0];
   mav_msgs::EigenTrajectoryPointVector path_segment;
 
-  for (const mav_msgs::EigenTrajectoryPoint& goal : waypoints) {
+  for (size_t i = 1; i < waypoints.size(); i++) {
+    const mav_msgs::EigenTrajectoryPoint& goal = waypoints[i];
     if (getPathBetweenTwoPoints(start, goal, &path_segment)) {
       path->insert(path->end(), path_segment.begin(), path_segment.end());
       path_segment.clear();
@@ -33,6 +36,7 @@ bool PathSmootherBase::getPathBetweenWaypoints(
       return false;
     }
   }
+  retimeTrajectoryMonotonicallyIncreasing(path);
   return true;
 }
 

@@ -349,12 +349,6 @@ bool GlobalPlanningBenchmark::runPathSmoother(
   }
   if (smoothing_method == kVelocityRamp) {
     ramp_smoother_.getPathBetweenWaypoints(waypoints, path);
-    for (const mav_msgs::EigenTrajectoryPoint& point : *path) {
-      ROS_INFO_STREAM(
-          "Time: " << mav_msgs::nanosecondsToSeconds(point.time_from_start_ns)
-                   << " Position: " << point.position_W.transpose()
-                   << " Velocity: " << point.velocity_W.transpose());
-    }
   }
 
   if (smoothing_method == kPolynomial) {

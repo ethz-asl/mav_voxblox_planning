@@ -14,6 +14,12 @@ bool VelocityRampSmoother::getPathBetweenTwoPoints(
     mav_msgs::EigenTrajectoryPoint::Vector* path) const {
   path->clear();
 
+  if ((goal.position_W-start.position_W).norm() < 1e-6) {
+    path->push_back(start);
+    path->push_back(goal);
+    return true;
+  }
+
   Eigen::Vector3d path_direction =
       (goal.position_W - start.position_W).normalized();
 
@@ -38,10 +44,17 @@ bool VelocityRampSmoother::getPathBetweenTwoPoints(
   // consider us stopped below this speed
   constexpr double kDeltaVelocity = 1e-6;
 
+  // First put in the start pose.
+  path->emplace_back(start);
+
   do {
     // Integrate velocity to get position.
     point.position_W += point.velocity_W * constraints_.sampling_dt;
-
+    if (std::isnan(point.position_W.x())) {
+      std::cout << "Next point is nan! Why? We don't know. Point: "
+                << point.position_W.transpose()
+                << " velocity: " << point.velocity_W.transpose() << std::endl;
+    }
     // get offset from goal
     Eigen::Vector3d delta_goal = (R * goal.position_W) - point.position_W;
 
@@ -69,13 +82,14 @@ bool VelocityRampSmoother::getPathBetweenTwoPoints(
       }
     }
 
+    // Update time.
+    point.time_from_start_ns += dt_ns;
+
     // rotate back into world frame
     mav_msgs::EigenTrajectoryPoint point_W = point;
     point_W.position_W = R.inverse() * point.position_W;
     point_W.velocity_W = R.inverse() * point.velocity_W;
     path->emplace_back(point_W);
-
-    point.time_from_start_ns += dt_ns;
 
   } while (point.velocity_W.norm() > kDeltaVelocity);
 
