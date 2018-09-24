@@ -16,8 +16,6 @@ visualization_msgs::Marker createMarkerForWaypoints(
     mav_msgs::EigenTrajectoryPointVector& path, const std::string& frame_id,
     const std_msgs::ColorRGBA& color, const std::string& name, double scale);
 
-
-
 }  // mav_planning
 
 #endif  // MAV_PLANNING_COMMON_PATH_VISUALIZATION_H_

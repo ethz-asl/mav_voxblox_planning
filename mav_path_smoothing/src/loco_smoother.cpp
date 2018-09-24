@@ -73,7 +73,10 @@ bool LocoSmoother::getTrajectoryBetweenWaypoints(
   loco.solveProblem();
   loco.getTrajectory(trajectory);
 
-  return true;
+  if (optimize_time_) {
+    trajectory->scaleSegmentTimesToMeetConstraints(constraints_.v_max,
+                                                   constraints_.a_max);
+  }
 
   mav_msgs::EigenTrajectoryPoint::Vector path;
   // Sample it!

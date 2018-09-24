@@ -134,34 +134,16 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
     // If we had to do this, let's scale the times back to make sure we're
     // still within constraints.
     if (optimize_time_) {
-      mav_trajectory_generation::NonlinearOptimizationParameters
-          nlopt_parameters;
-      mav_trajectory_generation::PolynomialOptimizationNonLinear<N> nlopt(
-          D, nlopt_parameters);
-      nlopt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
-      nlopt.addMaximumMagnitudeConstraint(
-          mav_trajectory_generation::derivative_order::VELOCITY,
-          constraints_.v_max);
-      nlopt.addMaximumMagnitudeConstraint(
-          mav_trajectory_generation::derivative_order::ACCELERATION,
-          constraints_.a_max);
-      nlopt.solveLinear();
-      nlopt.scaleSegmentTimesWithViolation();
-      nlopt.getTrajectory(trajectory);
+      trajectory->scaleSegmentTimesToMeetConstraints(constraints_.v_max,
+                                                     constraints_.a_max);
     }
   }
 
-  std::vector<int> dimensions = {0, 1, 2};  // Evaluate dimensions in x, y and z
-  mav_trajectory_generation::Extremum v_min, v_max, a_min, a_max;
-  trajectory->computeMinMaxMagnitude(
-      mav_trajectory_generation::derivative_order::VELOCITY, dimensions, &v_min,
-      &v_max);
-  trajectory->computeMinMaxMagnitude(
-      mav_trajectory_generation::derivative_order::ACCELERATION, dimensions,
-      &a_min, &a_max);
+  double v_max, a_max;
+  trajectory->computeMaxVelocityAndAcceleration(&v_max, &a_max);
 
-  ROS_INFO("[SMOOTHING] V max/limit: %f/%f, A max/limit: %f/%f", v_max.value,
-           constraints_.v_max, a_max.value, constraints_.a_max);
+  ROS_INFO("[SMOOTHING] V max/limit: %f/%f, A max/limit: %f/%f", v_max,
+           constraints_.v_max, a_max, constraints_.a_max);
 
   return true;
 }
