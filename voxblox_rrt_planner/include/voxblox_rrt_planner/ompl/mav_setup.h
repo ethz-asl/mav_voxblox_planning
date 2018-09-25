@@ -27,19 +27,19 @@ class MavSetup : public geometric::SimpleSetup {
                 getSpaceInformation())));
   }
 
-  void setDefaultPlanner() { setRRTStar(); }
+  void setDefaultPlanner() { setRrtStar(); }
 
-  void setRRTStar() {
+  void setRrtStar() {
     setPlanner(ompl::base::PlannerPtr(
         new ompl::geometric::RRTstar(getSpaceInformation())));
   }
 
-  void setRRT() {
+  void setRrtConnect() {
     setPlanner(ompl::base::PlannerPtr(
         new ompl::geometric::RRTConnect(getSpaceInformation())));
   }
 
-  void setInformedRRTStar() {
+  void setInformedRrtStar() {
     setPlanner(ompl::base::PlannerPtr(
         new ompl::geometric::InformedRRTstar(getSpaceInformation())));
   }

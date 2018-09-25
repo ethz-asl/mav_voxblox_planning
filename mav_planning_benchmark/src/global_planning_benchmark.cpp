@@ -15,7 +15,8 @@ GlobalPlanningBenchmark::GlobalPlanningBenchmark(
       nh_private_(nh_private),
       visualize_(true),
       frame_id_("map"),
-      rrt_planner_(nh, nh_private),
+      rrt_connect_planner_(nh, nh_private),
+      rrt_star_planner_(nh, nh_private),
       skeleton_planner_(nh, nh_private) {
   // Make sure we got the robot size, v_max, a_max, etc from constraints.
   constraints_.setParametersFromRos(nh_private_);
@@ -26,8 +27,11 @@ GlobalPlanningBenchmark::GlobalPlanningBenchmark(
   path_marker_pub_ =
       nh_private_.advertise<visualization_msgs::MarkerArray>("path", 1, true);
 
+  global_planning_methods_.push_back(kStraightLine);
+  global_planning_methods_.push_back(kRrtConnect);
   global_planning_methods_.push_back(kRrtStar);
   global_planning_methods_.push_back(kSkeletonGraph);
+  global_planning_methods_.push_back(kPrm);
 
   path_smoothing_methods_.push_back(kNone);
   path_smoothing_methods_.push_back(kVelocityRamp);
@@ -81,12 +85,24 @@ void GlobalPlanningBenchmark::setupPlanners() {
   double voxel_size =
       esdf_server_->getEsdfMapPtr()->getEsdfLayerPtr()->voxel_size();
 
+  // RRT Connect
+  rrt_connect_planner_.setPlanner(VoxbloxOmplRrt::kRrtConnect);
+  rrt_connect_planner_.setNumSecondsToPlan(1.0);
+  rrt_connect_planner_.setRobotRadius(constraints_.robot_radius);
+  rrt_connect_planner_.setOptimistic(false);
+  rrt_connect_planner_.setEsdfLayer(
+      esdf_server_->getEsdfMapPtr()->getEsdfLayerPtr());
+  rrt_connect_planner_.setBounds(lower_bound_, upper_bound_);
+  rrt_connect_planner_.setupProblem();
+
   // RRT*
-  rrt_planner_.setRobotRadius(constraints_.robot_radius);
-  rrt_planner_.setOptimistic(false);
-  rrt_planner_.setEsdfLayer(esdf_server_->getEsdfMapPtr()->getEsdfLayerPtr());
-  rrt_planner_.setBounds(lower_bound_, upper_bound_);
-  rrt_planner_.setupProblem();
+  rrt_star_planner_.setPlanner(VoxbloxOmplRrt::kRrtStar);
+  rrt_star_planner_.setRobotRadius(constraints_.robot_radius);
+  rrt_star_planner_.setOptimistic(false);
+  rrt_star_planner_.setEsdfLayer(
+      esdf_server_->getEsdfMapPtr()->getEsdfLayerPtr());
+  rrt_star_planner_.setBounds(lower_bound_, upper_bound_);
+  rrt_star_planner_.setupProblem();
 
   //       .-.
   //      (o.o)
@@ -126,6 +142,7 @@ void GlobalPlanningBenchmark::setupPlanners() {
   loco_smoother_.setOptimizeTime(true);
   loco_smoother_.setResampleTrajectory(true);
   loco_smoother_.setResampleVisibility(true);
+  loco_smoother_.setNumSegments(5);
 }
 
 void GlobalPlanningBenchmark::runBenchmark(int num_trials) {
@@ -323,8 +340,14 @@ bool GlobalPlanningBenchmark::runGlobalPlanner(
     waypoints->push_back(goal);
     return true;
   }
+  if (planning_method == kRrtConnect) {
+    bool success =
+        rrt_connect_planner_.getPathBetweenWaypoints(start, goal, waypoints);
+    return success;
+  }
   if (planning_method == kRrtStar) {
-    bool success = rrt_planner_.getPathBetweenWaypoints(start, goal, waypoints);
+    bool success =
+        rrt_star_planner_.getPathBetweenWaypoints(start, goal, waypoints);
     return success;
   }
   if (planning_method == kSkeletonGraph) {

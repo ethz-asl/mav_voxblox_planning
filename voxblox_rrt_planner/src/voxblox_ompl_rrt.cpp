@@ -6,6 +6,7 @@ VoxbloxOmplRrt::VoxbloxOmplRrt(const ros::NodeHandle& nh,
                                const ros::NodeHandle& nh_private)
     : nh_(nh),
       nh_private_(nh_private),
+      planner_type_(kRrtStar),
       num_seconds_to_plan_(2.5),
       simplify_solution_(true),
       robot_radius_(1.0),
@@ -52,7 +53,15 @@ void VoxbloxOmplRrt::setupProblem() {
     problem_setup_.setEsdfVoxbloxCollisionChecking(robot_radius_, esdf_layer_);
   }
   problem_setup_.setDefaultObjective();
-  problem_setup_.setRRTStar();
+  if (planner_type_ == kRrtConnect) {
+    problem_setup_.setRrtConnect();
+  } else if (planner_type_ == kRrtStar) {
+    problem_setup_.setRrtStar();
+  } else if (planner_type_ == kInformedRrtStar) {
+    problem_setup_.setInformedRrtStar();
+  } else {
+    problem_setup_.setDefaultPlanner();
+  }
 
   // This is a fraction of the space extent! Not actual metric units. For
   // mysterious reasons. Thanks OMPL!

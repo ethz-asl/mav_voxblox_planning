@@ -99,7 +99,8 @@ class GlobalPlanningBenchmark {
   Eigen::Vector3d upper_bound_;
 
   // Global Planners!
-  VoxbloxOmplRrt rrt_planner_;
+  VoxbloxOmplRrt rrt_connect_planner_;
+  VoxbloxOmplRrt rrt_star_planner_;
   SkeletonGraphPlanner skeleton_planner_;
 
   // Path Smoothers!

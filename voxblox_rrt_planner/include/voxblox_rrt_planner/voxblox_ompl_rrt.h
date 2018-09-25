@@ -11,6 +11,8 @@ namespace mav_planning {
 
 class VoxbloxOmplRrt {
  public:
+  enum RrtPlannerType { kRrtConnect = 0, kRrtStar, kInformedRrtStar, kBitStar };
+
   VoxbloxOmplRrt(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
   virtual ~VoxbloxOmplRrt() {}
 
@@ -27,6 +29,14 @@ class VoxbloxOmplRrt {
 
   inline void setOptimistic(bool optimistic) { optimistic_ = optimistic; }
   bool getOptimistic() const { return optimistic_; }
+
+  double getNumSecondsToPlan() const { return num_seconds_to_plan_; }
+  void setNumSecondsToPlan(double num_seconds) {
+    num_seconds_to_plan_ = num_seconds;
+  }
+
+  RrtPlannerType getPlanner() const { return planner_type_; }
+  void setPlanner(RrtPlannerType planner) { planner_type_ = planner; }
 
   // Only call this once, only call this after setting all settings correctly.
   void setupProblem();
@@ -60,6 +70,7 @@ class VoxbloxOmplRrt {
 
   // Setup the problem in OMPL.
   ompl::mav::MavSetup problem_setup_;
+  RrtPlannerType planner_type_;
   double num_seconds_to_plan_;
   bool simplify_solution_;
   double robot_radius_;
