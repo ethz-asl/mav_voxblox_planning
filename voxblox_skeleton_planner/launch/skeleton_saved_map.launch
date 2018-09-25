@@ -1,13 +1,17 @@
 <launch>
   <arg name="mav_name" default="jay" />
    <!-- <arg name="voxblox_path" default="/Users/helen/data/arche/day4/flight10_new/_2_opt/voxblox/tsdf.0.10.vxblx" /> -->
-   <arg name="voxblox_path" default="/home/helen/data/arche/arche_week/flight_6_raw_voxblox/skeleton.0.10_devel.vxblx" />
-  <arg name="sparse_graph_path" default="/home/helen/data/arche/arche_week/flight_6_raw_voxblox/sparse_graph.0.10_devel.vxskl" />
+   <!-- <arg name="voxblox_path" default="/home/helen/data/arche/arche_week/flight_6_raw_voxblox/skeleton.0.10_devel.vxblx" />
+  <arg name="sparse_graph_path" default="/home/helen/data/arche/arche_week/flight_6_raw_voxblox/sparse_graph.0.10_devel.vxskl" /> -->
    <!--<arg name="voxblox_path" default="/Users/helen/data/arche/day5/indoor_flight1_voxblox/tsdf.0.10.vxblx" /> -->
+   <arg name="voxblox_path" default="/home/helen/data/jfr_2018/shed/flight_6_voxblox/stereo_esdf_0.10.voxblox" />
+  <arg name="sparse_graph_path" default="/home/helen/data/jfr_2018/shed/flight_6_voxblox/stereo_sparse_graph_0.10.voxblox" />
   <arg name="frame_id" default="map" />
 
+
+
   <group ns="$(arg mav_name)">
-    <node name="skeleton_global_planner" pkg="skeleton_planner" type="skeleton_global_planner_node" output="screen" clear_params="true">
+    <node name="skeleton_global_planner" pkg="voxblox_skeleton_planner" type="skeleton_global_planner_node" output="screen" clear_params="true">
       <param name="voxblox_path" value="$(arg voxblox_path)" />
       <param name="sparse_graph_path" value="$(arg sparse_graph_path)" />
       <param name="visualize" value="true" />

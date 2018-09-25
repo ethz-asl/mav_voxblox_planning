@@ -29,9 +29,15 @@ class SkeletonAStar {
 
   inline void setEsdfLayer(const Layer<EsdfVoxel>* esdf_layer) {
     CHECK_NOTNULL(esdf_layer);
+    LOG(INFO) << "Setting ESDF layer.";
     esdf_layer_ = esdf_layer;
-    // Just assume that neighbor tools is set to the skeleton layer...
-    // As long as the layers are the same size, it doesn't matter.
+    if (skeleton_layer_ == nullptr) {
+      LOG(INFO) << "Setting neighbor tools to not 0! "
+                << esdf_layer->voxels_per_side();
+      skeleton_layer_ = new Layer<SkeletonVoxel>(esdf_layer->voxel_size(),
+                                                 esdf_layer->voxels_per_side());
+      neighbor_tools_.setLayer(skeleton_layer_);
+    }
   }
 
   // If 0, then unlimited iterations.
@@ -170,8 +176,8 @@ bool SkeletonAStar::getPathInVoxels(
 
     // Get the block and voxel index of this guy.
     neighbor_tools_.getNeighborIndex(start_block_index, start_voxel_index,
-                                current_voxel_offset, &block_index,
-                                &voxel_index);
+                                     current_voxel_offset, &block_index,
+                                     &voxel_index);
     block_ptr = getBlockPtrByIndex<VoxelType>(block_index);
     AlignedVector<VoxelKey> neighbors;
     AlignedVector<float> distances;

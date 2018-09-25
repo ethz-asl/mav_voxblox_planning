@@ -15,7 +15,8 @@ GlobalPlanningBenchmark::GlobalPlanningBenchmark(
       nh_private_(nh_private),
       visualize_(true),
       frame_id_("map"),
-      rrt_planner_(nh, nh_private) {
+      rrt_planner_(nh, nh_private),
+      skeleton_planner_(nh, nh_private) {
   // Make sure we got the robot size, v_max, a_max, etc from constraints.
   constraints_.setParametersFromRos(nh_private_);
 
@@ -103,14 +104,8 @@ void GlobalPlanningBenchmark::setupPlanners() {
   // l42 ==' '==
   skeleton_planner_.setEsdfLayer(
       esdf_server_->getEsdfMapPtr()->getEsdfLayerPtr());
-  skeleton_planner_.setMinEsdfDistance(constraints_.robot_radius);
-  sparse_graph_planner_.setGraph(&skeleton_graph_);
-  sparse_graph_planner_.setup();
-
-  // Set up shortener.
-  path_shortener_.setEsdfLayer(
-      esdf_server_->getEsdfMapPtr()->getEsdfLayerPtr());
-  path_shortener_.setConstraints(constraints_);
+  skeleton_planner_.setRobotRadius(constraints_.robot_radius);
+  skeleton_planner_.setSparseGraph(&skeleton_graph_);
 
   // Straight-line smoother.
   ramp_smoother_.setParametersFromRos(nh_private_);
@@ -144,6 +139,9 @@ void GlobalPlanningBenchmark::runBenchmark(int num_trials) {
 
   for (int trial = 0; trial < num_trials; trial++) {
     srand(trial);
+    if (!ros::ok()) {
+      break;
+    }
 
     // Get the start and goal positions.
     Eigen::Vector3d start, goal;
@@ -185,6 +183,10 @@ void GlobalPlanningBenchmark::runBenchmark(int num_trials) {
             runPathSmoother(smoothing_method, waypoints, &path);
         smoothing_timer.stop();
 
+        ROS_INFO(
+            "[Trial %d]: Finished running global method %d and local method %d",
+            trial, global_method, smoothing_method);
+
         GlobalBenchmarkResult result = result_template;
         result.global_planning_method = global_method;
         result.path_smoothing_method = smoothing_method;
@@ -196,8 +198,8 @@ void GlobalPlanningBenchmark::runBenchmark(int num_trials) {
 
         if (visualize_) {
           marker_array.markers.push_back(createMarkerForPath(
-              path, frame_id_, percentToRainbowColor(global_method / 5.0 +
-                                                     smoothing_method / 10.0),
+              path, frame_id_, percentToRainbowColor(global_method / 4.0 +
+                                                     smoothing_method / 12.0),
               std::to_string(global_method) + "_" +
                   std::to_string(smoothing_method),
               0.075));
@@ -249,13 +251,6 @@ bool GlobalPlanningBenchmark::selectRandomStartAndGoal(
     *goal << randMToN(lower_bound_.x(), upper_bound_.x()),
         randMToN(lower_bound_.y(), upper_bound_.y()),
         randMToN(lower_bound_.z(), upper_bound_.z());
-
-    /* ROS_INFO_STREAM("Start: " << start->transpose() << " ("
-                              << getMapDistance(*start)
-                              << ") goal: " << goal->transpose() << " ("
-                              << getMapDistance(*goal)
-                              << ") distance: " << (*start - *goal).norm());
-       */
 
     if ((*start - *goal).norm() > minimum_distance) {
       if (getMapDistance(*start) > constraints_.robot_radius &&
@@ -333,6 +328,9 @@ bool GlobalPlanningBenchmark::runGlobalPlanner(
     return success;
   }
   if (planning_method == kSkeletonGraph) {
+    bool success =
+        skeleton_planner_.getPathBetweenWaypoints(start, goal, waypoints);
+    return success;
   }
 
   return false;
@@ -348,15 +346,18 @@ bool GlobalPlanningBenchmark::runPathSmoother(
     return true;
   }
   if (smoothing_method == kVelocityRamp) {
-    ramp_smoother_.getPathBetweenWaypoints(waypoints, path);
+    bool success = ramp_smoother_.getPathBetweenWaypoints(waypoints, path);
+    return success;
   }
 
   if (smoothing_method == kPolynomial) {
-    poly_smoother_.getPathBetweenWaypoints(waypoints, path);
+    bool success = poly_smoother_.getPathBetweenWaypoints(waypoints, path);
+    return success;
   }
 
   if (smoothing_method == kLoco) {
-    loco_smoother_.getPathBetweenWaypoints(waypoints, path);
+    bool success = loco_smoother_.getPathBetweenWaypoints(waypoints, path);
+    return success;
   }
 }
 

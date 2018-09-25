@@ -17,9 +17,10 @@ SkeletonGraphPlanner::SkeletonGraphPlanner(const ros::NodeHandle& nh,
   nh_private_.param("shorten_path", shorten_path_, shorten_path_);
 
   setRobotRadius(robot_radius_);
+  skeleton_planner_.setMaxIterations(10000);
 }
 
-inline void SkeletonGraphPlanner::setRobotRadius(double robot_radius) {
+void SkeletonGraphPlanner::setRobotRadius(double robot_radius) {
   robot_radius_ = robot_radius;
 
   skeleton_planner_.setMinEsdfDistance(robot_radius);
@@ -65,7 +66,7 @@ bool SkeletonGraphPlanner::getPathBetweenWaypoints(
                                                &graph_coordinate_path);
   mav_msgs::EigenTrajectoryPointVector graph_path;
   convertCoordinatePathToPath(graph_coordinate_path, &graph_path);
-
+  ROS_INFO("Got sparse graph path.");
   if (!success) {
     return false;
   }
@@ -82,12 +83,14 @@ bool SkeletonGraphPlanner::getPathBetweenWaypoints(
   graph_coordinate_path.insert(graph_coordinate_path.end(),
                                exact_goal_path.begin(), exact_goal_path.end());
   convertCoordinatePathToPath(graph_coordinate_path, &graph_path);
+  ROS_INFO("Got ESDF path.");
 
   if (shorten_path_) {
     shortenPath(graph_path, solution);
   } else {
     *solution = graph_path;
   }
+  return success;
 }
 
 void SkeletonGraphPlanner::convertCoordinatePathToPath(

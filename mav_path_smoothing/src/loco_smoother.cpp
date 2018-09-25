@@ -78,6 +78,8 @@ bool LocoSmoother::getTrajectoryBetweenWaypoints(
                                                    constraints_.a_max);
   }
 
+  return true;
+  /*
   mav_msgs::EigenTrajectoryPoint::Vector path;
   // Sample it!
   double dt = constraints_.sampling_dt;
@@ -85,7 +87,7 @@ bool LocoSmoother::getTrajectoryBetweenWaypoints(
 
   double t = 0.0;
   bool path_in_collision = isPathInCollision(path, &t);
-  return !path_in_collision;
+  return !path_in_collision; */
 }
 
 bool LocoSmoother::getTrajectoryBetweenTwoPoints(

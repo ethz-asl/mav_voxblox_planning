@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
   mav_planning::GlobalPlanningBenchmark node(nh, nh_private);
   ROS_INFO("Initialized global planning benchmark node.");
 
-  int num_trials = 1;
+  int num_trials = 100;
   std::string base_path, esdf_name, sparse_graph_name , results_name;
   nh_private.param("base_path", base_path, base_path);
   nh_private.param("esdf_name", esdf_name, esdf_name);

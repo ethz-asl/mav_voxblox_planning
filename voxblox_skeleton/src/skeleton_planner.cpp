@@ -2,7 +2,7 @@
 
 namespace voxblox {
 
-SkeletonAStar::SkeletonAStar() : max_iterations_(0) {}
+SkeletonAStar::SkeletonAStar() : max_iterations_(0), skeleton_layer_(nullptr) {}
 
 SkeletonAStar::SkeletonAStar(const Layer<SkeletonVoxel>* skeleton_layer)
     : max_iterations_(0), skeleton_layer_(skeleton_layer) {
@@ -365,8 +365,8 @@ bool SkeletonAStar::getPathToNearestDiagramPt(
 
     // Get the block and voxel index of this guy.
     neighbor_tools_.getNeighborIndex(start_block_index, start_voxel_index,
-                                current_voxel_offset, &block_index,
-                                &voxel_index);
+                                     current_voxel_offset, &block_index,
+                                     &voxel_index);
     block_ptr = getBlockPtrByIndex<EsdfVoxel>(block_index);
 
     // Figure out if this is on the diagram.
