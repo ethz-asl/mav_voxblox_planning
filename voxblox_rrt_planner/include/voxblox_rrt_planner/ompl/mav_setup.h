@@ -1,12 +1,14 @@
 #ifndef VOXBLOX_RRT_PLANNER_OMPL_MAV_SETUP_H_
 #define VOXBLOX_RRT_PLANNER_OMPL_MAV_SETUP_H_
 
+#include <ompl/base/objectives/PathLengthOptimizationObjective.h>
 #include <ompl/base/spaces/SE3StateSpace.h>
 #include <ompl/geometric/SimpleSetup.h>
-#include <ompl/base/objectives/PathLengthOptimizationObjective.h>
-#include <ompl/geometric/planners/rrt/RRTstar.h>
-#include <ompl/geometric/planners/rrt/RRTConnect.h>
+#include <ompl/geometric/planners/bitstar/BITstar.h>
+#include <ompl/geometric/planners/prm/PRM.h>
 #include <ompl/geometric/planners/rrt/InformedRRTstar.h>
+#include <ompl/geometric/planners/rrt/RRTConnect.h>
+#include <ompl/geometric/planners/rrt/RRTstar.h>
 
 #include "voxblox_rrt_planner/ompl/ompl_types.h"
 #include "voxblox_rrt_planner/ompl/ompl_voxblox.h"
@@ -44,6 +46,16 @@ class MavSetup : public geometric::SimpleSetup {
         new ompl::geometric::InformedRRTstar(getSpaceInformation())));
   }
 
+  /* void setBitStar() {
+    setPlanner(ompl::base::PlannerPtr(
+        new ompl::geometric::BITStar(getSpaceInformation())));
+  } */
+
+  void setPrm() {
+    setPlanner(ompl::base::PlannerPtr(
+        new ompl::geometric::PRM(getSpaceInformation())));
+  }
+
   const base::StateSpacePtr& getGeometricComponentStateSpace() const {
     return getStateSpace();
   }
@@ -75,6 +87,14 @@ class MavSetup : public geometric::SimpleSetup {
     si_->setMotionValidator(
         base::MotionValidatorPtr(new VoxbloxMotionValidator<voxblox::EsdfVoxel>(
             getSpaceInformation(), validity_checker)));
+  }
+
+  void constructPrmRoadmap(double num_seconds_to_construct) {
+    base::PlannerTerminationCondition ptc =
+        base::timedPlannerTerminationCondition(num_seconds_to_construct);
+
+    std::dynamic_pointer_cast<ompl::geometric::PRM>(getPlanner())
+        ->constructRoadmap(ptc);
   }
 
   // Uses the path simplifier WITHOUT using B-spline smoothing which leads to

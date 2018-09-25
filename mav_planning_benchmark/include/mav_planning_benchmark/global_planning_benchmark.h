@@ -101,6 +101,8 @@ class GlobalPlanningBenchmark {
   // Global Planners!
   VoxbloxOmplRrt rrt_connect_planner_;
   VoxbloxOmplRrt rrt_star_planner_;
+  VoxbloxOmplRrt bit_star_planner_;
+  VoxbloxOmplRrt prm_planner_;
   SkeletonGraphPlanner skeleton_planner_;
 
   // Path Smoothers!

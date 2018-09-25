@@ -59,8 +59,26 @@ void VoxbloxOmplRrt::setupProblem() {
     problem_setup_.setRrtStar();
   } else if (planner_type_ == kInformedRrtStar) {
     problem_setup_.setInformedRrtStar();
+  } else if (planner_type_ == kPrm) {
+    problem_setup_.setPrm();
   } else {
     problem_setup_.setDefaultPlanner();
+  }
+
+  if (lower_bound_ != upper_bound_) {
+    ompl::base::RealVectorBounds bounds(3);
+    bounds.setLow(0, lower_bound_.x());
+    bounds.setLow(1, lower_bound_.y());
+    bounds.setLow(2, lower_bound_.z());
+
+    bounds.setHigh(0, upper_bound_.x());
+    bounds.setHigh(1, upper_bound_.y());
+    bounds.setHigh(2, upper_bound_.z());
+
+    // Define start and goal positions.
+    problem_setup_.getGeometricComponentStateSpace()
+        ->as<ompl::mav::StateSpace>()
+        ->setBounds(bounds);
   }
 
   // This is a fraction of the space extent! Not actual metric units. For
@@ -110,24 +128,11 @@ bool VoxbloxOmplRrt::getPathBetweenWaypoints(
 void VoxbloxOmplRrt::setupFromStartAndGoal(
     const mav_msgs::EigenTrajectoryPoint& start,
     const mav_msgs::EigenTrajectoryPoint& goal) {
-  problem_setup_.clear();
-
-  // Don't set bounds? Is this ok? Whatever. I mean I guess we could set it
-  // to the same as for the random selection so it's a fair comparison.
-  if (lower_bound_ != upper_bound_) {
-    ompl::base::RealVectorBounds bounds(3);
-    bounds.setLow(0, lower_bound_.x());
-    bounds.setLow(1, lower_bound_.y());
-    bounds.setLow(2, lower_bound_.z());
-
-    bounds.setHigh(0, upper_bound_.x());
-    bounds.setHigh(1, upper_bound_.y());
-    bounds.setHigh(2, upper_bound_.z());
-
-    // Define start and goal positions.
-    problem_setup_.getGeometricComponentStateSpace()
-        ->as<ompl::mav::StateSpace>()
-        ->setBounds(bounds);
+  if (planner_type_ == kPrm) {
+    std::dynamic_pointer_cast<ompl::geometric::PRM>(problem_setup_.getPlanner())
+        ->clearQuery();
+  } else {
+    problem_setup_.clear();
   }
 
   ompl::base::ScopedState<ompl::mav::StateSpace> start_ompl(

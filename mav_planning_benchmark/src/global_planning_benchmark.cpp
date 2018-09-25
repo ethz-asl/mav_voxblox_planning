@@ -17,6 +17,8 @@ GlobalPlanningBenchmark::GlobalPlanningBenchmark(
       frame_id_("map"),
       rrt_connect_planner_(nh, nh_private),
       rrt_star_planner_(nh, nh_private),
+      bit_star_planner_(nh, nh_private),
+      prm_planner_(nh, nh_private),
       skeleton_planner_(nh, nh_private) {
   // Make sure we got the robot size, v_max, a_max, etc from constraints.
   constraints_.setParametersFromRos(nh_private_);
@@ -97,12 +99,34 @@ void GlobalPlanningBenchmark::setupPlanners() {
 
   // RRT*
   rrt_star_planner_.setPlanner(VoxbloxOmplRrt::kRrtStar);
+  rrt_star_planner_.setNumSecondsToPlan(2.0);
   rrt_star_planner_.setRobotRadius(constraints_.robot_radius);
   rrt_star_planner_.setOptimistic(false);
   rrt_star_planner_.setEsdfLayer(
       esdf_server_->getEsdfMapPtr()->getEsdfLayerPtr());
   rrt_star_planner_.setBounds(lower_bound_, upper_bound_);
   rrt_star_planner_.setupProblem();
+
+  // BIT*
+  bit_star_planner_.setPlanner(VoxbloxOmplRrt::kRrtConnect);
+  bit_star_planner_.setNumSecondsToPlan(1.0);
+  bit_star_planner_.setRobotRadius(constraints_.robot_radius);
+  bit_star_planner_.setOptimistic(false);
+  bit_star_planner_.setEsdfLayer(
+      esdf_server_->getEsdfMapPtr()->getEsdfLayerPtr());
+  bit_star_planner_.setBounds(lower_bound_, upper_bound_);
+  bit_star_planner_.setupProblem();
+
+  // PRM (note that this one is a bit different, since we actually
+  prm_planner_.setPlanner(VoxbloxOmplRrt::kPrm);
+  prm_planner_.setNumSecondsToPlan(0.01);
+  prm_planner_.setRobotRadius(constraints_.robot_radius);
+  prm_planner_.setOptimistic(false);
+  prm_planner_.setEsdfLayer(esdf_server_->getEsdfMapPtr()->getEsdfLayerPtr());
+  prm_planner_.setBounds(lower_bound_, upper_bound_);
+  prm_planner_.setupProblem();
+  // This is different from the other planners: grow the PRM tree for 2 seconds!
+  prm_planner_.constructPrmRoadmap(2.0);
 
   //       .-.
   //      (o.o)
@@ -353,6 +377,10 @@ bool GlobalPlanningBenchmark::runGlobalPlanner(
   if (planning_method == kSkeletonGraph) {
     bool success =
         skeleton_planner_.getPathBetweenWaypoints(start, goal, waypoints);
+    return success;
+  }
+  if (planning_method == kPrm) {
+    bool success = prm_planner_.getPathBetweenWaypoints(start, goal, waypoints);
     return success;
   }
 

@@ -11,7 +11,13 @@ namespace mav_planning {
 
 class VoxbloxOmplRrt {
  public:
-  enum RrtPlannerType { kRrtConnect = 0, kRrtStar, kInformedRrtStar, kBitStar };
+  enum RrtPlannerType {
+    kRrtConnect = 0,
+    kRrtStar,
+    kInformedRrtStar,
+    kBitStar,
+    kPrm
+  };
 
   VoxbloxOmplRrt(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
   virtual ~VoxbloxOmplRrt() {}
@@ -57,6 +63,11 @@ class VoxbloxOmplRrt {
   bool getBestPathTowardGoal(const mav_msgs::EigenTrajectoryPoint& start,
                              const mav_msgs::EigenTrajectoryPoint& goal,
                              mav_msgs::EigenTrajectoryPoint::Vector* solution);
+
+  void constructPrmRoadmap(double roadmap_construction_sec) {
+    problem_setup_.setup();
+    problem_setup_.constructPrmRoadmap(roadmap_construction_sec);
+  }
 
  protected:
   void setupFromStartAndGoal(const mav_msgs::EigenTrajectoryPoint& start,
