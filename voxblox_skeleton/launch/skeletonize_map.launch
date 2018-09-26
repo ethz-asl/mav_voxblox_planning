@@ -1,5 +1,5 @@
 <launch>
-  <arg name="base_path" default="/home/helen/data/jfr_2018/shed/flight_6_voxblox/" />
+  <arg name="base_path" default="/home/helen/data/jfr_2018/shed/voxblox/" />
   <arg name="input_map_name" default="rs_esdf_0.10.voxblox" />
   <arg name="output_map_name" default="rs_skeleton_0.10.voxblox" />
   <arg name="sparse_graph_name" default="rs_sparse_graph_0.10.voxblox" />

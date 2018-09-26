@@ -111,6 +111,10 @@ bool LocoSmoother::getTrajectoryBetweenTwoPoints(
   loco.solveProblem();
   loco.getTrajectory(trajectory);
 
+  if (optimize_time_) {
+    trajectory->scaleSegmentTimesToMeetConstraints(constraints_.v_max,
+                                                   constraints_.a_max);
+  }
   return true;
 }
 

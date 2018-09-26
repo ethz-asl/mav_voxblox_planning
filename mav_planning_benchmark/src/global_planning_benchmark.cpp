@@ -330,10 +330,10 @@ bool GlobalPlanningBenchmark::isPathFeasible(
   // This is easier to check in the trajectory but then we are limited in how
   // we do the smoothing.
   for (const mav_msgs::EigenTrajectoryPoint& point : path) {
-    if (point.acceleration_W.norm() > constraints_.a_max) {
+    if (point.acceleration_W.norm() > constraints_.a_max + 1e-2) {
       return false;
     }
-    if (point.velocity_W.norm() > constraints_.v_max) {
+    if (point.velocity_W.norm() > constraints_.v_max  + 1e-2) {
       return false;
     }
   }
@@ -407,7 +407,13 @@ bool GlobalPlanningBenchmark::runPathSmoother(
   }
 
   if (smoothing_method == kLoco) {
-    bool success = loco_smoother_.getPathBetweenWaypoints(waypoints, path);
+    bool success = false;
+    if (waypoints.size() == 2) {
+      success = loco_smoother_.getPathBetweenTwoPoints(waypoints[0],
+                                                       waypoints[1], path);
+    } else {
+      success = loco_smoother_.getPathBetweenWaypoints(waypoints, path);
+    }
     return success;
   }
 }
