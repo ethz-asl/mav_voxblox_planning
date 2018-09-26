@@ -231,6 +231,7 @@ void GlobalPlanningBenchmark::runBenchmark(int num_trials) {
         GlobalBenchmarkResult result = result_template;
         result.global_planning_method = global_method;
         result.path_smoothing_method = smoothing_method;
+
         result.planning_success = global_success && local_success;
         result.computation_time_sec =
             global_planner_timer.getTime() + smoothing_timer.getTime();
@@ -295,7 +296,11 @@ bool GlobalPlanningBenchmark::selectRandomStartAndGoal(
 
     if ((*start - *goal).norm() > minimum_distance) {
       if (getMapDistance(*start) > constraints_.robot_radius &&
-          getMapDistance(*goal) > constraints_.robot_radius) {
+          getMapDistanceWithoutInterpolation(*start) >
+              constraints_.robot_radius &&
+          getMapDistance(*goal) > constraints_.robot_radius &&
+          getMapDistanceWithoutInterpolation(*goal) >
+              constraints_.robot_radius) {
         solution_found = true;
         break;
       }
@@ -308,8 +313,21 @@ double GlobalPlanningBenchmark::getMapDistance(
     const Eigen::Vector3d& position) const {
   CHECK(esdf_server_);
   double distance = 0.0;
-  if (!esdf_server_->getEsdfMapPtr()->getDistanceAtPosition(position,
-                                                            &distance)) {
+  const bool kInterpolate = true;
+  if (!esdf_server_->getEsdfMapPtr()->getDistanceAtPosition(
+          position, kInterpolate, &distance)) {
+    return 0.0;
+  }
+  return distance;
+}
+
+double GlobalPlanningBenchmark::getMapDistanceWithoutInterpolation(
+    const Eigen::Vector3d& position) const {
+  CHECK(esdf_server_);
+  double distance = 0.0;
+  const bool kInterpolate = false;
+  if (!esdf_server_->getEsdfMapPtr()->getDistanceAtPosition(
+          position, kInterpolate, &distance)) {
     return 0.0;
   }
   return distance;
@@ -333,7 +351,7 @@ bool GlobalPlanningBenchmark::isPathFeasible(
     if (point.acceleration_W.norm() > constraints_.a_max + 1e-2) {
       return false;
     }
-    if (point.velocity_W.norm() > constraints_.v_max  + 1e-2) {
+    if (point.velocity_W.norm() > constraints_.v_max + 1e-2) {
       return false;
     }
   }

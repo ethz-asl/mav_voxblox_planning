@@ -70,7 +70,7 @@ bool SkeletonGraphPlanner::getPathBetweenWaypoints(
   if (!success) {
     return false;
   }
-  /*
+
   voxblox::AlignedVector<voxblox::Point> exact_start_path, exact_goal_path;
 
   success &= skeleton_planner_.getPathInEsdf(
@@ -85,7 +85,7 @@ bool SkeletonGraphPlanner::getPathBetweenWaypoints(
                                exact_goal_path.begin(), exact_goal_path.end());
   convertCoordinatePathToPath(graph_coordinate_path, &graph_path);
   ROS_INFO("Got ESDF path.");
-  */
+
   if (shorten_path_) {
     shortenPath(graph_path, solution);
   } else {

@@ -76,6 +76,9 @@ class SkeletonGlobalPlanner {
   SkeletonGraphPlanner skeleton_graph_planner_;
   EsdfPathShortener path_shortener_;
   LocoSmoother loco_smoother_;
+
+  // Waypoints
+  mav_msgs::EigenTrajectoryPointVector last_waypoints_;
 };
 
 }  // namespace mav_planning

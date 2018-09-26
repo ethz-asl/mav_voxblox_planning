@@ -58,6 +58,8 @@ class GlobalPlanningBenchmark {
   bool selectRandomStartAndGoal(double minimum_distance, Eigen::Vector3d* start,
                                 Eigen::Vector3d* goal) const;
   double getMapDistance(const Eigen::Vector3d& position) const;
+  double getMapDistanceWithoutInterpolation(
+      const Eigen::Vector3d& position) const;
 
   // Evaluate what we've got here.
   void fillInPathResults(const mav_msgs::EigenTrajectoryPointVector& path,

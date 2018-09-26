@@ -169,6 +169,7 @@ bool SkeletonAStar::getPathInVoxels(
     // Check if this is already the goal...
     if (current_voxel_offset == goal_voxel_offset) {
       getSolutionPath(goal_voxel_offset, parent_map, voxel_path);
+      LOG(INFO) << "Found solution in: " << num_iterations;
       return true;
     }
 
@@ -189,12 +190,13 @@ bool SkeletonAStar::getPathInVoxels(
       BlockIndex neighbor_block_index = neighbors[i].first;
       VoxelIndex neighbor_voxel_index = neighbors[i].second;
 
+      Eigen::Vector3i neighbor_voxel_offset =
+          current_voxel_offset + directions[i];
+
       if (!isValidVoxel<VoxelType>(neighbor_block_index, neighbor_voxel_index,
                                    block_index, block_ptr)) {
         continue;
       }
-      Eigen::Vector3i neighbor_voxel_offset =
-          current_voxel_offset + directions[i];
       if (closed_set.count(neighbor_voxel_offset) > 0) {
         // Already checked this guy as well.
         continue;

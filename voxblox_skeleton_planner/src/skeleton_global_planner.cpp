@@ -180,7 +180,7 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
 
   visualization_msgs::MarkerArray marker_array;
 
-  bool run_astar_esdf = false;
+  bool run_astar_esdf = true;
   bool run_astar_diagram = true;
   bool run_astar_graph = true;
   bool shorten_graph = true;
@@ -265,6 +265,8 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
           0.1));
     }
 
+    last_waypoints_ = graph_path;
+
     if (shorten_graph) {
       mav_trajectory_generation::timing::Timer shorten_timer(
           "plan/graph/shorten");
@@ -281,6 +283,8 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
             short_path, frame_id_, mav_visualization::Color::Green(),
             "short_plan", 0.1));
       }
+
+      last_waypoints_ = short_path;
 
       if (smooth_path) {
         mav_msgs::EigenTrajectoryPointVector loco_path;
@@ -338,33 +342,18 @@ double SkeletonGlobalPlanner::getMapDistance(
 
 bool SkeletonGlobalPlanner::publishPathCallback(
     std_srvs::EmptyRequest& request, std_srvs::EmptyResponse& response) {
-  /* if (!last_trajectory_valid_) {
-    ROS_ERROR("Can't publish trajectory, marked as invalid.");
-    return false;
+  ROS_INFO("Publishing waypoints.");
+
+  geometry_msgs::PoseArray pose_array;
+  pose_array.poses.reserve(last_waypoints_.size());
+  for (const mav_msgs::EigenTrajectoryPoint& point : last_waypoints_) {
+    geometry_msgs::PoseStamped pose_stamped;
+    mav_msgs::msgPoseStampedFromEigenTrajectoryPoint(point, &pose_stamped);
+    pose_array.poses.push_back(pose_stamped.pose);
   }
 
-  ROS_INFO("Publishing path.");
-
-  if (!do_smoothing_) {
-    geometry_msgs::PoseArray pose_array;
-    pose_array.poses.reserve(last_waypoints_.size());
-    for (const mav_msgs::EigenTrajectoryPoint& point : last_waypoints_) {
-      geometry_msgs::PoseStamped pose_stamped;
-      mav_msgs::msgPoseStampedFromEigenTrajectoryPoint(point, &pose_stamped);
-      pose_array.poses.push_back(pose_stamped.pose);
-    }
-
-    pose_array.header.frame_id = frame_id_;
-    waypoint_list_pub_.publish(pose_array);
-  } else {
-    mav_planning_msgs::PolynomialTrajectory4D msg;
-    mav_trajectory_generation::trajectoryToPolynomialTrajectoryMsg(
-        last_trajectory_, &msg);
-
-    msg.header.stamp = ros::Time::now();
-    msg.header.frame_id = frame_id_;
-    polynomial_trajectory_pub_.publish(msg);
-  } */
+  pose_array.header.frame_id = frame_id_;
+  waypoint_list_pub_.publish(pose_array);
   return true;
 }
 
