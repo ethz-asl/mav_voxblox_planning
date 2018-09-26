@@ -61,6 +61,8 @@ void VoxbloxOmplRrt::setupProblem() {
     problem_setup_.setInformedRrtStar();
   } else if (planner_type_ == kPrm) {
     problem_setup_.setPrm();
+  } else if (planner_type_ == kBitStar) {
+    problem_setup_.setBitStar();
   } else {
     problem_setup_.setDefaultPlanner();
   }

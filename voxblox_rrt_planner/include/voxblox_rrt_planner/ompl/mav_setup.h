@@ -46,10 +46,10 @@ class MavSetup : public geometric::SimpleSetup {
         new ompl::geometric::InformedRRTstar(getSpaceInformation())));
   }
 
-  /* void setBitStar() {
+  void setBitStar() {
     setPlanner(ompl::base::PlannerPtr(
-        new ompl::geometric::BITStar(getSpaceInformation())));
-  } */
+        new ompl::geometric::BITstar(getSpaceInformation())));
+  }
 
   void setPrm() {
     setPlanner(ompl::base::PlannerPtr(
