@@ -95,6 +95,15 @@ It contains 6 maps from 3 scenarios: machine hall (indoor), shed (mixed indoor a
 
 
 
+| Dataset | Realsense | Stereo |
+| ---- | --------- | --------- |
+| Machine Hall | ![machine_hall_rs](https://user-images.githubusercontent.com/5616392/46145669-344edd00-c261-11e8-8722-f12e4157f877.png)  | ![machine_hall_stereo](https://user-images.githubusercontent.com/5616392/46145670-344edd00-c261-11e8-8a07-d4b710daf78f.png)  |
+| Rubble | ![rubble_rs](https://user-images.githubusercontent.com/5616392/46145671-344edd00-c261-11e8-8c3c-6460e458e3d0.png) | ![rubble_stereo](https://user-images.githubusercontent.com/5616392/46145672-344edd00-c261-11e8-9e3e-3e349f95bcf9.png)   |
+| Shed | ![shed_rs](https://user-images.githubusercontent.com/5616392/46145673-344edd00-c261-11e8-8002-0369d728d02d.png) | ![shed_stereo](https://user-images.githubusercontent.com/5616392/46145674-344edd00-c261-11e8-91bc-3cd042604bae.png) |
+
+
+
+
 ## Try out RRT and Skeleton planning
 
 
