@@ -73,16 +73,12 @@ bool LocoSmoother::getTrajectoryBetweenWaypoints(
   loco.solveProblem();
   loco.getTrajectory(trajectory);
 
+  if (optimize_time_) {
+    trajectory->scaleSegmentTimesToMeetConstraints(constraints_.v_max,
+                                                   constraints_.a_max);
+  }
+
   return true;
-
-  mav_msgs::EigenTrajectoryPoint::Vector path;
-  // Sample it!
-  double dt = constraints_.sampling_dt;
-  mav_trajectory_generation::sampleWholeTrajectory(*trajectory, dt, &path);
-
-  double t = 0.0;
-  bool path_in_collision = isPathInCollision(path, &t);
-  return !path_in_collision;
 }
 
 bool LocoSmoother::getTrajectoryBetweenTwoPoints(
@@ -106,6 +102,10 @@ bool LocoSmoother::getTrajectoryBetweenTwoPoints(
   loco.solveProblem();
   loco.getTrajectory(trajectory);
 
+  if (optimize_time_) {
+    trajectory->scaleSegmentTimesToMeetConstraints(constraints_.v_max,
+                                                   constraints_.a_max);
+  }
   return true;
 }
 
