@@ -1,4 +1,5 @@
-# mav_voxblox_planning
+<img src="https://user-images.githubusercontent.com/5616392/46147990-47fd4200-c267-11e8-8d04-80f74b8673e3.png" alt="mav_voxblox_planning_logo" width="400">
+
 MAV planning tools using voxblox as the map representation.
 
 **NOTE: THIS PACKAGE IS UNDER ACTIVE DEVELOPMENT! Things are subject to change at any time.**
@@ -105,10 +106,45 @@ It contains 6 maps from 3 scenarios: machine hall (indoor), shed (mixed indoor a
 
 
 ## Try out RRT and Skeleton planning
+### Get the planning panel
+Make sure all the packages have built successfully! Re-source your workspace (`source ~/catkin_ws/devel/setup.bash`) and start up rviz (`rviz`).
+In rviz, select `Panels -> Add New Panel` and select `Planning Panel`:
+![image](https://user-images.githubusercontent.com/5616392/46146339-cc999180-c262-11e8-95bd-599aa240cc5c.png)
+
+Next, under `Displays`, add an `InteractiveMarkers` display with the topic `/planning_markers/update`:
+![image](https://user-images.githubusercontent.com/5616392/46146406-fce13000-c262-11e8-8a68-59b639ef3f6a.png)
+
+You should now see both a path panel and start and goal arrows. You can select `Edit` on either the start or the goal to drag it around as an interactive marker:
+![image](https://user-images.githubusercontent.com/5616392/46146671-a0324500-c263-11e8-910e-d94b79afd246.png)
+
+You can also edit the numbers in the x, y, z, yaw fields manually; the markers and the numbers will update automatically to match.
+
+### Using RRT voxblox planner:
+In `~/catkin_ws/src/mav_voxblox_planning/voxblox_rrt_planner/launch/rrt_saved_map.launch`, open the file and replace the `voxblox_path` to the path of one of the esdf maps you downloaded above.
+Then run the file:
+```
+roslaunch voxblox_rrt_planner rrt_saved_map.launch
+```
+
+In the planning panel, enter `voxblox_rrt_planner` as the planner name, and add a `VoxbloxMesh` display with the topic `/voxblox_rrt_planner/mesh` and a `MarkerArray` display with the topic `/voxblox_rrt_planner/path`.
+You can now press the "Planner Service" button to plan!
+In green is the RRT output path, and the other colors show different types of smoothing through these waypoints.
+
+![image](https://user-images.githubusercontent.com/5616392/46146886-31a1b700-c264-11e8-87cc-3a4e7fd7f10e.png)
+
+### Using the Skeleton planner:
+Very similar to above... Open `~/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton_planner/launch/skeleton_saved_map.launch` and update the paths to point to *matching* skeleton and sparse graph files from the maps above.
+Run it with:
+```
+roslaunch voxblox_skeleton_planner skeleton_saved_map.launch
+```
+In the planning panel, enter `voxblox_skeleton_planner` as the planner name, and add a `VoxbloxMesh` display with the topic `/voxblox_skeleton_planner/mesh` and a `MarkerArray` display with the topic `/voxblox_skeleton_planner/path`. Additionally you can add a `MarkerArray` with topic `/voxblox_skeleton_planner/sparse_graph`
+You can now press the "Planner Service" button to plan! 
+Pink is the shortened path from the sparse graph, and teal is smoothed using loco through it.
+
+![image](https://user-images.githubusercontent.com/5616392/46147219-3155eb80-c265-11e8-9787-150906e5bf90.png)
 
 
 # Advanced
 ## Skeletonize your own maps
-
-
-
+TODO! Instructions coming soon. See the `voxblox_skeleton/launch/skeletonize_map.launch` file for reference, please make an issue if there are any questions or problems.
