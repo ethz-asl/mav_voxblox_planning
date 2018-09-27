@@ -180,7 +180,7 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
 
   visualization_msgs::MarkerArray marker_array;
 
-  bool run_astar_esdf = true;
+  bool run_astar_esdf = false;
   bool run_astar_diagram = true;
   bool run_astar_graph = true;
   bool shorten_graph = true;
