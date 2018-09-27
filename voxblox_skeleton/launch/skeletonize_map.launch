@@ -10,7 +10,7 @@
   <arg name="frame_id" default="map" />
 
   <node name="voxblox_skeletonizer" pkg="voxblox_skeleton" type="skeletonizer" output="screen" clear_params="true" args="-v=1">
-   <param name="input_filepath" value="$(arg voxblox_path)" />
+    <param name="input_filepath" value="$(arg voxblox_path)" />
     <param name="output_filepath" value="$(arg output_path)" />
     <param name="sparse_graph_filepath" value="$(arg sparse_graph_path)" />
     <param name="generate_by_layer_neighbors" value="false" />
