@@ -1,8 +1,8 @@
 <launch>
   <arg name="base_path" default="/home/helen/data/jfr_2018/shed/voxblox/" />
-  <arg name="esdf_name" default="rs_esdf_0.10.voxblox" />
-  <arg name="sparse_graph_name" default="rs_sparse_graph_0.10.voxblox" />
-  <arg name="results_name" default="rs_results_26_09_2018.csv" />
+  <arg name="esdf_name" default="stereo_esdf_0.10.voxblox" />
+  <arg name="sparse_graph_name" default="stereo_sparse_graph_0.10.voxblox" />
+  <arg name="results_name" default="stereo_results_27_09_2018.csv" />
 
   <arg name="frame_id" default="map" />
 
