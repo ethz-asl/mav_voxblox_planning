@@ -188,7 +188,6 @@ class SkeletonGenerator {
   VoxelTemplateMatcher corner_template_matcher_;
 
   // Neighbor tools, for finding nearest neighbors of things.
-  NeighborTools<SkeletonVoxel> neighbor_tools_;
   SkeletonAStar skeleton_planner_;
 
   Skeleton skeleton_;

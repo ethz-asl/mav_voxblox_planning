@@ -7,7 +7,6 @@ SkeletonAStar::SkeletonAStar() : max_iterations_(0), skeleton_layer_(nullptr) {}
 SkeletonAStar::SkeletonAStar(const Layer<SkeletonVoxel>* skeleton_layer)
     : max_iterations_(0), skeleton_layer_(skeleton_layer) {
   CHECK_NOTNULL(skeleton_layer_);
-  neighbor_tools_.setLayer(skeleton_layer_);
 }
 
 template <>
@@ -118,8 +117,9 @@ bool SkeletonAStar::getPathInEsdf(const Point& start_position,
                                    &end_voxel_index);
 
   // Get the distance to the goal index.
-  Eigen::Vector3i goal_voxel_offset = neighbor_tools_.getOffsetBetweenVoxels(
-      start_block_index, start_voxel_index, end_block_index, end_voxel_index);
+  Eigen::Vector3i goal_voxel_offset = Neighborhood<>::getOffsetBetweenVoxels(
+      start_block_index, start_voxel_index, end_block_index, end_voxel_index,
+      esdf_layer_->voxels_per_side());
 
   // Now get the path in voxels back out.
   AlignedVector<Eigen::Vector3i> voxel_path;
@@ -154,8 +154,9 @@ bool SkeletonAStar::getPathOnDiagram(
                                        &end_voxel_index);
 
   // Get the distance to the goal index.
-  Eigen::Vector3i goal_voxel_offset = neighbor_tools_.getOffsetBetweenVoxels(
-      start_block_index, start_voxel_index, end_block_index, end_voxel_index);
+  Eigen::Vector3i goal_voxel_offset = Neighborhood<>::getOffsetBetweenVoxels(
+      start_block_index, start_voxel_index, end_block_index, end_voxel_index,
+      skeleton_layer_->voxels_per_side());
 
   // Now get the path in voxels back out.
   AlignedVector<Eigen::Vector3i> voxel_path;
@@ -182,6 +183,8 @@ bool SkeletonAStar::getPathUsingEsdfAndDiagram(
   CHECK_NOTNULL(skeleton_layer_);
   CHECK_NOTNULL(esdf_layer_);
 
+  const size_t voxels_per_side = skeleton_layer_->voxels_per_side();
+
   // Look up where in the skeleton diagram the start position is.
   // Get the voxel.
   BlockIndex start_block_index, end_block_index;
@@ -193,8 +196,9 @@ bool SkeletonAStar::getPathUsingEsdfAndDiagram(
       end_position, &end_block_index, &end_voxel_index);
 
   // Get the distance to the goal index.
-  Eigen::Vector3i goal_voxel_offset = neighbor_tools_.getOffsetBetweenVoxels(
-      start_block_index, start_voxel_index, end_block_index, end_voxel_index);
+  Eigen::Vector3i goal_voxel_offset = Neighborhood<>::getOffsetBetweenVoxels(
+      start_block_index, start_voxel_index, end_block_index, end_voxel_index,
+      voxels_per_side);
 
   // First the diagram start and end points.
   // For the diagram start, search toward the goal until you hit the diagram.
@@ -214,16 +218,16 @@ bool SkeletonAStar::getPathUsingEsdfAndDiagram(
   BlockIndex diagram_start_block_index, diagram_end_block_index;
   VoxelIndex diagram_start_voxel_index, diagram_end_voxel_index;
   // Get the block and voxel index of this guy.
-  neighbor_tools_.getNeighborIndex(
+  Neighborhood<>::getFromBlockAndVoxelIndexAndDirection(
       start_block_index, start_voxel_index, voxel_path_to_start.back(),
-      &diagram_start_block_index, &diagram_start_voxel_index);
-  neighbor_tools_.getNeighborIndex(
+      voxels_per_side, &diagram_start_block_index, &diagram_start_voxel_index);
+  Neighborhood<>::getFromBlockAndVoxelIndexAndDirection(
       end_block_index, end_voxel_index, voxel_path_from_end.back(),
-      &diagram_end_block_index, &diagram_end_voxel_index);
+      voxels_per_side, &diagram_end_block_index, &diagram_end_voxel_index);
 
-  goal_voxel_offset = neighbor_tools_.getOffsetBetweenVoxels(
+  goal_voxel_offset = Neighborhood<>::getOffsetBetweenVoxels(
       diagram_start_block_index, diagram_start_voxel_index,
-      diagram_end_block_index, diagram_end_voxel_index);
+      diagram_end_block_index, diagram_end_voxel_index, voxels_per_side);
 
   if (!getPathInVoxels<SkeletonVoxel>(
           diagram_start_block_index, diagram_start_voxel_index,
@@ -322,6 +326,8 @@ bool SkeletonAStar::getPathToNearestDiagramPt(
 
   int num_iterations = 0;
 
+  const size_t voxels_per_side = skeleton_layer_->voxels_per_side();
+
   // Make the 3 maps we need.
   IndexToDistanceMap f_score_map;
   IndexToDistanceMap g_score_map;
@@ -364,9 +370,9 @@ bool SkeletonAStar::getPathToNearestDiagramPt(
     closed_set.insert(current_voxel_offset);
 
     // Get the block and voxel index of this guy.
-    neighbor_tools_.getNeighborIndex(start_block_index, start_voxel_index,
-                                     current_voxel_offset, &block_index,
-                                     &voxel_index);
+    Neighborhood<>::getFromBlockAndVoxelIndexAndDirection(
+        start_block_index, start_voxel_index, current_voxel_offset,
+        voxels_per_side, &block_index, &voxel_index);
     block_ptr = getBlockPtrByIndex<EsdfVoxel>(block_index);
 
     // Figure out if this is on the diagram.
@@ -381,11 +387,8 @@ bool SkeletonAStar::getPathToNearestDiagramPt(
     }
 
     AlignedVector<VoxelKey> neighbors;
-    AlignedVector<float> distances;
-    AlignedVector<Eigen::Vector3i> directions;
-    neighbor_tools_.getNeighborIndexesAndDistances(
-        block_index, voxel_index, Connectivity::kTwentySix, &neighbors,
-        &distances, &directions);
+    Neighborhood<>::getFromBlockAndVoxelIndex(block_index, voxel_index,
+                                              voxels_per_side, &neighbors);
     for (size_t i = 0; i < neighbors.size(); ++i) {
       BlockIndex neighbor_block_index = neighbors[i].first;
       VoxelIndex neighbor_voxel_index = neighbors[i].second;
@@ -395,7 +398,7 @@ bool SkeletonAStar::getPathToNearestDiagramPt(
         continue;
       }
       Eigen::Vector3i neighbor_voxel_offset =
-          current_voxel_offset + directions[i];
+          current_voxel_offset + Neighborhood<>::kOffsets.col(i);
       if (closed_set.count(neighbor_voxel_offset) > 0) {
         // Already checked this guy as well.
         continue;
@@ -405,7 +408,7 @@ bool SkeletonAStar::getPathToNearestDiagramPt(
       }
 
       FloatingPoint tentative_g_score =
-          g_score_map[current_voxel_offset] + distances[i];
+          g_score_map[current_voxel_offset] + Neighborhood<>::kDistances(i);
       if (g_score_map.count(neighbor_voxel_offset) == 0 ||
           g_score_map[neighbor_voxel_offset] < tentative_g_score) {
         g_score_map[neighbor_voxel_offset] = tentative_g_score;
