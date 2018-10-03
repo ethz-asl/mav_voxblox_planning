@@ -82,9 +82,20 @@ wstool update
 
 If you have already initalized wstool replace the above `wstool init` with `wstool merge -t`
 
-Compile:
 ```
 cd ~/catkin_ws/src/
+```
+Install relevant packages
+```
+git clone https://github.com/catkin/catkin_simple.git
+git clone https://github.com/ethz-asl/voxblox.git
+git clone https://github.com/ethz-asl/mav_trajectory_generation.git
+git clone https://github.com/ethz-asl/gflags_catkin.git
+
+```
+
+Compile:
+```
 catkin build mav_voxblox_planning
 ```
 
