@@ -30,22 +30,22 @@ If using these, please cite:
 
 **voxblox**
       <p>Helen Oleynikova, Zachary Taylor, Marius Fehr, Roland Siegwart, and Juan Nieto, “<b>Voxblox: Incremental 3D Euclidean Signed Distance Fields for On-Board MAV Planning</b>”. In <i>IEEE Int. Conf. on Intelligent Robots and Systems (IROS)</i>, October 2017.<br>
-        [<a href="publications/iros_2017_voxblox.pdf">pdf</a> | <a href="publications/iros_2017_voxblox_bibtex.txt">bibtex</a> | <a href="https://www.youtube.com/watch?v=ZGvnGFnTVR8">video</a> | <a href="https://arxiv.org/abs/1611.03631">arxiv</a> ]
+        [<a href="http://helenol.github.io/publications/iros_2017_voxblox.pdf">pdf</a> | <a href="http://helenol.github.io/publications/iros_2017_voxblox_bibtex.txt">bibtex</a> | <a href="https://www.youtube.com/watch?v=ZGvnGFnTVR8">video</a> | <a href="https://arxiv.org/abs/1611.03631">arxiv</a> ]
       </p>
 
 **loco planning**
       <p>Helen Oleynikova, Michael Burri, Zachary Taylor, Juan Nieto, Roland Siegwart, and Enric Galceran, “<b>Continuous-Time Trajectory Optimization for Online UAV Replanning</b>”. In <i>IEEE Int. Conf. on Intelligent Robots and Systems (IROS)</i>, October 2016.<br>
-        [<a href="publications/iros_2016_replanning.pdf">pdf</a> | <a href="publications/iros_2016_replanning_bibtex.txt">bibtex</a> | <a href="https://www.youtube.com/watch?v=-cm-HkTI8vw">video</a>]
+        [<a href="http://helenol.github.io/publications/iros_2016_replanning.pdf">pdf</a> | <a href="http://helenol.github.io/publications/iros_2016_replanning_bibtex.txt">bibtex</a> | <a href="https://www.youtube.com/watch?v=-cm-HkTI8vw">video</a>]
       </p>
 
 **loco planning with voxblox**
       <p>Helen Oleynikova, Zachary Taylor, Roland Siegwart, and Juan Nieto, “<b>Safe Local Exploration for Replanning in Cluttered Unknown Environments for Micro-Aerial Vehicles</b>”. <i>IEEE Robotics and Automation Letters</i>, 2018.<br>
-        [<a href="publications/ral_2018_local_exploration.pdf">pdf</a> | <a href="publications/ral_2018_bibtex.txt">bibtex</a> | <a href="https://www.youtube.com/watch?v=rAJwD2kr7c0">video</a> | <a href="https://arxiv.org/abs/1710.00604">arxiv</a> ]
+        [<a href="http://helenol.github.io/publications/ral_2018_local_exploration.pdf">pdf</a> | <a href="http://helenol.github.io/publications/ral_2018_bibtex.txt">bibtex</a> | <a href="https://www.youtube.com/watch?v=rAJwD2kr7c0">video</a> | <a href="https://arxiv.org/abs/1710.00604">arxiv</a> ]
       </p>
 
 **voxblox skeleton and skeleton planning**
       <p>Helen Oleynikova, Zachary Taylor, Roland Siegwart, and Juan Nieto, “<b>Sparse 3D Topological Graphs for Micro-Aerial Vehicle Planning</b>”. In <i>IEEE Int. Conf. on Intelligent Robots and Systems (IROS)</i>, October 2018.<br>
-        [<a href="publications/iros_2018_skeleton.pdf">pdf</a> | <a href="publications/iros_2018_skeleton_bibtex.txt">bibtex</a> | <a href="https://www.youtube.com/watch?v=U_6rk-SF0Nw">video</a> | <a href="https://arxiv.org/abs/1803.04345">arxiv</a> ]
+        [<a href="http://helenol.github.io/publications/iros_2018_skeleton.pdf">pdf</a> | <a href="http://helenol.github.io/publications/iros_2018_skeleton_bibtex.txt">bibtex</a> | <a href="https://www.youtube.com/watch?v=U_6rk-SF0Nw">video</a> | <a href="https://arxiv.org/abs/1803.04345">arxiv</a> ]
       </p>
 
 # Getting Started
