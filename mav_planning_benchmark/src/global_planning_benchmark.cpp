@@ -313,7 +313,7 @@ double GlobalPlanningBenchmark::getMapDistance(
     const Eigen::Vector3d& position) const {
   CHECK(esdf_server_);
   double distance = 0.0;
-  const bool kInterpolate = true;
+  const bool kInterpolate = false;
   if (!esdf_server_->getEsdfMapPtr()->getDistanceAtPosition(
           position, kInterpolate, &distance)) {
     return 0.0;
