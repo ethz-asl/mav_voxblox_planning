@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
   ROS_INFO("Initialized global planning benchmark node.");
 
   int num_trials = 100;
-  std::string base_path, esdf_name, sparse_graph_name , results_name;
+  std::string base_path, esdf_name, sparse_graph_name, results_name;
   nh_private.param("base_path", base_path, base_path);
   nh_private.param("esdf_name", esdf_name, esdf_name);
   nh_private.param("sparse_graph_name", sparse_graph_name, sparse_graph_name);
@@ -24,6 +24,10 @@ int main(int argc, char** argv) {
   node.loadMap(base_path, esdf_name, sparse_graph_name);
   node.runBenchmark(num_trials);
   node.outputResults(base_path + "/" + results_name);
+
+  ROS_INFO_STREAM("All timings: "
+                  << std::endl
+                  << mav_trajectory_generation::timing::Timing::Print());
 
   ros::spin();
   return 0;
