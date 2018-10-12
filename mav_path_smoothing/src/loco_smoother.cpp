@@ -91,6 +91,8 @@ bool LocoSmoother::getTrajectoryBetweenTwoPoints(
     const mav_msgs::EigenTrajectoryPoint& start,
     const mav_msgs::EigenTrajectoryPoint& goal,
     mav_trajectory_generation::Trajectory* trajectory) const {
+  mav_trajectory_generation::timing::Timer loco_timer("smoothing/poly_loco");
+
   CHECK_NOTNULL(trajectory);
   constexpr int N = 10;
   constexpr int D = 3;
