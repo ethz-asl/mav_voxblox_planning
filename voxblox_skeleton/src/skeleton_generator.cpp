@@ -27,8 +27,8 @@ void SkeletonGenerator::setEsdfLayer(Layer<EsdfVoxel>* esdf_layer) {
   CHECK_NOTNULL(esdf_layer);
   esdf_layer_ = esdf_layer;
 
-  esdf_voxels_per_side_ = esdf_layer_->voxels_per_side();
-  esdf_voxel_size_ = esdf_layer_->voxel_size();
+  voxels_per_side_ = esdf_layer_->voxels_per_side();
+  voxel_size_ = esdf_layer_->voxel_size();
 
   // Make a skeleton layer to store the intermediate skeleton steps, along with
   // the lists.
@@ -37,6 +37,9 @@ void SkeletonGenerator::setEsdfLayer(Layer<EsdfVoxel>* esdf_layer) {
   skeleton_planner_.setSkeletonLayer(skeleton_layer_.get());
   skeleton_planner_.setEsdfLayer(esdf_layer_);
   skeleton_planner_.setMinEsdfDistance(min_gvd_distance_);
+
+  CHECK_EQ(voxel_size_, skeleton_layer_->voxel_size());
+  CHECK_EQ(voxels_per_side_, skeleton_layer_->voxels_per_side());
 }
 
 void SkeletonGenerator::updateSkeletonFromLayer() {
@@ -98,8 +101,6 @@ void SkeletonGenerator::generateSkeleton() {
   BlockIndexList blocks;
   esdf_layer_->getAllAllocatedBlocks(&blocks);
 
-  const size_t voxels_per_side = esdf_layer_->voxels_per_side();
-
   for (const BlockIndex& block_index : blocks) {
     const Block<EsdfVoxel>::Ptr& esdf_block =
         esdf_layer_->getBlockPtrByIndex(block_index);
@@ -135,7 +136,7 @@ void SkeletonGenerator::generateSkeleton() {
       // connectivity you want.
       AlignedVector<VoxelKey> neighbors;
       Neighborhood<>::getFromBlockAndVoxelIndex(block_index, voxel_index,
-                                                voxels_per_side, &neighbors);
+                                                voxels_per_side_, &neighbors);
 
       // Just go though the 6-connectivity set of this to start.
       SkeletonPoint skeleton_point;
@@ -247,8 +248,6 @@ void SkeletonGenerator::generateEdgesByLayerNeighbors() {
   const AlignedVector<SkeletonPoint>& skeleton_points =
       skeleton_.getSkeletonPoints();
 
-  const size_t voxels_per_side = skeleton_layer_->voxels_per_side();
-
   // Then figure out how to connect them to other vertices by following the
   // skeleton layer voxels.
   for (const SkeletonPoint& point : skeleton_points) {
@@ -265,7 +264,7 @@ void SkeletonGenerator::generateEdgesByLayerNeighbors() {
     // Now just get the neighbors and count how many are on the skeleton.
     AlignedVector<VoxelKey> neighbors;
     Neighborhood<>::getFromBlockAndVoxelIndex(block_index, voxel_index,
-                                              voxels_per_side, &neighbors);
+                                              voxels_per_side_, &neighbors);
 
     int num_neighbors_on_medial_axis = 0;
     for (size_t i = 0; i < neighbors.size(); ++i) {
@@ -305,8 +304,6 @@ size_t SkeletonGenerator::pruneDiagramEdges() {
 
   const AlignedList<SkeletonPoint>& edge_points = skeleton_.getEdgePoints();
 
-  const size_t voxels_per_side = skeleton_layer_->voxels_per_side();
-
   size_t j = 0;
   for (const SkeletonPoint& edge : edge_points) {
     // Get the voxel.
@@ -327,7 +324,7 @@ size_t SkeletonGenerator::pruneDiagramEdges() {
     // Now just get the neighbors and count how many are on the skeleton.
     AlignedVector<VoxelKey> neighbors;
     Neighborhood<>::getFromBlockAndVoxelIndex(block_index, voxel_index,
-                                              voxels_per_side, &neighbors);
+                                              voxels_per_side_, &neighbors);
 
     std::bitset<27> neighbor_bitset;
     for (size_t i = 0; i < neighbors.size(); ++i) {
@@ -452,8 +449,6 @@ void SkeletonGenerator::generateVerticesByLayerNeighbors() {
   // points in the skeleton.
   const AlignedList<SkeletonPoint>& edge_points = skeleton_.getEdgePoints();
 
-  const size_t voxels_per_side = skeleton_layer_->voxels_per_side();
-
   // Then figure out how to connect them to other vertices by following the
   // skeleton layer voxels.
   for (const SkeletonPoint& point : edge_points) {
@@ -470,7 +465,7 @@ void SkeletonGenerator::generateVerticesByLayerNeighbors() {
     // Now just get the neighbors and count how many are on the skeleton.
     AlignedVector<VoxelKey> neighbors;
     Neighborhood<>::getFromBlockAndVoxelIndex(block_index, voxel_index,
-                                              voxels_per_side, &neighbors);
+                                              voxels_per_side_, &neighbors);
 
     int num_neighbors_on_edges = 0;
     // Just go though the 6-connectivity set of this to start.
@@ -537,7 +532,7 @@ void SkeletonGenerator::generateSparseGraph() {
   // This allows us to easily do breadth-first search....
   AlignedQueue<std::pair<GlobalIndex, int64_t>> floodfill_queue;
   Neighborhood<>::IndexMatrix neighbors;
-  const FloatingPoint grid_size_inv = 1.0 / esdf_voxel_size_;
+  const FloatingPoint grid_size_inv = 1.0 / voxel_size_;
   for (const int64_t vertex_id : vertex_ids) {
     SkeletonVertex& vertex = graph_.getVertex(vertex_id);
 
@@ -1141,7 +1136,7 @@ void SkeletonGenerator::splitSpecificEdges(
   std::vector<int64_t> edge_ids = starting_edge_ids;
 
   // This is a number from a butt.
-  const FloatingPoint kMaxThreshold = 2 * skeleton_layer_->voxel_size();
+  const FloatingPoint kMaxThreshold = 2 * voxel_size_;
   const FloatingPoint kVertexSearchRadus =
       vertex_pruning_radius_ * vertex_pruning_radius_;
   const int kMaxAstarIterations = 500;
@@ -1567,7 +1562,7 @@ void SkeletonGenerator::simplifyVertices() {
   size_t edges_added = 0;
 
   // We're a bit more generous here.
-  const FloatingPoint kMaxThreshold = 2 * skeleton_layer_->voxel_size();
+  const FloatingPoint kMaxThreshold = 2 * voxel_size_;
 
   for (const int64_t vertex_id : vertex_ids) {
     SkeletonVertex& vertex = graph_.getVertex(vertex_id);
