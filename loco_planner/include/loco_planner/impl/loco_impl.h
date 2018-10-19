@@ -596,8 +596,8 @@ double Loco<N>::computeCollisionCostAndGradient(
 
     // Select a time.
     for (t = 0.0; t < segment_times[i]; t += dt) {
-      mav_trajectory_generation::timing::Timer coll_cost_crap_timer(
-          "loco/coll_cost_crap");
+      mav_trajectory_generation::timing::Timer coll_cost_sample_timer(
+          "loco/coll_cost_sample");
 
       // T is the vector for just THIS SEGMENT.
       getTVector(t, &T_seg);
@@ -633,7 +633,7 @@ double Loco<N>::computeCollisionCostAndGradient(
         continue;
       }
 
-      coll_cost_crap_timer.Stop();
+      coll_cost_sample_timer.Stop();
 
       // Okay figure out the cost and gradient of the potential map at this
       // point.
