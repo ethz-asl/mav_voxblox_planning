@@ -59,7 +59,13 @@ bool LocoSmoother::getTrajectoryBetweenWaypoints(
 
   loco.setRobotRadius(constraints_.robot_radius);
   loco.setMapResolution(min_col_check_resolution_);
-  loco.setDistanceFunction(map_distance_func_);
+  if (distance_and_gradient_function_) {
+    loco.setDistanceAndGradientFunction(
+        std::bind(&LocoSmoother::getMapDistanceAndGradient, this,
+                  std::placeholders::_1, std::placeholders::_2));
+  } else {
+    loco.setDistanceFunction(map_distance_func_);
+  }
 
   if (resample_trajectory_) {
     loco.setupFromTrajectoryAndResample(traj_initial, num_segments_);
@@ -85,6 +91,8 @@ bool LocoSmoother::getTrajectoryBetweenTwoPoints(
     const mav_msgs::EigenTrajectoryPoint& start,
     const mav_msgs::EigenTrajectoryPoint& goal,
     mav_trajectory_generation::Trajectory* trajectory) const {
+  mav_trajectory_generation::timing::Timer loco_timer("smoothing/poly_loco");
+
   CHECK_NOTNULL(trajectory);
   constexpr int N = 10;
   constexpr int D = 3;
@@ -93,7 +101,13 @@ bool LocoSmoother::getTrajectoryBetweenTwoPoints(
 
   loco.setRobotRadius(constraints_.robot_radius);
   loco.setMapResolution(min_col_check_resolution_);
-  loco.setDistanceFunction(map_distance_func_);
+  if (distance_and_gradient_function_) {
+    loco.setDistanceAndGradientFunction(
+        std::bind(&LocoSmoother::getMapDistanceAndGradient, this,
+                  std::placeholders::_1, std::placeholders::_2));
+  } else {
+    loco.setDistanceFunction(map_distance_func_);
+  }
 
   double total_time = mav_trajectory_generation::computeTimeVelocityRamp(
       start.position_W, goal.position_W, constraints_.v_max,

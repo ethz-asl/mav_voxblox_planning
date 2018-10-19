@@ -3,8 +3,9 @@
 
 #include <ompl/base/StateValidityChecker.h>
 
-#include <voxblox/core/tsdf_map.h>
 #include <voxblox/core/esdf_map.h>
+#include <voxblox/core/tsdf_map.h>
+#include <voxblox/integrator/integrator_utils.h>
 #include <voxblox/utils/planning_utils.h>
 
 #include "voxblox_rrt_planner/ompl/ompl_types.h"
@@ -39,6 +40,11 @@ class VoxbloxValidityChecker : public base::StateValidityChecker {
   // Returns whether there is a collision: true if yes, false if not.
   virtual bool checkCollisionWithRobot(
       const Eigen::Vector3d& robot_position) const = 0;
+
+  virtual bool checkCollisionWithRobotAtVoxel(
+      const voxblox::GlobalIndex& global_index) const {
+    return checkCollisionWithRobot(global_index.cast<double>() * voxel_size_);
+  }
 
   float voxel_size() const { return voxel_size_; }
 
@@ -124,7 +130,7 @@ class EsdfVoxbloxValidityChecker
   virtual bool checkCollisionWithRobot(
       const Eigen::Vector3d& robot_position) const {
     voxblox::Point robot_point = robot_position.cast<voxblox::FloatingPoint>();
-    constexpr bool interpolate = true;
+    constexpr bool interpolate = false;
     voxblox::FloatingPoint distance;
     bool success = interpolator_.getDistance(
         robot_position.cast<voxblox::FloatingPoint>(), &distance, interpolate);
@@ -132,7 +138,17 @@ class EsdfVoxbloxValidityChecker
       return true;
     }
 
-    return robot_radius_ > distance;
+    return robot_radius_ >= distance;
+  }
+
+  virtual bool checkCollisionWithRobotAtVoxel(
+      const voxblox::GlobalIndex& global_index) const {
+    voxblox::EsdfVoxel* voxel = layer_->getVoxelPtrByGlobalIndex(global_index);
+
+    if (voxel == nullptr) {
+      return true;
+    }
+    return robot_radius_ >= voxel->distance;
   }
 
  protected:
@@ -167,13 +183,24 @@ class VoxbloxMotionValidator : public base::MotionValidator {
     Eigen::Vector3d start = omplToEigen(s1);
     Eigen::Vector3d goal = omplToEigen(s2);
     double voxel_size = validity_checker_->voxel_size();
-    Eigen::Vector3d direction = (goal - start).normalized();
-    double total_distance = (goal - start).norm();
 
-    for (double travelled_distance = 0.0; travelled_distance < total_distance;
-         travelled_distance += voxel_size) {
-      Eigen::Vector3d pos = start + travelled_distance * direction;
-      bool collision = validity_checker_->checkCollisionWithRobot(pos);
+    voxblox::Point start_scaled, goal_scaled;
+    voxblox::AlignedVector<voxblox::GlobalIndex> indices;
+
+    // Convert the start and goal to global voxel coordinates.
+    // Actually very simple -- just divide by voxel size.
+    start_scaled = start.cast<voxblox::FloatingPoint>() / voxel_size;
+    goal_scaled = goal.cast<voxblox::FloatingPoint>() / voxel_size;
+
+    voxblox::castRay(start_scaled, goal_scaled, &indices);
+
+    for (size_t i = 0; i < indices.size(); i++) {
+      const voxblox::GlobalIndex& global_index = indices[i];
+
+
+      Eigen::Vector3d pos = global_index.cast<double>() * voxel_size;
+      bool collision =
+          validity_checker_->checkCollisionWithRobotAtVoxel(global_index);
 
       if (collision) {
         if (last_valid.first != nullptr) {
@@ -186,7 +213,7 @@ class VoxbloxMotionValidator : public base::MotionValidator {
           si_->copyState(last_valid.first, last_valid_state.get());
         }
 
-        last_valid.second = travelled_distance / total_distance;
+        last_valid.second = static_cast<double>(i / indices.size());
         return false;
       }
     }

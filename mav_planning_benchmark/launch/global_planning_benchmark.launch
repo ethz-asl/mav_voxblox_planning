@@ -2,7 +2,7 @@
   <arg name="base_path" default="/home/helen/data/jfr_2018/shed/voxblox/" />
   <arg name="esdf_name" default="stereo_esdf_0.10.voxblox" />
   <arg name="sparse_graph_name" default="stereo_sparse_graph_0.10.voxblox" />
-  <arg name="results_name" default="stereo_results_27_09_2018.csv" />
+  <arg name="results_name" default="stereo_results_12_10_2018c.csv" />
 
   <arg name="frame_id" default="map" />
 

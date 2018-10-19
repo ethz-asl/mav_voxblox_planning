@@ -161,8 +161,9 @@ void GlobalPlanningBenchmark::setupPlanners() {
   // Loco smoother!
   loco_smoother_.setParametersFromRos(nh_private_);
   loco_smoother_.setMinCollisionCheckResolution(voxel_size);
-  loco_smoother_.setMapDistanceCallback(std::bind(
-      &GlobalPlanningBenchmark::getMapDistance, this, std::placeholders::_1));
+  loco_smoother_.setDistanceAndGradientFunction(
+      std::bind(&GlobalPlanningBenchmark::getMapDistanceAndGradient, this,
+                std::placeholders::_1, std::placeholders::_2));
   loco_smoother_.setOptimizeTime(true);
   loco_smoother_.setResampleTrajectory(true);
   loco_smoother_.setResampleVisibility(true);
@@ -313,9 +314,21 @@ double GlobalPlanningBenchmark::getMapDistance(
     const Eigen::Vector3d& position) const {
   CHECK(esdf_server_);
   double distance = 0.0;
-  const bool kInterpolate = true;
+  const bool kInterpolate = false;
   if (!esdf_server_->getEsdfMapPtr()->getDistanceAtPosition(
           position, kInterpolate, &distance)) {
+    return 0.0;
+  }
+  return distance;
+}
+
+double GlobalPlanningBenchmark::getMapDistanceAndGradient(
+    const Eigen::Vector3d& position, Eigen::Vector3d* gradient) const {
+  CHECK(esdf_server_);
+  double distance = 0.0;
+  const bool kInterpolate = false;
+  if (!esdf_server_->getEsdfMapPtr()->getDistanceAndGradientAtPosition(
+          position, kInterpolate, &distance, gradient)) {
     return 0.0;
   }
   return distance;
