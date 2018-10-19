@@ -162,8 +162,6 @@ class SkeletonGenerator {
       DynamicVertexGraphKdTree;
 
   float min_separation_angle_;
-  float esdf_voxel_size_;
-  int esdf_voxels_per_side_;
 
   // Whether generate vertices/edges by number of basis points (false,
   // default)
@@ -188,7 +186,6 @@ class SkeletonGenerator {
   VoxelTemplateMatcher corner_template_matcher_;
 
   // Neighbor tools, for finding nearest neighbors of things.
-  NeighborTools<SkeletonVoxel> neighbor_tools_;
   SkeletonAStar skeleton_planner_;
 
   Skeleton skeleton_;
@@ -197,6 +194,11 @@ class SkeletonGenerator {
   // Owned by the generator! Since it's an intermediate by-product of
   // constructing the graph.
   std::unique_ptr<Layer<SkeletonVoxel>> skeleton_layer_;
+
+  // Cached layer properties. We assume and check that they are the same for
+  // both ESDF and skeleton layer.
+  float voxel_size_;
+  size_t voxels_per_side_;
 
   SparseSkeletonGraph graph_;
 };
