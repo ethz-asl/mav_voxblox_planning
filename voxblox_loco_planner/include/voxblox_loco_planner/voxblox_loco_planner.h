@@ -24,6 +24,23 @@ class VoxbloxLocoPlanner {
   // MUST be called to associate the map with the planner.
   void setEsdfMap(const std::shared_ptr<voxblox::EsdfMap>& esdf_map);
 
+  bool getTrajectoryTowardGoal(
+      const mav_msgs::EigenTrajectoryPoint& start,
+      const mav_msgs::EigenTrajectoryPoint& goal,
+      mav_trajectory_generation::Trajectory* trajectory);
+
+  bool getTrajectoryTowardGoalFromInitialTrajectory(
+      double start_time,
+      const mav_trajectory_generation::Trajectory& trajectory_in,
+      const mav_msgs::EigenTrajectoryPoint& goal,
+      mav_trajectory_generation::Trajectory* trajectory);
+
+  bool getTrajectoryBetweenWaypoints(
+      const mav_msgs::EigenTrajectoryPoint& start,
+      const mav_msgs::EigenTrajectoryPoint& goal,
+      mav_trajectory_generation::Trajectory* trajectory);
+
+ private:
   // Callbacks to bind to loco.
   double getMapDistance(const Eigen::Vector3d& position) const;
   double getMapDistanceAndGradient(const Eigen::Vector3d& position,
@@ -36,7 +53,15 @@ class VoxbloxLocoPlanner {
       const mav_msgs::EigenTrajectoryPointVector& path) const;
   bool isPathFeasible(const mav_msgs::EigenTrajectoryPointVector& path) const;
 
- private:
+  // Intermediate goal-finding.
+  bool findIntermediateGoal(const mav_msgs::EigenTrajectoryPoint& start,
+                            const mav_msgs::EigenTrajectoryPoint& goal,
+                            double step_size,
+                            mav_msgs::EigenTrajectoryPoint* goal_out) const;
+
+  bool getNearestFreeSpaceToPoint(const Eigen::Vector3d& pos, double step_size,
+                                  Eigen::Vector3d* new_pos) const;
+
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
@@ -47,6 +72,12 @@ class VoxbloxLocoPlanner {
   bool verbose_;
   bool visualize_;
   std::string frame_id_;
+
+  // Loco settings.
+  int num_segments_;
+  int num_random_restarts_;
+  double random_restart_magnitude_;
+  double planning_horizon_m_;
 
   // Planner.
   loco_planner::Loco<kN> loco_;
