@@ -51,8 +51,6 @@ class LocalPlanningBenchmark {
   void addViewpointToMap(const mav_msgs::EigenTrajectoryPoint& viewpoint);
 
   double getMapDistance(const Eigen::Vector3d& position) const;
-  double getMapDistanceWithoutInterpolation(
-      const Eigen::Vector3d& position) const;
   double getMapDistanceAndGradient(const Eigen::Vector3d& position,
                                    Eigen::Vector3d* gradient) const;
 

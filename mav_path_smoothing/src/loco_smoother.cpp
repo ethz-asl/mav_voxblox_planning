@@ -191,4 +191,17 @@ void LocoSmoother::resampleWaypointsFromVisibilityGraph(
   waypoints_out->push_back(waypoints.back());
 }
 
+double LocoSmoother::getMapDistanceAndGradient(
+    const Eigen::VectorXd& position, Eigen::VectorXd* gradient) const {
+  CHECK(distance_and_gradient_function_);
+  CHECK_EQ(position.size(), 3);
+  if (gradient == nullptr) {
+    return distance_and_gradient_function_(position, nullptr);
+  }
+  Eigen::Vector3d gradient_3d;
+  double distance = distance_and_gradient_function_(position, &gradient_3d);
+  *gradient = gradient_3d;
+  return distance;
+}
+
 }  // namespace mav_planning
