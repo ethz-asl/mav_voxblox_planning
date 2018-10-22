@@ -1,7 +1,9 @@
 #ifndef MAV_PLANNING_BENCHMKARK_LOCAL_PLANNING_BENCHMARK_H_
 #define MAV_PLANNING_BENCHMKARK_LOCAL_PLANNING_BENCHMARK_H_
 
+#include <mav_msgs/eigen_mav_msgs.h>
 #include <mav_planning_common/physical_constraints.h>
+#include <voxblox/simulation/simulation_world.h>
 #include <voxblox_ros/esdf_server.h>
 
 namespace mav_planning {
@@ -104,9 +106,13 @@ class LocalPlanningBenchmark {
   // Optionally use a different max distance for the cam model vs. the actual
   // simulation.
   double camera_model_dist_;
+  // Cached.
+  double voxel_size_;
+  double density_;
 
   // Voxblox Server!
-  std::unique_ptr<voxblox::EsdfServer> esdf_server_;
+  voxblox::EsdfServer esdf_server_;
+  voxblox::SimulationWorld world_;
 
   // Planners will go here!
 

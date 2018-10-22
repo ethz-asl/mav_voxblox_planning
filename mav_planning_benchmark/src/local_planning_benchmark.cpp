@@ -1,4 +1,10 @@
+#include <mav_planning_common/color_utils.h>
+#include <mav_planning_common/path_visualization.h>
+#include <mav_planning_common/utils.h>
+#include <mav_trajectory_generation/timing.h>
+#include <mav_visualization/helpers.h>
 #include <voxblox/core/common.h>
+#include <voxblox/utils/planning_utils.h>
 
 #include "mav_planning_benchmark/local_planning_benchmark.h"
 
@@ -16,7 +22,8 @@ LocalPlanningBenchmark::LocalPlanningBenchmark(
       camera_fov_h_rad_(1.5708),  // 90 deg
       camera_min_dist_(0.5),
       camera_max_dist_(10.0),
-      camera_model_dist_(5.0) {
+      camera_model_dist_(5.0),
+      esdf_server_(nh_, nh_private_) {
   constraints_.setParametersFromRos(nh_private_);
 
   nh_private_.param("visualize", visualize_, visualize_);
@@ -34,7 +41,7 @@ LocalPlanningBenchmark::LocalPlanningBenchmark(
       nh_private_.advertise<visualization_msgs::MarkerArray>("path_additions",
                                                              1, true);
 
-  voxblox_server_.setClearSphere(true);
+  esdf_server_.setClearSphere(true);
 }
 
 void LocalPlanningBenchmark::generateWorld(double density) {
@@ -56,7 +63,7 @@ void LocalPlanningBenchmark::outputResults(const std::string& filename) {
           "success,is_collision_free,is_feasible,num_replans,distance_from_"
           "goal,computation_time_sec,total_path_time_sec,total_path_length_m,"
           "straight_line_path_length_m\n");
-  for (const GlobalBenchmarkResult& result : results_) {
+  for (const LocalBenchmarkResult& result : results_) {
     fprintf(fp, "%d,%d,%f,%f,%f,%f,%d,%d,%d,%d,%d,%f,%f,%f,%f,%f\n",
             result.trial_number, result.seed, result.density,
             result.robot_radius_m, result.v_max, result.a_max,
@@ -72,7 +79,7 @@ void LocalPlanningBenchmark::outputResults(const std::string& filename) {
 
 void LocalPlanningBenchmark::generateCustomWorld(const Eigen::Vector3d& size,
                                                  double density) {
-  voxblox_server_.clear();
+  esdf_server_.clear();
 
   density_ = density;  // Cache this for result output.
   world_.clear();
@@ -109,11 +116,10 @@ void LocalPlanningBenchmark::generateCustomWorld(const Eigen::Vector3d& size,
         position.cast<float>(), radius, height, voxblox::Color::Gray())));
   }
 
-  voxblox_server_.setSliceLevel(1.5);
+  esdf_server_.setSliceLevel(1.5);
 
   // Cache the TSDF voxel size.
-  voxel_size_ =
-      voxblox_server_.getTsdfMapPtr()->getTsdfLayerPtr()->voxel_size();
+  voxel_size_ = esdf_server_.getTsdfMapPtr()->getTsdfLayerPtr()->voxel_size();
 }
 
 // Generates a synthetic viewpoint, and adds it to the voxblox map.
@@ -141,20 +147,20 @@ void LocalPlanningBenchmark::addViewpointToMap(
   // Step 3: integrate into the map.
   // Transform back into camera frame.
   voxblox::transformPointcloud(T_G_C.inverse(), ptcloud, &ptcloud_C);
-  voxblox_server_.integratePointcloud(T_G_C, ptcloud_C, colors);
+  esdf_server_.integratePointcloud(T_G_C, ptcloud_C, colors);
 
   // Step 4: update mesh and ESDF. NewPoseCallback will mark unknown as
   // occupied and clear space otherwise.
-  voxblox_server_.newPoseCallback(T_G_C);
+  esdf_server_.newPoseCallback(T_G_C);
   if (visualize_) {
-    voxblox_server_.updateMesh();
+    esdf_server_.updateMesh();
   } else {
-    voxblox_server_.updateEsdf();
+    esdf_server_.updateEsdf();
   }
 
   if (visualize_) {
-    voxblox_server_.publishAllUpdatedTsdfVoxels();
-    voxblox_server_.publishSlices();
+    esdf_server_.publishAllUpdatedTsdfVoxels();
+    esdf_server_.publishSlices();
 
     pcl::PointCloud<pcl::PointXYZRGB> ptcloud_pcl;
     ptcloud_pcl.header.frame_id = frame_id_;
@@ -175,10 +181,9 @@ void LocalPlanningBenchmark::addViewpointToMap(
 
 double LocalPlanningBenchmark::getMapDistance(
     const Eigen::Vector3d& position) const {
-  CHECK(esdf_server_);
   double distance = 0.0;
   const bool kInterpolate = false;
-  if (!esdf_server_->getEsdfMapPtr()->getDistanceAtPosition(
+  if (!esdf_server_.getEsdfMapPtr()->getDistanceAtPosition(
           position, kInterpolate, &distance)) {
     return 0.0;
   }
@@ -187,10 +192,9 @@ double LocalPlanningBenchmark::getMapDistance(
 
 double LocalPlanningBenchmark::getMapDistanceAndGradient(
     const Eigen::Vector3d& position, Eigen::Vector3d* gradient) const {
-  CHECK(esdf_server_);
   double distance = 0.0;
   const bool kInterpolate = false;
-  if (!esdf_server_->getEsdfMapPtr()->getDistanceAndGradientAtPosition(
+  if (!esdf_server_.getEsdfMapPtr()->getDistanceAndGradientAtPosition(
           position, kInterpolate, &distance, gradient)) {
     return 0.0;
   }
