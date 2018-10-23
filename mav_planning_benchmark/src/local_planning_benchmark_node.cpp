@@ -13,16 +13,39 @@ int main(int argc, char** argv) {
   mav_planning::LocalPlanningBenchmark node(nh, nh_private);
   ROS_INFO("Initialized local planning benchmark node.");
 
-  int num_trials = 5;
+  int num_trials = 1;
   std::string results_path;
   nh_private.param("results_path", results_path, results_path);
   nh_private.param("num_trials", num_trials, num_trials);
 
-  double density = 0.10;
-  for (int i = 0; i < num_trials; i++) {
-    srand(i);
-    node.generateWorld(density);
-    node.runBenchmark(i);
+  const double min_density = 0.05;
+  const double max_density = 0.05;
+  const double density_increment = 0.05;
+
+  // Derived...
+  int num_densities = static_cast<int>(std::round((max_density - min_density) /
+                                                  density_increment)) +
+                      1;
+
+  int trials_per_density = num_trials / num_densities;
+  std::cout << "Trials per density: " << trials_per_density
+            << " num densities: " << num_densities;
+  int trial_number = 0;
+
+  for (int i = 0; i < num_densities; ++i) {
+    if (!ros::ok()) {
+      break;
+    }
+    double density = min_density + i * density_increment;
+    for (int j = 0; j < trials_per_density; ++j) {
+      if (!ros::ok()) {
+        break;
+      }
+      srand(trial_number);
+      node.generateWorld(density);
+      node.runBenchmark(trial_number);
+      trial_number++;
+    }
   }
 
   if (!results_path.empty()) {
@@ -31,6 +54,7 @@ int main(int argc, char** argv) {
 
   ROS_INFO_STREAM("All timings: "
                   << std::endl
+                  << voxblox::timing::Timing::Print() << std::endl
                   << mav_trajectory_generation::timing::Timing::Print());
 
   ros::spin();

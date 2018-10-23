@@ -327,10 +327,9 @@ void Loco<N>::solveProblemCeres() {
 
   ceres::GradientProblemSolver::Options options;
   options.line_search_direction_type = ceres::BFGS;
+  options.logging_type = ceres::SILENT;
+  options.minimizer_progress_to_stdout = false;
 
-  if (config_.verbose) {
-    options.minimizer_progress_to_stdout = true;
-  }
   options.line_search_interpolation_type = ceres::BISECTION;
   ceres::GradientProblemSolver::Summary summary;
 

@@ -132,7 +132,6 @@ bool VoxbloxLocoPlanner::getTrajectoryBetweenWaypoints(
     mav_trajectory_generation::sampleWholeTrajectory(
         *trajectory, kCollisionSamplingDt, &path);
     success = isPathCollisionFree(path);
-    ROS_INFO("Path length? %zu Success? %d", path.size(), success);
     if (success) {
       // Awesome, collision-free path.
       break;
@@ -142,6 +141,12 @@ bool VoxbloxLocoPlanner::getTrajectoryBetweenWaypoints(
     x = x0 + random_restart_magnitude_ * Eigen::VectorXd::Random(x.size());
     loco_.setParameterVector(x);
     loco_.solveProblem();
+  }
+
+  if (success) {
+    // Retime the trajectory!
+    trajectory->scaleSegmentTimesToMeetConstraints(constraints_.v_max,
+                                                   constraints_.a_max);
   }
 
   if (verbose_) {
@@ -191,7 +196,9 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
         findIntermediateGoal(start_point, goal_point, step_size, &goal_point);
   }
 
-  if (!goal_found) {
+  if (!goal_found ||
+      (goal_point.position_W - start_point.position_W).norm() <
+          kGoalReachedRange) {
     return false;
   }
 

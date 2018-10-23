@@ -64,11 +64,11 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
 
   srand(trial_number);
   esdf_server_.clear();
-  esdf_server_.generateMesh();
   LocalBenchmarkResult result_template;
 
   result_template.trial_number = trial_number;
   result_template.seed = trial_number;
+  result_template.density = density_;
   result_template.robot_radius_m = constraints_.robot_radius;
   result_template.v_max = constraints_.v_max;
   result_template.a_max = constraints_.a_max;
@@ -78,9 +78,6 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
       Eigen::Vector3d(1.0, upper_bound_.y() / 2.0, kPlanningHeight);
   goal.position_W = upper_bound_ - start.position_W;
   goal.position_W.z() = kPlanningHeight;
-
-  ROS_INFO_STREAM("Start: " << start.position_W.transpose()
-                            << " Goal: " << goal.position_W.transpose());
 
   start.setFromYaw(0.0);
   goal.setFromYaw(0.0);
@@ -99,7 +96,7 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
       // Clear all existing stuff.
       marker.ns = "loco";
       marker.id = i;
-      marker.action = visualization_msgs::Marker::DELETE;
+      marker.action = visualization_msgs::Marker::DELETEALL;
       marker_array.markers.push_back(marker);
     }
     marker.ns = "executed_path";
@@ -175,7 +172,7 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
       path_marker_pub_.publish(marker_array);
       additional_marker_pub_.publish(additional_markers);
       ros::spinOnce();
-      ros::Duration(0.1).sleep();
+      ros::Duration(0.05).sleep();
     }
 
     if ((executed_path.back().position_W - goal.position_W).norm() <
@@ -204,11 +201,16 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
   result_template.planning_success = distance_from_goal < kMinDistanceToGoal;
   result_template.num_replans = i;
   result_template.computation_time_sec = plan_elapsed_time;
+  // Rough estimate. ;)
+  result_template.total_path_time_sec =
+      constraints_.sampling_dt * executed_path.size();
+  result_template.is_collision_free = isPathCollisionFree(executed_path);
+  result_template.is_feasible = isPathFeasible(executed_path);
 
   results_.push_back(result_template);
   ROS_INFO(
-      "Trial number: %d Success: %d Replans: %d Final path length: %f Distance "
-      "from goal: %f",
+      "[Local Planning Benchmark] Trial number: %d Success: %d Replans: %d "
+      "Final path length: %f Distance from goal: %f",
       trial_number, result_template.planning_success, i, path_length,
       distance_from_goal);
 }
