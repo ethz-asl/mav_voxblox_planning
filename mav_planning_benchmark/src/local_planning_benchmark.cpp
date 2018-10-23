@@ -2,6 +2,7 @@
 #include <mav_planning_common/path_visualization.h>
 #include <mav_planning_common/utils.h>
 #include <mav_trajectory_generation/timing.h>
+#include <mav_trajectory_generation/trajectory_sampling.h>
 #include <mav_visualization/helpers.h>
 #include <voxblox/core/common.h>
 #include <voxblox/utils/planning_utils.h>
@@ -16,13 +17,16 @@ LocalPlanningBenchmark::LocalPlanningBenchmark(
       nh_private_(nh_private),
       visualize_(true),
       frame_id_("map"),
-      lower_bound_(2.5, 0.0, 0.0),
-      upper_bound_(12.5, 10.0, 5.0),
+      replan_dt_(1.0),
+      max_replans_(60),
+      lower_bound_(0.0, 0.0, 0.0),
+      upper_bound_(15.0, 15.0, 5.0),
       camera_resolution_(320, 240),
       camera_fov_h_rad_(1.5708),  // 90 deg
       camera_min_dist_(0.5),
       camera_max_dist_(10.0),
       camera_model_dist_(5.0),
+      loco_planner_(nh_, nh_private_),
       esdf_server_(nh_, nh_private_) {
   constraints_.setParametersFromRos(nh_private_);
 
@@ -42,16 +46,166 @@ LocalPlanningBenchmark::LocalPlanningBenchmark(
                                                              1, true);
 
   esdf_server_.setClearSphere(true);
+
+  loco_planner_.setEsdfMap(esdf_server_.getEsdfMapPtr());
 }
 
 void LocalPlanningBenchmark::generateWorld(double density) {
-  const double kWorldXY = 10.0;
+  // There's a 2 meter padding on each side of the map that's free.
+  const double kWorldXY = 15.0;
   const double kWorldZ = 5.0;
 
   generateCustomWorld(Eigen::Vector3d(kWorldXY, kWorldXY, kWorldZ), density);
 }
 
-void LocalPlanningBenchmark::runBenchmark(int trial_number) {}
+void LocalPlanningBenchmark::runBenchmark(int trial_number) {
+  constexpr double kPlanningHeight = 1.5;
+  constexpr double kMinDistanceToGoal = 0.1;
+
+  srand(trial_number);
+  esdf_server_.clear();
+  LocalBenchmarkResult result_template;
+
+  result_template.trial_number = trial_number;
+  result_template.seed = trial_number;
+  result_template.robot_radius_m = constraints_.robot_radius;
+  result_template.v_max = constraints_.v_max;
+  result_template.a_max = constraints_.a_max;
+
+  mav_msgs::EigenTrajectoryPoint start, goal;
+  start.position_W = Eigen::Vector3d(1.0, 1.0, kPlanningHeight);
+  goal.position_W = upper_bound_ - start.position_W;
+  goal.position_W.z() = kPlanningHeight;
+  start.setFromYaw(0.0);
+  goal.setFromYaw(0.0);
+  result_template.straight_line_path_length_m =
+      (goal.position_W - start.position_W).norm();
+
+  visualization_msgs::MarkerArray marker_array, additional_markers;
+  mav_trajectory_generation::Trajectory trajectory;
+  mav_trajectory_generation::Trajectory last_trajectory;
+  mav_msgs::EigenTrajectoryPointVector executed_path;
+
+  // Clear the visualization markers, if visualizing.
+  if (visualize_) {
+    visualization_msgs::Marker marker;
+    for (int i = 0; i < max_replans_; ++i) {
+      // Clear all existing stuff.
+      marker.ns = "loco";
+      marker.id = i;
+      marker.action = visualization_msgs::Marker::DELETE;
+      marker_array.markers.push_back(marker);
+    }
+    marker.ns = "executed_path";
+    marker.id = 0;
+    marker_array.markers.push_back(marker);
+    path_marker_pub_.publish(marker_array);
+    marker_array.markers.clear();
+  }
+
+  // In case we're finding new goal if needed, we have to keep track of which
+  // goal we're currently tracking.
+  mav_msgs::EigenTrajectoryPoint current_goal = goal;
+
+  double start_time = 0.0;
+  double plan_elapsed_time = 0.0;
+  double total_path_distance = 0.0;
+  int num_replans = 0;
+  bool use_start_time = false;
+  int i = 0;
+  for (i = 0; i < max_replans_; ++i) {
+    if (i > 0 && !trajectory.empty()) {
+      use_start_time = true;
+      start_time = replan_dt_;
+    }
+    // Generate a viewpoint and add it to the map.
+    mav_msgs::EigenTrajectoryPoint viewpoint;
+    if (i == 0 || executed_path.empty()) {
+      viewpoint = start;
+    } else {
+      viewpoint = executed_path.back();
+    }
+    addViewpointToMap(viewpoint);
+    if (visualize_) {
+      appendViewpointMarker(viewpoint, &additional_markers);
+    }
+
+    // Cache last real trajectory.
+    last_trajectory = trajectory;
+
+    // Actually plan the path.
+    mav_trajectory_generation::timing::MiniTimer timer;
+    bool success = false;
+
+    if (i == 0) {
+      success = loco_planner_.getTrajectoryTowardGoal(start, goal, &trajectory);
+    } else {
+      success = loco_planner_.getTrajectoryTowardGoalFromInitialTrajectory(
+          start_time, last_trajectory, goal, &trajectory);
+    }
+    plan_elapsed_time += timer.stop();
+
+    if (!success) {
+      break;
+    }
+
+    // Sample the trajectory, set the yaw, and append to the executed path.
+    mav_msgs::EigenTrajectoryPointVector path;
+    mav_trajectory_generation::sampleWholeTrajectory(
+        trajectory, constraints_.sampling_dt, &path);
+    setYawFromVelocity(start.getYaw(), &path);
+
+    // Append the next stretch of the trajectory. This will also take care of
+    // the end.
+    size_t max_index = std::min(
+        static_cast<size_t>(std::floor(replan_dt_ / constraints_.sampling_dt)),
+        path.size() - 1);
+
+    if (visualize_) {
+      marker_array.markers.push_back(createMarkerForPath(
+          path, frame_id_,
+          percentToRainbowColor(static_cast<double>(i) / max_replans_), "loco",
+          0.075));
+      marker_array.markers.back().id = i;
+      path_marker_pub_.publish(marker_array);
+      additional_marker_pub_.publish(additional_markers);
+      ros::spinOnce();
+      ros::Duration(0.5).sleep();
+    }
+
+    if ((executed_path.back().position_W - goal.position_W).norm() <
+        kMinDistanceToGoal) {
+      break;
+    }
+  }
+
+  if (visualize_) {
+    marker_array.markers.push_back(createMarkerForPath(
+        executed_path, frame_id_, mav_visualization::Color::Black(),
+        "executed_path", 0.1));
+    path_marker_pub_.publish(marker_array);
+    additional_marker_pub_.publish(additional_markers);
+  }
+  double path_length = computePathLength(executed_path);
+  double distance_from_goal = (start.position_W - goal.position_W).norm();
+  if (!executed_path.empty()) {
+    distance_from_goal =
+        (executed_path.back().position_W - goal.position_W).norm();
+  }
+
+  result_template.total_path_length_m = path_length;
+  result_template.distance_from_goal = distance_from_goal;
+  result_template.planning_success = distance_from_goal < kMinDistanceToGoal;
+  result_template.num_replans = num_replans;
+  result_template.computation_time_sec = plan_elapsed_time;
+
+  results_.push_back(result_template);
+  ROS_INFO(
+      "Trial number: %d Success: %d Replans: %d Final path length: %f Distance "
+      "from goal: %f",
+      trial_number, result_template.planning_success, num_replans, path_length,
+      distance_from_goal);
+}
 
 void LocalPlanningBenchmark::outputResults(const std::string& filename) {
   FILE* fp = fopen(filename.c_str(), "w+");
@@ -80,6 +234,9 @@ void LocalPlanningBenchmark::outputResults(const std::string& filename) {
 void LocalPlanningBenchmark::generateCustomWorld(const Eigen::Vector3d& size,
                                                  double density) {
   esdf_server_.clear();
+
+  lower_bound_ = Eigen::Vector3d::Zero();
+  upper_bound_ = size;
 
   density_ = density;  // Cache this for result output.
   world_.clear();
@@ -225,6 +382,36 @@ bool LocalPlanningBenchmark::isPathFeasible(
     }
   }
   return true;
+}
+
+void LocalPlanningBenchmark::appendViewpointMarker(
+    const mav_msgs::EigenTrajectoryPoint& point,
+    visualization_msgs::MarkerArray* marker_array) const {
+  // First draw axes for these thing....
+  visualization_msgs::Marker marker;
+  constexpr double kAxesLength = 0.5;
+  constexpr double kAxesWidth = 0.05;
+  mav_visualization::drawAxes(point.position_W, point.orientation_W_B,
+                              kAxesLength, kAxesWidth, &marker);
+  marker.header.frame_id = frame_id_;
+  marker.ns = "viewpoint_axes";
+
+  marker_array->markers.push_back(marker);
+}
+
+void LocalPlanningBenchmark::setYawFromVelocity(
+    double default_yaw, mav_msgs::EigenTrajectoryPointVector* path) {
+  for (size_t i = 0; i < path->size(); ++i) {
+    // Non-const ref that gets modified below.
+    mav_msgs::EigenTrajectoryPoint& point = (*path)[i];
+
+    if (point.velocity_W.norm() > 1e-6) {
+      double yaw = atan2(point.velocity_W.y(), point.velocity_W.x());
+      point.setFromYaw(yaw);
+    } else {
+      point.setFromYaw(default_yaw);
+    }
+  }
 }
 
 }  // namespace mav_planning

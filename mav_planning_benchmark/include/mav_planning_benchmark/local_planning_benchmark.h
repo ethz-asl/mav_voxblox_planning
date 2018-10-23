@@ -4,6 +4,7 @@
 #include <mav_msgs/eigen_mav_msgs.h>
 #include <mav_planning_common/physical_constraints.h>
 #include <voxblox/simulation/simulation_world.h>
+#include <voxblox_loco_planner/voxblox_loco_planner.h>
 #include <voxblox_ros/esdf_server.h>
 
 namespace mav_planning {
@@ -59,6 +60,14 @@ class LocalPlanningBenchmark {
       const mav_msgs::EigenTrajectoryPointVector& path) const;
   bool isPathFeasible(const mav_msgs::EigenTrajectoryPointVector& path) const;
 
+  // Visualization helpers.
+  void appendViewpointMarker(
+      const mav_msgs::EigenTrajectoryPoint& point,
+      visualization_msgs::MarkerArray* marker_array) const;
+
+  // Path helpers.
+  void setYawFromVelocity(double default_yaw,
+                          mav_msgs::EigenTrajectoryPointVector* path);
   /*
   // Functions to actually run the planners.
 
@@ -91,6 +100,10 @@ class LocalPlanningBenchmark {
   bool visualize_;
   std::string frame_id_;
 
+  // Planning settings.
+  double replan_dt_;
+  int max_replans_;
+
   // Map settings.
   Eigen::Vector3d lower_bound_;
   Eigen::Vector3d upper_bound_;
@@ -113,6 +126,7 @@ class LocalPlanningBenchmark {
   voxblox::SimulationWorld world_;
 
   // Planners will go here!
+  VoxbloxLocoPlanner loco_planner_;
 
   // Which methods to use.
   std::vector<LocalPlanningMethod> local_planning_methods_;
