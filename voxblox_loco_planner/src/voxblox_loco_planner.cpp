@@ -107,6 +107,10 @@ bool VoxbloxLocoPlanner::getTrajectoryBetweenWaypoints(
     mav_trajectory_generation::Trajectory* trajectory) {
   CHECK(esdf_map_);
 
+  ROS_INFO_STREAM("[Voxblox Loco Planner] Start: "
+                  << start.position_W.transpose()
+                  << " goal: " << goal.position_W.transpose());
+
   double total_time = mav_trajectory_generation::computeTimeVelocityRamp(
       start.position_W, goal.position_W, constraints_.v_max,
       constraints_.a_max);
@@ -127,8 +131,8 @@ bool VoxbloxLocoPlanner::getTrajectoryBetweenWaypoints(
     loco_.getTrajectory(trajectory);
     mav_trajectory_generation::sampleWholeTrajectory(
         *trajectory, kCollisionSamplingDt, &path);
-    bool success = isPathCollisionFree(path);
-
+    success = isPathCollisionFree(path);
+    ROS_INFO("Path length? %zu Success? %d", path.size(), success);
     if (success) {
       // Awesome, collision-free path.
       break;

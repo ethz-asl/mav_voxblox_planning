@@ -64,6 +64,7 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
 
   srand(trial_number);
   esdf_server_.clear();
+  esdf_server_.generateMesh();
   LocalBenchmarkResult result_template;
 
   result_template.trial_number = trial_number;
@@ -106,6 +107,7 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
     marker_array.markers.push_back(marker);
     path_marker_pub_.publish(marker_array);
     marker_array.markers.clear();
+    ros::spinOnce();
   }
 
   // In case we're finding new goal if needed, we have to keep track of which
@@ -115,12 +117,9 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
   double start_time = 0.0;
   double plan_elapsed_time = 0.0;
   double total_path_distance = 0.0;
-  int num_replans = 0;
-  bool use_start_time = false;
   int i = 0;
   for (i = 0; i < max_replans_; ++i) {
     if (i > 0 && !trajectory.empty()) {
-      use_start_time = true;
       start_time = replan_dt_;
     }
     // Generate a viewpoint and add it to the map.
@@ -165,7 +164,8 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
     size_t max_index = std::min(
         static_cast<size_t>(std::floor(replan_dt_ / constraints_.sampling_dt)),
         path.size() - 1);
-
+    executed_path.insert(executed_path.end(), path.begin(),
+                         path.begin() + max_index);
     if (visualize_) {
       marker_array.markers.push_back(createMarkerForPath(
           path, frame_id_,
@@ -175,7 +175,7 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
       path_marker_pub_.publish(marker_array);
       additional_marker_pub_.publish(additional_markers);
       ros::spinOnce();
-      ros::Duration(0.5).sleep();
+      ros::Duration(0.1).sleep();
     }
 
     if ((executed_path.back().position_W - goal.position_W).norm() <
@@ -190,6 +190,7 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
         "executed_path", 0.1));
     path_marker_pub_.publish(marker_array);
     additional_marker_pub_.publish(additional_markers);
+    ros::spinOnce();
   }
   double path_length = computePathLength(executed_path);
   double distance_from_goal = (start.position_W - goal.position_W).norm();
@@ -201,14 +202,14 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
   result_template.total_path_length_m = path_length;
   result_template.distance_from_goal = distance_from_goal;
   result_template.planning_success = distance_from_goal < kMinDistanceToGoal;
-  result_template.num_replans = num_replans;
+  result_template.num_replans = i;
   result_template.computation_time_sec = plan_elapsed_time;
 
   results_.push_back(result_template);
   ROS_INFO(
       "Trial number: %d Success: %d Replans: %d Final path length: %f Distance "
       "from goal: %f",
-      trial_number, result_template.planning_success, num_replans, path_length,
+      trial_number, result_template.planning_success, i, path_length,
       distance_from_goal);
 }
 
@@ -261,7 +262,8 @@ void LocalPlanningBenchmark::generateCustomWorld(const Eigen::Vector3d& size,
   const double kMinRadius = 0.25;
   const double kMaxRadius = 1.0;
 
-  double usable_area = size.x() * size.y();
+  double usable_area = (size.x() - 2 * free_space_bounds.x()) *
+                       (size.y() - 2 * free_space_bounds.y());
   int num_objects = static_cast<int>(std::floor(density * usable_area));
 
   for (int i = 0; i < num_objects; ++i) {

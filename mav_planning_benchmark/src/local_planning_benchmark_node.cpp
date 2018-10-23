@@ -13,13 +13,14 @@ int main(int argc, char** argv) {
   mav_planning::LocalPlanningBenchmark node(nh, nh_private);
   ROS_INFO("Initialized local planning benchmark node.");
 
-  int num_trials = 1;
+  int num_trials = 5;
   std::string results_path;
   nh_private.param("results_path", results_path, results_path);
   nh_private.param("num_trials", num_trials, num_trials);
 
-  double density = 0.1;
+  double density = 0.10;
   for (int i = 0; i < num_trials; i++) {
+    srand(i);
     node.generateWorld(density);
     node.runBenchmark(i);
   }
