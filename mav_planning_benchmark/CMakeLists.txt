@@ -22,6 +22,11 @@ cs_add_executable(global_planning_benchmark_node
 )
 target_link_libraries(global_planning_benchmark_node ${PROJECT_NAME})
 
+cs_add_executable(local_planning_benchmark_node
+  src/local_planning_benchmark_node.cpp
+)
+target_link_libraries(local_planning_benchmark_node ${PROJECT_NAME})
+
 ##########
 # EXPORT #
 ##########
