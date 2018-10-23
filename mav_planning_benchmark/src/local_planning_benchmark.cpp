@@ -73,9 +73,14 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
   result_template.a_max = constraints_.a_max;
 
   mav_msgs::EigenTrajectoryPoint start, goal;
-  start.position_W = Eigen::Vector3d(1.0, 1.0, kPlanningHeight);
+  start.position_W =
+      Eigen::Vector3d(1.0, upper_bound_.y() / 2.0, kPlanningHeight);
   goal.position_W = upper_bound_ - start.position_W;
   goal.position_W.z() = kPlanningHeight;
+
+  ROS_INFO_STREAM("Start: " << start.position_W.transpose()
+                            << " Goal: " << goal.position_W.transpose());
+
   start.setFromYaw(0.0);
   goal.setFromYaw(0.0);
   result_template.straight_line_path_length_m =
@@ -248,7 +253,7 @@ void LocalPlanningBenchmark::generateCustomWorld(const Eigen::Vector3d& size,
       size.cast<voxblox::FloatingPoint>() + Eigen::Vector3f(1.0, 1.0, 1.0));
 
   // Free space around the edges (so we know we don't start in collision).
-  Eigen::Vector3d free_space_bounds(2.0, 2.0, 2.0);
+  Eigen::Vector3d free_space_bounds(4.0, 4.0, 4.0);
 
   // Some mins and maxes... All objects gotta be on the floor. Just because.
   const double kMinHeight = 2.0;
