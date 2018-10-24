@@ -206,6 +206,7 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
       constraints_.sampling_dt * executed_path.size();
   result_template.is_collision_free = isPathCollisionFree(executed_path);
   result_template.is_feasible = isPathFeasible(executed_path);
+  result_template.local_planning_method = kLoco;
 
   results_.push_back(result_template);
   ROS_INFO(
@@ -348,7 +349,7 @@ void LocalPlanningBenchmark::addViewpointToMap(
 double LocalPlanningBenchmark::getMapDistance(
     const Eigen::Vector3d& position) const {
   double distance = 0.0;
-  const bool kInterpolate = false;
+  const bool kInterpolate = true;
   if (!esdf_server_.getEsdfMapPtr()->getDistanceAtPosition(
           position, kInterpolate, &distance)) {
     return 0.0;
@@ -359,7 +360,7 @@ double LocalPlanningBenchmark::getMapDistance(
 double LocalPlanningBenchmark::getMapDistanceAndGradient(
     const Eigen::Vector3d& position, Eigen::Vector3d* gradient) const {
   double distance = 0.0;
-  const bool kInterpolate = false;
+  const bool kInterpolate = true;
   if (!esdf_server_.getEsdfMapPtr()->getDistanceAndGradientAtPosition(
           position, kInterpolate, &distance, gradient)) {
     return 0.0;

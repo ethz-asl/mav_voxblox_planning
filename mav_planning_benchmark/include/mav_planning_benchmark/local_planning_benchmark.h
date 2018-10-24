@@ -11,9 +11,8 @@ namespace mav_planning {
 
 class LocalPlanningBenchmark {
  public:
-  enum LocalPlanningMethod { kStraightLine = 0 };
+  enum LocalPlanningMethod { kStraightLine = 0, kLoco};
 
-  enum PathSmoothingMethod { kNone = 0, kVelocityRamp, kPolynomial, kLoco };
   struct LocalBenchmarkResult {
     int trial_number = 0;
     int seed = 0;

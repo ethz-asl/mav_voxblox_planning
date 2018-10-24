@@ -115,6 +115,12 @@ bool VoxbloxLocoPlanner::getTrajectoryBetweenWaypoints(
       start.position_W, goal.position_W, constraints_.v_max,
       constraints_.a_max);
 
+  // Check that start and goal aren't basically the same thing...
+  constexpr double kMinTime = 0.01;
+  if (total_time < kMinTime) {
+    return false;
+  }
+
   // If we're doing hotstarts, need to save the previous d_p.
   loco_.setupFromTrajectoryPoints(start, goal, num_segments_, total_time);
   Eigen::VectorXd x0, x;
@@ -218,7 +224,16 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoalFromInitialTrajectory(
   if (!success) {
     return false;
   }
-  return getTrajectoryTowardGoal(start, goal, trajectory);
+  success = getTrajectoryTowardGoal(start, goal, trajectory);
+  const bool attempt_to_use_initial = true;
+  if (!success && attempt_to_use_initial) {
+    // Ok that failed, let's just see if we can get the existing trajectory
+    // going.
+    mav_msgs::EigenTrajectoryPoint back;
+    sampleTrajectoryAtTime(trajectory_in, trajectory_in.getMaxTime(), &back);
+    success = getTrajectoryBetweenWaypoints(start, back, trajectory);
+  }
+  return success;
 }
 
 bool VoxbloxLocoPlanner::findIntermediateGoal(

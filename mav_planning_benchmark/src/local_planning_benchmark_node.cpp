@@ -13,13 +13,13 @@ int main(int argc, char** argv) {
   mav_planning::LocalPlanningBenchmark node(nh, nh_private);
   ROS_INFO("Initialized local planning benchmark node.");
 
-  int num_trials = 1;
+  int num_trials = 100;
   std::string results_path;
   nh_private.param("results_path", results_path, results_path);
   nh_private.param("num_trials", num_trials, num_trials);
 
   const double min_density = 0.05;
-  const double max_density = 0.05;
+  const double max_density = 0.50;
   const double density_increment = 0.05;
 
   // Derived...
