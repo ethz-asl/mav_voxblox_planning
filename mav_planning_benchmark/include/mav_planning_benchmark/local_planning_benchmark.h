@@ -11,7 +11,7 @@ namespace mav_planning {
 
 class LocalPlanningBenchmark {
  public:
-  enum LocalPlanningMethod { kStraightLine = 0, kLoco};
+  enum LocalPlanningMethod { kStraightLine = 0, kLoco };
 
   struct LocalBenchmarkResult {
     int trial_number = 0;
