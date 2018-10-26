@@ -1,4 +1,5 @@
 #include <mav_msgs/default_topics.h>
+#include <mav_trajectory_generation/trajectory_sampling.h>
 
 #include "mav_local_planner/mav_local_planner.h"
 
@@ -19,9 +20,12 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       autostart_(true),
       current_waypoint_(-1),
       path_index_(0),
-      esdf_server_(nh_, nh_private_) {
+      esdf_server_(nh_, nh_private_),
+      loco_planner_(nh_, nh_private_) {
+  // Set up some settings.
   constraints_.setParametersFromRos(nh_private_);
   esdf_server_.setTraversabilityRadius(constraints_.robot_radius);
+  loco_planner_.setEsdfMap(esdf_server_.getEsdfMapPtr());
 
   nh_private_.param("verbose", verbose_, verbose_);
   nh_private_.param("global_frame_id", global_frame_id_, global_frame_id_);
@@ -76,9 +80,106 @@ void MavLocalPlanner::waypointCallback(const geometry_msgs::PoseStamped& msg) {
   mav_msgs::EigenTrajectoryPoint waypoint;
   eigenTrajectoryPointFromPoseMsg(msg, &waypoint);
 
+  waypoints_.clear();
+  waypoints_.push_back(waypoint);
+  current_waypoint_ = 0;
+
   // TODO!!!
   // Do something here!
   // Trigger replan?
+}
+
+void MavLocalPlanner::planningStep() {
+  // TODO!!!!
+  // This is only the first case: plan toward a single waypoint.
+  // This will get replaced with logic about doing local planning toward
+  // waypoint, or path smoothing, or path repair.
+  if (current_waypoint_ < 0 || waypoints_.size() <= current_waypoint_) {
+    // TODO(helenol): How to abort nicely???
+    return;
+  }
+
+  mav_msgs::EigenTrajectoryPoint waypoint = waypoints_[current_waypoint_];
+  const double kCloseEnough = 0.05;
+
+  // Save success and Trajectory.
+  mav_trajectory_generation::Trajectory trajectory;
+  bool success = false;
+
+  if (!path_queue_.empty() && path_index_ < path_queue_.size()) {
+    mav_msgs::EigenTrajectoryPointVector path_chunk;
+    size_t replan_start_index;
+    {
+      std::lock_guard<std::mutex> guard(path_mutex_);
+      replan_start_index =
+          path_index_ + static_cast<size_t>((replan_lookahead_sec_) /
+                                            constraints_.sampling_dt);
+      // Cut out the remaining snippet of the trajectory so we can do something
+      // with it.
+      std::copy(path_queue_.begin() + replan_start_index, path_queue_.end(),
+                path_chunk.begin());
+    }
+
+    bool path_chunk_collision_free = isPathCollisionFree(path_chunk);
+    // Check if the current path queue goes to the goal and is collision free.
+    if ((path_queue_.back().position_W - waypoint.position_W).norm() <
+        kCloseEnough) {
+      // Collision check the remaining chunk of the trajectory.
+      if (path_chunk_collision_free) {
+        ROS_INFO(
+            "[Mav Local Planner][Plan Step] Current plan is valid, just "
+            "rollin' with it.");
+        return;
+      }
+    }
+    // Otherwise we gotta replan this thing anyway.
+    success = loco_planner_.getTrajectoryTowardGoal(path_chunk.front(),
+                                                    waypoint, &trajectory);
+    if (!success) {
+      if (path_chunk_collision_free) {
+        ROS_INFO(
+            "[Mav Local Planner][Plan Step] Couldn't find a solution :( "
+            "Continuing existing solution.");
+      } else {
+        ROS_INFO(
+            "[Mav Local Planner][Plan Step] ABORTING! No local solution "
+            "found.");
+        abort();
+      }
+      return;
+    } else {
+      mav_msgs::EigenTrajectoryPointVector new_path_chunk;
+      mav_trajectory_generation::sampleWholeTrajectory(
+          trajectory, constraints_.sampling_dt, &new_path_chunk);
+
+      std::lock_guard<std::mutex> guard(path_mutex_);
+      // Remove what was in the trajectory before.
+      path_queue_.erase(path_queue_.begin() + replan_start_index,
+                        path_queue_.end());
+      // Stick the new one in.
+      path_queue_.insert(path_queue_.end(), new_path_chunk.begin(),
+                         new_path_chunk.end());
+    }
+  } else {
+    // There's nothing planned so far! So we plan from the current odometry.
+    mav_msgs::EigenTrajectoryPoint current_point;
+    current_point.position_W = odometry_.position_W;
+    current_point.orientation_W_B = odometry_.orientation_W_B;
+
+    success = loco_planner_.getTrajectoryTowardGoal(current_point, waypoint,
+                                                    &trajectory);
+    if (success) {
+      // Copy this straight into the queue.
+      std::lock_guard<std::mutex> guard(path_mutex_);
+      mav_trajectory_generation::sampleWholeTrajectory(
+          trajectory, constraints_.sampling_dt, &path_queue_);
+      path_index_ = 0;
+    }
+  }
+
+  if (success) {
+    mav_msgs::EigenTrajectoryPointVector new_path;
+  }
 }
 
 void MavLocalPlanner::startPublishingCommands() {
@@ -102,19 +203,19 @@ void MavLocalPlanner::startPublishingCommands() {
 
 void MavLocalPlanner::commandPublishTimerCallback(
     const ros::TimerEvent& event) {
-  if (path_index_ < path_.size()) {
+  if (path_index_ < path_queue_.size()) {
     std::lock_guard<std::mutex> guard(path_mutex_);
     size_t number_to_publish = std::min<size_t>(
         std::floor(command_publishing_dt_ / constraints_.sampling_dt),
-        path_.size() - path_index_);
+        path_queue_.size() - path_index_);
 
     size_t number_to_publish_with_buffer =
         std::min<size_t>(number_to_publish + mpc_prediction_horizon_,
-                         path_.size() - path_index_);
+                         path_queue_.size() - path_index_);
 
     // TODO(helenol): do this without copy! Use iterators properly!
     mav_msgs::EigenTrajectoryPointVector::const_iterator first_sample =
-        path_.begin() + path_index_;
+        path_queue_.begin() + path_index_;
     mav_msgs::EigenTrajectoryPointVector::const_iterator last_sample =
         first_sample + number_to_publish_with_buffer;
     mav_msgs::EigenTrajectoryPointVector trajectory_to_publish(first_sample,
@@ -128,6 +229,60 @@ void MavLocalPlanner::commandPublishTimerCallback(
     path_index_ += number_to_publish;
   }
   // Does there need to be an else????
+}
+
+void MavLocalPlanner::abort() {
+  // No need to check anything on stop, just clear all the paths.
+  clearTrajectory();
+  // Make sure to clear the queue in the controller as well (we send about a
+  // second of trajectories ahead).
+  sendCurrentPose();
+}
+
+void MavLocalPlanner::clearTrajectory() {
+  std::lock_guard<std::mutex> guard(path_mutex_);
+  command_publishing_timer_.stop();
+  path_queue_.clear();
+  path_index_ = 0;
+}
+
+void MavLocalPlanner::sendCurrentPose() {
+  // Sends the current pose with velocity 0 to the controller to clear the
+  // controller's trajectory queue.
+  // More or less an abort operation.
+  mav_msgs::EigenTrajectoryPoint current_point;
+  current_point.position_W = odometry_.position_W;
+  current_point.orientation_W_B = odometry_.orientation_W_B;
+
+  trajectory_msgs::MultiDOFJointTrajectory msg;
+  msgMultiDofJointTrajectoryFromEigen(current_point, &msg);
+  command_pub_.publish(msg);
+}
+
+bool MavLocalPlanner::startCallback(std_srvs::Empty::Request& request,
+                                    std_srvs::Empty::Response& response) {
+  if (path_queue_.size() <= path_index_) {
+    ROS_WARN("Trying to start an empty or finished trajectory queue!");
+    return false;
+  }
+  startPublishingCommands();
+  return true;
+}
+
+bool MavLocalPlanner::pauseCallback(std_srvs::Empty::Request& request,
+                                    std_srvs::Empty::Response& response) {
+  if (path_queue_.size() <= path_index_) {
+    ROS_WARN("Trying to pause an empty or finished trajectory queue!");
+    return false;
+  }
+  command_publishing_timer_.stop();
+  return true;
+}
+
+bool MavLocalPlanner::stopCallback(std_srvs::Empty::Request& request,
+                                   std_srvs::Empty::Response& response) {
+  abort();
+  return true;
 }
 
 }  // namespace mav_planning

@@ -54,13 +54,14 @@ class VoxbloxLocoPlanner {
   bool isPathFeasible(const mav_msgs::EigenTrajectoryPointVector& path) const;
 
   // Intermediate goal-finding.
-  bool findIntermediateGoal(const mav_msgs::EigenTrajectoryPoint& start,
-                            const mav_msgs::EigenTrajectoryPoint& goal,
-                            double step_size,
-                            mav_msgs::EigenTrajectoryPoint* goal_out) const;
+  bool findIntermediateGoal(
+    const mav_msgs::EigenTrajectoryPoint& start,
+    const mav_msgs::EigenTrajectoryPoint& goal, double step_size,
+    mav_msgs::EigenTrajectoryPoint* goal_out) const;
 
-  bool getNearestFreeSpaceToPoint(const Eigen::Vector3d& pos, double step_size,
-                                  Eigen::Vector3d* new_pos) const;
+bool getNearestFreeSpaceToPoint(
+    const Eigen::Vector3d& pos, double step_size,
+    Eigen::Vector3d* new_pos) const;
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;

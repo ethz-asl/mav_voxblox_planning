@@ -10,10 +10,14 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <mav_msgs/conversions.h>
 #include <mav_msgs/eigen_mav_msgs.h>
+#include <mav_planning_common/color_utils.h>
+#include <mav_planning_common/path_utils.h>
+#include <mav_planning_common/path_visualization.h>
 #include <mav_planning_common/physical_constraints.h>
 #include <mav_planning_msgs/PolynomialTrajectory4D.h>
 #include <mav_visualization/helpers.h>
 #include <minkindr_conversions/kindr_msg.h>
+#include <voxblox_loco_planner/voxblox_loco_planner.h>
 #include <voxblox_ros/esdf_server.h>
 
 namespace mav_planning {
@@ -50,9 +54,23 @@ class MavLocalPlanner {
   void startPublishingCommands();
   void commandPublishTimerCallback(const ros::TimerEvent& event);
 
-
+  // Control for planning.
+  void planningStep();
 
   // Functions to help out replanning.
+
+  // Map access.
+  double getMapDistance(const Eigen::Vector3d& position) const;
+  double getMapDistanceAndGradient(const Eigen::Vector3d& position,
+                                   Eigen::Vector3d* gradient) const;
+
+  // Double-check that everything is safe w.r.t. current map.
+  bool isPathCollisionFree(
+      const mav_msgs::EigenTrajectoryPointVector& path) const;
+  bool isPathFeasible(const mav_msgs::EigenTrajectoryPointVector& path) const;
+
+  // Other internal stuff.
+  void sendCurrentPose();
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
@@ -102,6 +120,7 @@ class MavLocalPlanner {
   // TODO(helenol): do I need these two to be separate? I guess so...
   double command_publishing_dt_;
   double replan_dt_;
+  double replan_lookahead_sec_;
 
   // Settings -- general planning.
   bool use_obstacle_avoidance_;
@@ -116,7 +135,7 @@ class MavLocalPlanner {
   int current_waypoint_;
 
   // State -- current tracked path.
-  mav_msgs::EigenTrajectoryPointVector path_;
+  mav_msgs::EigenTrajectoryPointVector path_queue_;
   size_t path_index_;
   // Super important: mutex for locking the path queues.
   std::mutex path_mutex_;
@@ -124,7 +143,10 @@ class MavLocalPlanner {
   // Map!
   voxblox::EsdfServer esdf_server_;
 
-  // Planners.
+  // Planners -- local planners.
+  VoxbloxLocoPlanner loco_planner_;
+
+  // Planners -- path smoothers.
 };
 
 }  // namespace mav_planning
