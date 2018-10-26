@@ -45,6 +45,9 @@ class MavLocalPlanner {
   bool stopCallback(std_srvs::Empty::Request& request,
                     std_srvs::Empty::Response& response);
 
+  // Visualizations.
+  void visualizePath();
+
   // TODO -- TO IMPLEMENT:
   void polynomialTrajectoryCallback(
       const mav_planning_msgs::PolynomialTrajectory4D& msg) {}

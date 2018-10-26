@@ -87,6 +87,7 @@ void MavLocalPlanner::waypointCallback(const geometry_msgs::PoseStamped& msg) {
   // TODO!!!
   // Do something here!
   // Trigger replan?
+  planningStep();
 }
 
 void MavLocalPlanner::planningStep() {
@@ -94,7 +95,8 @@ void MavLocalPlanner::planningStep() {
   // This is only the first case: plan toward a single waypoint.
   // This will get replaced with logic about doing local planning toward
   // waypoint, or path smoothing, or path repair.
-  if (current_waypoint_ < 0 || waypoints_.size() <= current_waypoint_) {
+  if (current_waypoint_ < 0 ||
+      static_cast<int>(waypoints_.size()) <= current_waypoint_) {
     // TODO(helenol): How to abort nicely???
     return;
   }
@@ -151,11 +153,15 @@ void MavLocalPlanner::planningStep() {
       mav_msgs::EigenTrajectoryPointVector new_path_chunk;
       mav_trajectory_generation::sampleWholeTrajectory(
           trajectory, constraints_.sampling_dt, &new_path_chunk);
+      new_path_chunk.front().time_from_start_ns =
+          path_chunk.front().time_from_start_ns;
+      retimeTrajectoryMonotonicallyIncreasing(&new_path_chunk);
 
       std::lock_guard<std::mutex> guard(path_mutex_);
       // Remove what was in the trajectory before.
       path_queue_.erase(path_queue_.begin() + replan_start_index,
                         path_queue_.end());
+
       // Stick the new one in.
       path_queue_.insert(path_queue_.end(), new_path_chunk.begin(),
                          new_path_chunk.end());
@@ -177,9 +183,7 @@ void MavLocalPlanner::planningStep() {
     }
   }
 
-  if (success) {
-    mav_msgs::EigenTrajectoryPointVector new_path;
-  }
+  visualizePath();
 }
 
 void MavLocalPlanner::startPublishingCommands() {
@@ -229,6 +233,7 @@ void MavLocalPlanner::commandPublishTimerCallback(
     path_index_ += number_to_publish;
   }
   // Does there need to be an else????
+  planningStep();
 }
 
 void MavLocalPlanner::abort() {
@@ -283,6 +288,20 @@ bool MavLocalPlanner::stopCallback(std_srvs::Empty::Request& request,
                                    std_srvs::Empty::Response& response) {
   abort();
   return true;
+}
+
+void MavLocalPlanner::visualizePath() {
+  // Split trajectory into two chunks: before and after.
+  visualization_msgs::MarkerArray marker_array;
+  visualization_msgs::Marker path_marker;
+  {
+    std::lock_guard<std::mutex> guard(path_mutex_);
+
+    createMarkerForPath(path_queue_, local_frame_id_,
+                        mav_visualization::Color::Black(), "local_path", 0.01);
+  }
+  marker_array.markers.push_back(path_marker);
+  path_marker_pub_.publish(marker_array);
 }
 
 }  // namespace mav_planning

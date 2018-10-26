@@ -11,7 +11,7 @@ inline double computePathLength(
     const mav_msgs::EigenTrajectoryPointVector& path) {
   Eigen::Vector3d last_point;
   double distance = 0;
-  for (int i = 0; i < path.size(); ++i) {
+  for (size_t i = 0; i < path.size(); ++i) {
     const mav_msgs::EigenTrajectoryPoint& point = path[i];
 
     if (i > 0) {
