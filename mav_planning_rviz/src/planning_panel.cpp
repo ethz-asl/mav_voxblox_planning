@@ -12,6 +12,7 @@
 
 #include <geometry_msgs/Twist.h>
 #include <mav_planning_msgs/PlannerService.h>
+#include <ros/names.h>
 #include <rviz/visualization_manager.h>
 #include <std_srvs/Empty.h>
 
@@ -39,6 +40,8 @@ void PlanningPanel::onInitialize() {
     kv.second->getPose(&pose);
     interactive_markers_.enableMarker(kv.first, pose);
   }
+
+  ROS_INFO("Initializing.");
 }
 
 void PlanningPanel::createLayout() {
@@ -87,11 +90,18 @@ void PlanningPanel::createLayout() {
   service_layout->addWidget(planner_service_button_);
   service_layout->addWidget(publish_path_button_);
 
+  QHBoxLayout* local_planner_layout = new QHBoxLayout;
+  waypoint_button_ = new QPushButton("Send Waypoint");
+  controller_button_ = new QPushButton("Send To Controller");
+  local_planner_layout->addWidget(waypoint_button_);
+  local_planner_layout->addWidget(controller_button_);
+
   // First the names, then the start/goal, then service buttons.
   QVBoxLayout* layout = new QVBoxLayout;
   layout->addLayout(topic_layout);
   layout->addLayout(start_goal_layout);
   layout->addLayout(service_layout);
+  layout->addLayout(local_planner_layout);
   setLayout(layout);
 
   // Hook up connections.
@@ -103,6 +113,9 @@ void PlanningPanel::createLayout() {
           SLOT(callPlannerService()));
   connect(publish_path_button_, SIGNAL(released()), this,
           SLOT(callPublishPath()));
+  connect(waypoint_button_, SIGNAL(released()), this, SLOT(publishWaypoint()));
+  connect(controller_button_, SIGNAL(released()), this,
+          SLOT(publishToController()));
 }
 
 void PlanningPanel::updateNamespace() {
@@ -111,10 +124,21 @@ void PlanningPanel::updateNamespace() {
 
 // Set the topic name we are publishing to.
 void PlanningPanel::setNamespace(const QString& new_namespace) {
+  ROS_INFO_STREAM("Setting namespace from: " << namespace_.toStdString()
+                                             << " to "
+                                             << new_namespace.toStdString());
   // Only take action if the name has changed.
   if (new_namespace != namespace_) {
     namespace_ = new_namespace;
     Q_EMIT configChanged();
+
+    std::string error;
+    if (ros::names::validate(namespace_.toStdString(), error)) {
+      waypoint_pub_ = nh_.advertise<geometry_msgs::PoseStamped>(
+          namespace_.toStdString() + "/waypoint", 1, false);
+      controller_pub_ = nh_.advertise<geometry_msgs::PoseStamped>(
+          namespace_.toStdString() + "/command/pose", 1, false);
+    }
   }
 }
 
@@ -197,8 +221,10 @@ void PlanningPanel::save(rviz::Config config) const {
 void PlanningPanel::load(const rviz::Config& config) {
   rviz::Panel::load(config);
   QString topic;
-  if (config.mapGetString("namespace", &namespace_)) {
-    namespace_editor_->setText(namespace_);
+  QString ns;
+  if (config.mapGetString("namespace", &ns)) {
+    namespace_editor_->setText(ns);
+    updateNamespace();
   }
   if (config.mapGetString("planner_name", &planner_name_)) {
     planner_name_editor_->setText(planner_name_);
@@ -265,7 +291,37 @@ void PlanningPanel::callPublishPath() {
   }
 }
 
-}  // end namespace mav_planning_rviz
+void PlanningPanel::publishWaypoint() {
+  mav_msgs::EigenTrajectoryPoint goal_point;
+  goal_pose_widget_->getPose(&goal_point);
+
+  geometry_msgs::PoseStamped pose;
+  pose.header.frame_id = vis_manager_->getFixedFrame().toStdString();
+  mav_msgs::msgPoseStampedFromEigenTrajectoryPoint(goal_point, &pose);
+
+  ROS_INFO_STREAM("Publishing waypoint on "
+                  << waypoint_pub_.getTopic()
+                  << " subscribers: " << waypoint_pub_.getNumSubscribers());
+
+  waypoint_pub_.publish(pose);
+}
+
+void PlanningPanel::publishToController() {
+  mav_msgs::EigenTrajectoryPoint goal_point;
+  goal_pose_widget_->getPose(&goal_point);
+
+  geometry_msgs::PoseStamped pose;
+  pose.header.frame_id = vis_manager_->getFixedFrame().toStdString();
+  mav_msgs::msgPoseStampedFromEigenTrajectoryPoint(goal_point, &pose);
+
+  ROS_INFO_STREAM("Publishing controller goal on "
+                  << controller_pub_.getTopic()
+                  << " subscribers: " << controller_pub_.getNumSubscribers());
+
+  controller_pub_.publish(pose);
+}
+
+}  // namespace mav_planning_rviz
 
 // Tell pluginlib about this class.  Every class which should be
 // loadable by pluginlib::ClassLoader must have these two lines
