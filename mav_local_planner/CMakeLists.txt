@@ -16,10 +16,10 @@ cs_add_library(${PROJECT_NAME}
 ############
 # BINARIES #
 ############
-#cs_add_executable(voxblox_rrt_planner_node
-#  src/voxblox_rrt_planner_node.cpp
-#)
-#target_link_libraries(voxblox_rrt_planner_node ${PROJECT_NAME})
+cs_add_executable(mav_local_planner_node
+  src/mav_local_planner_node.cpp
+)
+target_link_libraries(mav_local_planner_node ${PROJECT_NAME})
 
 ##########
 # EXPORT #

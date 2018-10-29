@@ -88,6 +88,13 @@ void MavLocalPlanner::waypointCallback(const geometry_msgs::PoseStamped& msg) {
   // Do something here!
   // Trigger replan?
   planningStep();
+  startPublishingCommands();
+}
+
+void MavLocalPlanner::waypointListCallback(
+    const geometry_msgs::PoseArray& msg) {
+  // Plan a path from the current position to the target pose stamped.
+  ROS_INFO("[Mav Local Planner] Got a waypoint list! UNIMPLEMENTED.");
 }
 
 void MavLocalPlanner::planningStep() {
@@ -291,7 +298,7 @@ bool MavLocalPlanner::stopCallback(std_srvs::Empty::Request& request,
 }
 
 void MavLocalPlanner::visualizePath() {
-  // Split trajectory into two chunks: before and after.
+  // TODO: Split trajectory into two chunks: before and after.
   visualization_msgs::MarkerArray marker_array;
   visualization_msgs::Marker path_marker;
   {
@@ -302,6 +309,41 @@ void MavLocalPlanner::visualizePath() {
   }
   marker_array.markers.push_back(path_marker);
   path_marker_pub_.publish(marker_array);
+}
+
+double MavLocalPlanner::getMapDistance(const Eigen::Vector3d& position) const {
+  double distance = 0.0;
+  const bool kInterpolate = false;
+  if (!esdf_server_.getEsdfMapPtr()->getDistanceAtPosition(
+          position, kInterpolate, &distance)) {
+    return 0.0;
+  }
+  return distance;
+}
+
+bool MavLocalPlanner::isPathCollisionFree(
+    const mav_msgs::EigenTrajectoryPointVector& path) const {
+  for (const mav_msgs::EigenTrajectoryPoint& point : path) {
+    if (getMapDistance(point.position_W) < constraints_.robot_radius) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool MavLocalPlanner::isPathFeasible(
+    const mav_msgs::EigenTrajectoryPointVector& path) const {
+  // This is easier to check in the trajectory but then we are limited in how
+  // we do the smoothing.
+  for (const mav_msgs::EigenTrajectoryPoint& point : path) {
+    if (point.acceleration_W.norm() > constraints_.a_max + 1e-2) {
+      return false;
+    }
+    if (point.velocity_W.norm() > constraints_.v_max + 1e-2) {
+      return false;
+    }
+  }
+  return true;
 }
 
 }  // namespace mav_planning
