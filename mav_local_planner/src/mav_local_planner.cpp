@@ -75,7 +75,7 @@ void MavLocalPlanner::waypointCallback(const geometry_msgs::PoseStamped& msg) {
   ROS_INFO("[Mav Local Planner] Got a waypoint!");
   // TODO(helenol): What do we do with clearing????
   // Cancel any previous trajectory on getting a new one.
-  clearTrajectory();
+  //clearTrajectory();
 
   mav_msgs::EigenTrajectoryPoint waypoint;
   eigenTrajectoryPointFromPoseMsg(msg, &waypoint);
@@ -137,6 +137,7 @@ void MavLocalPlanner::planningStep() {
       ROS_INFO("path chunk length: %zu", path_chunk.size());
       if (path_chunk.size() == 0) {
         path_chunk.push_back(path_queue_.back());
+        path_chunk[0].time_from_start_ns = 0;
       }
     }
 
@@ -145,7 +146,7 @@ void MavLocalPlanner::planningStep() {
         "[Mav Local Planner][Plan Step] Existing chunk is collision free? %d",
         path_chunk_collision_free);
     // Check if the current path queue goes to the goal and is collision free.
-    if ((path_queue_.back().position_W - waypoint.position_W).norm() <
+    if ((path_chunk.back().position_W - waypoint.position_W).norm() <
         kCloseEnough) {
       // Collision check the remaining chunk of the trajectory.
       if (path_chunk_collision_free) {
@@ -203,6 +204,7 @@ void MavLocalPlanner::planningStep() {
     if (success) {
       // Copy this straight into the queue.
       std::lock_guard<std::mutex> guard(path_mutex_);
+      path_queue_.clear();
       mav_trajectory_generation::sampleWholeTrajectory(
           trajectory, constraints_.sampling_dt, &path_queue_);
       path_index_ = 0;

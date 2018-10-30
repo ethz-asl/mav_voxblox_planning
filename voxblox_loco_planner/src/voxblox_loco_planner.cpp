@@ -22,6 +22,8 @@ VoxbloxLocoPlanner::VoxbloxLocoPlanner(const ros::NodeHandle& nh,
   nh_private_.param("verbose", verbose_, verbose_);
   nh_private_.param("visualize", visualize_, visualize_);
   nh_private_.param("frame_id", frame_id_, frame_id_);
+  nh_private_.param("planning_horizon_m", planning_horizon_m_,
+                    planning_horizon_m_);
 
   loco_.setRobotRadius(constraints_.robot_radius);
 
