@@ -58,7 +58,9 @@ class MavLocalPlanner {
   void commandPublishTimerCallback(const ros::TimerEvent& event);
 
   // Control for planning.
+  void planningTimerCallback(const ros::TimerEvent& event);
   void planningStep();
+  void nextWaypoint();
 
   // Functions to help out replanning.
 
@@ -107,6 +109,7 @@ class MavLocalPlanner {
 
   // Publisher for new messages to the controller.
   ros::Timer command_publishing_timer_;
+  ros::Timer planning_timer_;
 
   // Settings -- general
   bool verbose_;
@@ -143,6 +146,10 @@ class MavLocalPlanner {
   // Super important: mutex for locking the path queues.
   std::mutex path_mutex_;
 
+  // State -- planning.
+  int max_failures_;
+  int num_failures_;
+
   // Map!
   voxblox::EsdfServer esdf_server_;
 
@@ -150,6 +157,8 @@ class MavLocalPlanner {
   VoxbloxLocoPlanner loco_planner_;
 
   // Planners -- path smoothers.
+
+
 };
 
 }  // namespace mav_planning
