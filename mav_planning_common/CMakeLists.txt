@@ -12,6 +12,7 @@ add_definitions(-std=c++11 -Wall)
 cs_add_library(${PROJECT_NAME}
   src/color_utils.cpp
   src/path_visualization.cpp
+  src/yaw_policy.cpp
 )
 
 ##########
