@@ -14,6 +14,7 @@
 #include <mav_planning_common/path_utils.h>
 #include <mav_planning_common/path_visualization.h>
 #include <mav_planning_common/physical_constraints.h>
+#include <mav_planning_common/yaw_policy.h>
 #include <mav_planning_msgs/PolynomialTrajectory4D.h>
 #include <mav_visualization/helpers.h>
 #include <minkindr_conversions/kindr_msg.h>
@@ -153,12 +154,13 @@ class MavLocalPlanner {
   // Map!
   voxblox::EsdfServer esdf_server_;
 
+  // Planners -- yaw policy
+  YawPolicy yaw_policy_;
+
   // Planners -- local planners.
   VoxbloxLocoPlanner loco_planner_;
 
   // Planners -- path smoothers.
-
-
 };
 
 }  // namespace mav_planning

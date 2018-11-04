@@ -76,6 +76,10 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
   planning_timer_ = nh.createTimer(
       ros::Duration(replan_dt_),
       boost::bind(&MavLocalPlanner::planningTimerCallback, this, _1));
+
+  // Set up yaw policy.
+  yaw_policy_.setPhysicalConstraints(constraints_);
+  yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kVelocityVector);
 }
 
 void MavLocalPlanner::odometryCallback(const nav_msgs::Odometry& msg) {
@@ -96,9 +100,6 @@ void MavLocalPlanner::waypointCallback(const geometry_msgs::PoseStamped& msg) {
   waypoints_.push_back(waypoint);
   current_waypoint_ = 0;
 
-  // TODO!!!
-  // Do something here!
-  // Trigger replan?
   planningStep();
   startPublishingCommands();
 }
@@ -215,6 +216,10 @@ void MavLocalPlanner::planningStep() {
         retimeTrajectoryWithStartTimeAndDt(
             path_chunk.front().time_from_start_ns, kDtNs, &new_path_chunk);
 
+        new_path_chunk.front().orientation_W_B =
+            path_chunk.front().orientation_W_B;
+        yaw_policy_.applyPolicyInPlace(&new_path_chunk);
+
         std::lock_guard<std::mutex> guard(path_mutex_);
         // Remove what was in the trajectory before.
         if (replan_start_index < path_queue_.size()) {
@@ -249,6 +254,8 @@ void MavLocalPlanner::planningStep() {
         path_queue_.clear();
         mav_trajectory_generation::sampleWholeTrajectory(
             trajectory, constraints_.sampling_dt, &path_queue_);
+        path_queue_.front().orientation_W_B = odometry_.orientation_W_B;
+        yaw_policy_.applyPolicyInPlace(&path_queue_);
         path_index_ = 0;
       }
     } else {
