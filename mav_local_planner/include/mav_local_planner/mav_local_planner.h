@@ -14,6 +14,7 @@
 #include <mav_planning_common/path_utils.h>
 #include <mav_planning_common/path_visualization.h>
 #include <mav_planning_common/physical_constraints.h>
+#include <mav_planning_common/semaphore.h>
 #include <mav_planning_common/yaw_policy.h>
 #include <mav_planning_msgs/PolynomialTrajectory4D.h>
 #include <mav_visualization/helpers.h>
@@ -105,8 +106,11 @@ class MavLocalPlanner {
 
   // ROS async handling: callback queues and spinners for command publishing,
   // which is on a separate thread from the rest of the functions.
+  // Same for planning.
   ros::CallbackQueue command_publishing_queue_;
   ros::AsyncSpinner command_publishing_spinner_;
+  ros::CallbackQueue planning_queue_;
+  ros::AsyncSpinner planning_spinner_;
 
   // Publisher for new messages to the controller.
   ros::Timer command_publishing_timer_;
@@ -145,7 +149,9 @@ class MavLocalPlanner {
   mav_msgs::EigenTrajectoryPointVector path_queue_;
   size_t path_index_;
   // Super important: mutex for locking the path queues.
-  std::mutex path_mutex_;
+  std::recursive_mutex path_mutex_;
+  std::recursive_mutex map_mutex_;
+  RosSemaphore should_replan_;
 
   // State -- planning.
   int max_failures_;

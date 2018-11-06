@@ -40,8 +40,6 @@ void PlanningPanel::onInitialize() {
     kv.second->getPose(&pose);
     interactive_markers_.enableMarker(kv.first, pose);
   }
-
-  ROS_INFO("Initializing.");
 }
 
 void PlanningPanel::createLayout() {
@@ -124,9 +122,9 @@ void PlanningPanel::updateNamespace() {
 
 // Set the topic name we are publishing to.
 void PlanningPanel::setNamespace(const QString& new_namespace) {
-  ROS_INFO_STREAM("Setting namespace from: " << namespace_.toStdString()
-                                             << " to "
-                                             << new_namespace.toStdString());
+  ROS_DEBUG_STREAM("Setting namespace from: " << namespace_.toStdString()
+                                              << " to "
+                                              << new_namespace.toStdString());
   // Only take action if the name has changed.
   if (new_namespace != namespace_) {
     namespace_ = new_namespace;
@@ -267,7 +265,7 @@ void PlanningPanel::callPlannerService() {
                                                      &req.request.goal_pose);
 
     try {
-      ROS_INFO_STREAM("Service name: " << service_name);
+      ROS_DEBUG_STREAM("Service name: " << service_name);
       if (!ros::service::call(service_name, req)) {
         ROS_WARN_STREAM("Couldn't call service: " << service_name);
       }
@@ -299,9 +297,9 @@ void PlanningPanel::publishWaypoint() {
   pose.header.frame_id = vis_manager_->getFixedFrame().toStdString();
   mav_msgs::msgPoseStampedFromEigenTrajectoryPoint(goal_point, &pose);
 
-  ROS_INFO_STREAM("Publishing waypoint on "
-                  << waypoint_pub_.getTopic()
-                  << " subscribers: " << waypoint_pub_.getNumSubscribers());
+  ROS_DEBUG_STREAM("Publishing waypoint on "
+                   << waypoint_pub_.getTopic()
+                   << " subscribers: " << waypoint_pub_.getNumSubscribers());
 
   waypoint_pub_.publish(pose);
 }
@@ -314,9 +312,9 @@ void PlanningPanel::publishToController() {
   pose.header.frame_id = vis_manager_->getFixedFrame().toStdString();
   mav_msgs::msgPoseStampedFromEigenTrajectoryPoint(goal_point, &pose);
 
-  ROS_INFO_STREAM("Publishing controller goal on "
-                  << controller_pub_.getTopic()
-                  << " subscribers: " << controller_pub_.getNumSubscribers());
+  ROS_DEBUG_STREAM("Publishing controller goal on "
+                   << controller_pub_.getTopic()
+                   << " subscribers: " << controller_pub_.getNumSubscribers());
 
   controller_pub_.publish(pose);
 }

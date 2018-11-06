@@ -10,6 +10,7 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
     : nh_(nh),
       nh_private_(nh_private),
       command_publishing_spinner_(1, &command_publishing_queue_),
+      planning_spinner_(1, &planning_queue_),
       verbose_(false),
       global_frame_id_("map"),
       local_frame_id_("odom"),
@@ -69,13 +70,17 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
   stop_srv_ = nh_private_.advertiseService(
       "stop", &MavLocalPlanner::stopCallback, this);
 
+  // Start the planning timer. Will no-op most cycles.
+  ros::TimerOptions timer_options(
+      ros::Duration(replan_dt_),
+      boost::bind(&MavLocalPlanner::planningTimerCallback, this, _1),
+      &planning_queue_);
+
+  planning_timer_ = nh_.createTimer(timer_options);
+
   // Start the command publishing spinner.
   command_publishing_spinner_.start();
-
-  // Start the planning timer. Will no-op most cycles.
-  planning_timer_ = nh.createTimer(
-      ros::Duration(replan_dt_),
-      boost::bind(&MavLocalPlanner::planningTimerCallback, this, _1));
+  planning_spinner_.start();
 
   // Set up yaw policy.
   yaw_policy_.setPhysicalConstraints(constraints_);
@@ -91,7 +96,7 @@ void MavLocalPlanner::waypointCallback(const geometry_msgs::PoseStamped& msg) {
   ROS_INFO("[Mav Local Planner] Got a waypoint!");
   // TODO(helenol): What do we do with clearing????
   // Cancel any previous trajectory on getting a new one.
-  // clearTrajectory();
+  clearTrajectory();
 
   mav_msgs::EigenTrajectoryPoint waypoint;
   eigenTrajectoryPointFromPoseMsg(msg, &waypoint);
@@ -100,6 +105,7 @@ void MavLocalPlanner::waypointCallback(const geometry_msgs::PoseStamped& msg) {
   waypoints_.push_back(waypoint);
   current_waypoint_ = 0;
 
+  // Execute one planning step on main thread.
   planningStep();
   startPublishingCommands();
 }
@@ -111,7 +117,14 @@ void MavLocalPlanner::waypointListCallback(
 }
 
 void MavLocalPlanner::planningTimerCallback(const ros::TimerEvent& event) {
-  planningStep();
+  // Wait on the condition variable from the publishing...
+  std::cerr << "Waiting.\n";
+  if (should_replan_.wait_for(replan_dt_)) {
+    std::cerr << "Waited.\n";
+    planningStep();
+  } else {
+    std::cerr << "Failed to wait.\n";
+  }
 }
 
 void MavLocalPlanner::planningStep() {
@@ -121,7 +134,6 @@ void MavLocalPlanner::planningStep() {
   // waypoint, or path smoothing, or path repair.
   if (current_waypoint_ < 0 ||
       static_cast<int>(waypoints_.size()) <= current_waypoint_) {
-    // TODO(helenol): How to abort nicely???
     return;
   }
 
@@ -139,13 +151,17 @@ void MavLocalPlanner::planningStep() {
   mav_trajectory_generation::Trajectory trajectory;
   bool success = false;
 
+  mav_trajectory_generation::timing::MiniTimer timer;
+
   if (!path_queue_.empty() && path_index_ < path_queue_.size()) {
+    std::lock_guard<std::recursive_mutex> guard(path_mutex_);
+
     ROS_INFO(
         "[Mav Local Planner][Plan Step] Trying to replan on existing path.");
     mav_msgs::EigenTrajectoryPointVector path_chunk;
     size_t replan_start_index;
     {
-      std::lock_guard<std::mutex> guard(path_mutex_);
+      // std::lock_guard<std::mutex> guard(path_mutex_);
       replan_start_index =
           std::min(path_index_ + static_cast<size_t>((replan_lookahead_sec_) /
                                                      constraints_.sampling_dt),
@@ -203,6 +219,8 @@ void MavLocalPlanner::planningStep() {
       }
       return;
     } else {
+      std::lock_guard<std::recursive_mutex> guard(path_mutex_);
+
       ROS_INFO("[Mav Local Planner][Plan Step] Appending new path chunk.");
       if (trajectory.getMaxTime() <= 1e-6) {
         nextWaypoint();
@@ -211,8 +229,7 @@ void MavLocalPlanner::planningStep() {
         mav_msgs::EigenTrajectoryPointVector new_path_chunk;
         mav_trajectory_generation::sampleWholeTrajectory(
             trajectory, constraints_.sampling_dt, &new_path_chunk);
-        ROS_INFO("Starting new path chunk at %f",
-                 path_chunk.front().time_from_start_ns * 1e-9);
+
         retimeTrajectoryWithStartTimeAndDt(
             path_chunk.front().time_from_start_ns, kDtNs, &new_path_chunk);
 
@@ -220,16 +237,31 @@ void MavLocalPlanner::planningStep() {
             path_chunk.front().orientation_W_B;
         yaw_policy_.applyPolicyInPlace(&new_path_chunk);
 
-        std::lock_guard<std::mutex> guard(path_mutex_);
+        // std::lock_guard<std::recursive_mutex> guard(path_mutex_);
         // Remove what was in the trajectory before.
         if (replan_start_index < path_queue_.size()) {
           path_queue_.erase(path_queue_.begin() + replan_start_index,
                             path_queue_.end());
         }
+        ROS_INFO(
+            "Starting new path chunk at %f, matching time is %f, cut length: "
+            "%zu, path chunk length: %zu",
+            path_chunk.front().time_from_start_ns * 1e-9,
+            path_queue_.back().time_from_start_ns * 1e-9, path_queue_.size(),
+            path_chunk.size());
 
+        ROS_INFO(
+            "Path chunk velocity: %f Previous velocity: %f",
+            path_chunk.front().velocity_W.x(),
+            path_queue_.back().velocity_W.x());
         // Stick the new one in.
         path_queue_.insert(path_queue_.end(), new_path_chunk.begin(),
                            new_path_chunk.end());
+        ROS_INFO(
+            "New time: %f, new size: %zu",
+            (path_queue_.begin() + replan_start_index)->time_from_start_ns *
+                1e-9,
+            path_queue_.size());
       }
     }
   } else {
@@ -250,7 +282,7 @@ void MavLocalPlanner::planningStep() {
       } else {
         // Copy this straight into the queue.
         num_failures_ = 0;
-        std::lock_guard<std::mutex> guard(path_mutex_);
+        // std::lock_guard<std::recursive_mutex> guard(path_mutex_);
         path_queue_.clear();
         mav_trajectory_generation::sampleWholeTrajectory(
             trajectory, constraints_.sampling_dt, &path_queue_);
@@ -265,7 +297,8 @@ void MavLocalPlanner::planningStep() {
       }
     }
   }
-
+  ROS_INFO("[Mav Local Planner][Plan Step] Planning finished. Time taken: %f",
+           timer.stop());
   visualizePath();
 }
 
@@ -298,9 +331,9 @@ void MavLocalPlanner::startPublishingCommands() {
 
 void MavLocalPlanner::commandPublishTimerCallback(
     const ros::TimerEvent& event) {
-  constexpr size_t kQueueBuffer = 10;
+  constexpr size_t kQueueBuffer = 0;
   if (path_index_ < path_queue_.size()) {
-    std::lock_guard<std::mutex> guard(path_mutex_);
+    std::lock_guard<std::recursive_mutex> guard(path_mutex_);
     size_t number_to_publish = std::min<size_t>(
         std::floor(command_publishing_dt_ / constraints_.sampling_dt),
         path_queue_.size() - path_index_);
@@ -331,17 +364,19 @@ void MavLocalPlanner::commandPublishTimerCallback(
 
     ROS_INFO(
         "[Mav Local Planner][Command Publish] Publishing %zu samples of %zu. "
-        "Start "
-        "time: %f Start position: %f End time: %f End position: %f",
-        trajectory_to_publish.size(), path_queue_.size(),
+        "Start index: %zu Time: %f Start position: %f Start velocity: %f End "
+        "time: %f End position: %f",
+        trajectory_to_publish.size(), path_queue_.size(), starting_index,
         trajectory_to_publish.front().time_from_start_ns * 1.0e-9,
         trajectory_to_publish.front().position_W.x(),
+        trajectory_to_publish.front().velocity_W.x(),
         trajectory_to_publish.back().time_from_start_ns * 1.0e-9,
         trajectory_to_publish.back().position_W.x());
     mav_msgs::msgMultiDofJointTrajectoryFromEigen(trajectory_to_publish, &msg);
 
     command_pub_.publish(msg);
     path_index_ += number_to_publish;
+    should_replan_.notify();
   }
   // Does there need to be an else????
 }
@@ -355,7 +390,7 @@ void MavLocalPlanner::abort() {
 }
 
 void MavLocalPlanner::clearTrajectory() {
-  std::lock_guard<std::mutex> guard(path_mutex_);
+  std::lock_guard<std::recursive_mutex> guard(path_mutex_);
   command_publishing_timer_.stop();
   path_queue_.clear();
   path_index_ = 0;
@@ -405,11 +440,11 @@ void MavLocalPlanner::visualizePath() {
   visualization_msgs::MarkerArray marker_array;
   visualization_msgs::Marker path_marker;
   {
-    std::lock_guard<std::mutex> guard(path_mutex_);
+    std::lock_guard<std::recursive_mutex> guard(path_mutex_);
 
     path_marker = createMarkerForPath(path_queue_, local_frame_id_,
                                       mav_visualization::Color::Black(),
-                                      "local_path", 0.05);
+                                      "local_path", 0.025);
   }
   marker_array.markers.push_back(path_marker);
   path_marker_pub_.publish(marker_array);

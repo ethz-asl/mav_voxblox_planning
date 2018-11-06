@@ -153,8 +153,21 @@ bool VoxbloxLocoPlanner::getTrajectoryBetweenWaypoints(
 
   if (success) {
     // Retime the trajectory!
+    double a_max, v_max;
+    trajectory->computeMaxVelocityAndAcceleration(&v_max, &a_max);
+    Eigen::VectorXd vel = trajectory->evaluate(0.0, 1);
+    ROS_INFO_STREAM("[Time Scale] Time before: "
+                    << total_time << " a_max: " << a_max << " v_max: " << v_max
+                    << " start vel: " << vel.transpose());
+
     trajectory->scaleSegmentTimesToMeetConstraints(constraints_.v_max,
                                                    constraints_.a_max);
+    trajectory->computeMaxVelocityAndAcceleration(&v_max, &a_max);
+    vel = trajectory->evaluate(0.0, 1);
+    ROS_INFO_STREAM("[Time Scale] Time after: "
+                    << trajectory->getMaxTime() << " a_max: " << a_max
+                    << " v_max: " << v_max
+                    << " start vel: " << vel.transpose());
   }
 
   if (verbose_) {

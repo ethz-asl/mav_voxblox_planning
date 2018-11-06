@@ -39,14 +39,6 @@ class YawPolicy {
   void applyPolicy(const mav_msgs::EigenTrajectoryPointVector& path_in,
                    mav_msgs::EigenTrajectoryPointVector* path_out);
 
-  void applyPolicyInPlace(double initial_yaw,
-                          mav_msgs::EigenTrajectoryPointVector* path,
-                          bool initial_yaw_given = true);
-  void applyPolicy(const mav_msgs::EigenTrajectoryPointVector& path_in,
-                   double initial_yaw,
-                   mav_msgs::EigenTrajectoryPointVector* path_out,
-                   bool initial_yaw_given = true);
-
   void setFacingPoint(const Eigen::Vector3d& point) { facing_point_ = point; }
   Eigen::Vector3d getFacingPoint() const { return facing_point_; }
 
