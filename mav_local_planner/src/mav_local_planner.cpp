@@ -118,12 +118,8 @@ void MavLocalPlanner::waypointListCallback(
 
 void MavLocalPlanner::planningTimerCallback(const ros::TimerEvent& event) {
   // Wait on the condition variable from the publishing...
-  std::cerr << "Waiting.\n";
   if (should_replan_.wait_for(replan_dt_)) {
-    std::cerr << "Waited.\n";
     planningStep();
-  } else {
-    std::cerr << "Failed to wait.\n";
   }
 }
 
@@ -161,7 +157,6 @@ void MavLocalPlanner::planningStep() {
     mav_msgs::EigenTrajectoryPointVector path_chunk;
     size_t replan_start_index;
     {
-      // std::lock_guard<std::mutex> guard(path_mutex_);
       replan_start_index =
           std::min(path_index_ + static_cast<size_t>((replan_lookahead_sec_) /
                                                      constraints_.sampling_dt),
@@ -237,7 +232,6 @@ void MavLocalPlanner::planningStep() {
             path_chunk.front().orientation_W_B;
         yaw_policy_.applyPolicyInPlace(&new_path_chunk);
 
-        // std::lock_guard<std::recursive_mutex> guard(path_mutex_);
         // Remove what was in the trajectory before.
         if (replan_start_index < path_queue_.size()) {
           path_queue_.erase(path_queue_.begin() + replan_start_index,
