@@ -65,6 +65,8 @@ class MavLocalPlanner {
   void nextWaypoint();
 
   // Functions to help out replanning.
+  // Track a single waypoint, planning only in a short known horizon.
+  void avoidCollisionsTowardWaypoint();
 
   // Map access.
   double getMapDistance(const Eigen::Vector3d& position) const;
@@ -134,7 +136,7 @@ class MavLocalPlanner {
   double replan_lookahead_sec_;
 
   // Settings -- general planning.
-  bool use_obstacle_avoidance_;
+  bool avoid_collisions_;
   bool autostart_;  // Whether to auto-start publishing any new path or wait
   // for start service call.
 

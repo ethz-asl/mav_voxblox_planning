@@ -18,7 +18,7 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       command_publishing_dt_(1.0),
       replan_dt_(1.0),
       replan_lookahead_sec_(0.1),
-      use_obstacle_avoidance_(true),
+      avoid_collisions_(true),
       autostart_(true),
       current_waypoint_(-1),
       path_index_(0),
@@ -41,8 +41,7 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
                     replan_lookahead_sec_);
   nh_private_.param("command_publishing_dt", command_publishing_dt_,
                     command_publishing_dt_);
-  nh_private_.param("use_obstacle_avoidance", use_obstacle_avoidance_,
-                    use_obstacle_avoidance_);
+  nh_private_.param("avoid_collisions", avoid_collisions_, avoid_collisions_);
   nh_private_.param("autostart", autostart_, autostart_);
 
   // Publishers and subscribers.
@@ -132,7 +131,16 @@ void MavLocalPlanner::planningStep() {
       static_cast<int>(waypoints_.size()) <= current_waypoint_) {
     return;
   }
+  mav_trajectory_generation::timing::MiniTimer timer;
 
+  avoidCollisionsTowardWaypoint();
+
+  ROS_INFO("[Mav Local Planner][Plan Step] Planning finished. Time taken: %f",
+           timer.stop());
+  visualizePath();
+}
+
+void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
   mav_msgs::EigenTrajectoryPoint waypoint = waypoints_[current_waypoint_];
   const double kCloseEnough = 0.05;
 
@@ -146,8 +154,6 @@ void MavLocalPlanner::planningStep() {
   // Save success and Trajectory.
   mav_trajectory_generation::Trajectory trajectory;
   bool success = false;
-
-  mav_trajectory_generation::timing::MiniTimer timer;
 
   if (!path_queue_.empty() && path_index_ < path_queue_.size()) {
     std::lock_guard<std::recursive_mutex> guard(path_mutex_);
@@ -244,10 +250,9 @@ void MavLocalPlanner::planningStep() {
             path_queue_.back().time_from_start_ns * 1e-9, path_queue_.size(),
             path_chunk.size());
 
-        ROS_INFO(
-            "Path chunk velocity: %f Previous velocity: %f",
-            path_chunk.front().velocity_W.x(),
-            path_queue_.back().velocity_W.x());
+        ROS_INFO("Path chunk velocity: %f Previous velocity: %f",
+                 path_chunk.front().velocity_W.x(),
+                 path_queue_.back().velocity_W.x());
         // Stick the new one in.
         path_queue_.insert(path_queue_.end(), new_path_chunk.begin(),
                            new_path_chunk.end());
@@ -291,9 +296,6 @@ void MavLocalPlanner::planningStep() {
       }
     }
   }
-  ROS_INFO("[Mav Local Planner][Plan Step] Planning finished. Time taken: %f",
-           timer.stop());
-  visualizePath();
 }
 
 void MavLocalPlanner::nextWaypoint() {
