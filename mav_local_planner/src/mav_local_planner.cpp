@@ -20,6 +20,7 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       replan_lookahead_sec_(0.1),
       avoid_collisions_(true),
       autostart_(true),
+      smoother_name_("loco"),
       current_waypoint_(-1),
       path_index_(0),
       max_failures_(5),
@@ -43,6 +44,7 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
                     command_publishing_dt_);
   nh_private_.param("avoid_collisions", avoid_collisions_, avoid_collisions_);
   nh_private_.param("autostart", autostart_, autostart_);
+  nh_private_.param("smoother_name", smoother_name_, smoother_name_);
 
   // Publishers and subscribers.
   odometry_sub_ = nh_.subscribe(mav_msgs::default_topics::ODOMETRY, 1,
@@ -84,6 +86,31 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
   // Set up yaw policy.
   yaw_policy_.setPhysicalConstraints(constraints_);
   yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kVelocityVector);
+
+  // Set up smoothers.
+  const double voxel_size = esdf_server_.getEsdfMapPtr()->voxel_size();
+
+  // Straight-line smoother.
+  ramp_smoother_.setParametersFromRos(nh_private_);
+
+  // Poly smoother.
+  poly_smoother_.setParametersFromRos(nh_private_);
+  poly_smoother_.setMinCollisionCheckResolution(voxel_size);
+  poly_smoother_.setMapDistanceCallback(
+      std::bind(&MavLocalPlanner::getMapDistance, this, std::placeholders::_1));
+  poly_smoother_.setOptimizeTime(true);
+  poly_smoother_.setSplitAtCollisions(avoid_collisions_);
+
+  // Loco smoother!
+  loco_smoother_.setParametersFromRos(nh_private_);
+  loco_smoother_.setMinCollisionCheckResolution(voxel_size);
+  loco_smoother_.setDistanceAndGradientFunction(
+      std::bind(&MavLocalPlanner::getMapDistanceAndGradient, this,
+                std::placeholders::_1, std::placeholders::_2));
+  loco_smoother_.setOptimizeTime(true);
+  loco_smoother_.setResampleTrajectory(true);
+  loco_smoother_.setResampleVisibility(true);
+  loco_smoother_.setNumSegments(5);
 }
 
 void MavLocalPlanner::odometryCallback(const nav_msgs::Odometry& msg) {
@@ -93,7 +120,6 @@ void MavLocalPlanner::odometryCallback(const nav_msgs::Odometry& msg) {
 void MavLocalPlanner::waypointCallback(const geometry_msgs::PoseStamped& msg) {
   // Plan a path from the current position to the target pose stamped.
   ROS_INFO("[Mav Local Planner] Got a waypoint!");
-  // TODO(helenol): What do we do with clearing????
   // Cancel any previous trajectory on getting a new one.
   clearTrajectory();
 
@@ -112,7 +138,23 @@ void MavLocalPlanner::waypointCallback(const geometry_msgs::PoseStamped& msg) {
 void MavLocalPlanner::waypointListCallback(
     const geometry_msgs::PoseArray& msg) {
   // Plan a path from the current position to the target pose stamped.
-  ROS_INFO("[Mav Local Planner] Got a waypoint list! UNIMPLEMENTED.");
+  ROS_INFO("[Mav Local Planner] Got a list of waypoints, %zu long!",
+           msg.poses.size());
+  // Cancel any previous trajectory on getting a new one.
+  clearTrajectory();
+
+  waypoints_.clear();
+
+  for (const geometry_msgs::Pose& pose : msg.poses) {
+    mav_msgs::EigenTrajectoryPoint waypoint;
+    eigenTrajectoryPointFromPoseMsg(pose, &waypoint);
+    waypoints_.push_back(waypoint);
+  }
+  current_waypoint_ = 0;
+
+  // Execute one planning step on main thread.
+  planningStep();
+  startPublishingCommands();
 }
 
 void MavLocalPlanner::planningTimerCallback(const ros::TimerEvent& event) {
@@ -123,17 +165,35 @@ void MavLocalPlanner::planningTimerCallback(const ros::TimerEvent& event) {
 }
 
 void MavLocalPlanner::planningStep() {
-  // TODO!!!!
-  // This is only the first case: plan toward a single waypoint.
-  // This will get replaced with logic about doing local planning toward
-  // waypoint, or path smoothing, or path repair.
   if (current_waypoint_ < 0 ||
       static_cast<int>(waypoints_.size()) <= current_waypoint_) {
     return;
   }
   mav_trajectory_generation::timing::MiniTimer timer;
 
-  avoidCollisionsTowardWaypoint();
+  // First, easiest case: if we're not avoiding collisions, just use the
+  // favorite path smoother. We only do this on the first planning call then
+  // ignore all the rest.
+  if (!avoid_collisions_) {
+    mav_msgs::EigenTrajectoryPointVector waypoints;
+    mav_msgs::EigenTrajectoryPoint current_point;
+    current_point.position_W = odometry_.position_W;
+    current_point.orientation_W_B = odometry_.orientation_W_B;
+
+    waypoints.push_back(current_point);
+    waypoints.insert(waypoints.end(), waypoints_.begin(), waypoints_.end());
+
+    mav_msgs::EigenTrajectoryPointVector path;
+
+    if (planPathThroughWaypoints(waypoints, &path)) {
+      replacePath(path);
+      current_waypoint_ = waypoints_.size();
+    } else {
+      ROS_ERROR("[Mav Local Planner] Waypoint planning failed!");
+    }
+  } else {
+    avoidCollisionsTowardWaypoint();
+  }
 
   ROS_INFO("[Mav Local Planner][Plan Step] Planning finished. Time taken: %f",
            timer.stop());
@@ -169,12 +229,14 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
                    path_queue_.size());
 
       ROS_INFO(
-          "Path queue size: %zu Path queue index: %zu Replan start index: %zu "
+          "Path queue size: %zu Path queue index: %zu Replan start index: "
+          "%zu "
           "Lookahead should be: %zu",
           path_queue_.size(), path_index_, replan_start_index,
           static_cast<size_t>((replan_lookahead_sec_) /
                               constraints_.sampling_dt));
-      // Cut out the remaining snippet of the trajectory so we can do something
+      // Cut out the remaining snippet of the trajectory so we can do
+      // something
       // with it.
       std::copy(path_queue_.begin() + replan_start_index, path_queue_.end(),
                 std::back_inserter(path_chunk));
@@ -220,8 +282,6 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
       }
       return;
     } else {
-      std::lock_guard<std::recursive_mutex> guard(path_mutex_);
-
       ROS_INFO("[Mav Local Planner][Plan Step] Appending new path chunk.");
       if (trajectory.getMaxTime() <= 1e-6) {
         nextWaypoint();
@@ -281,13 +341,10 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
       } else {
         // Copy this straight into the queue.
         num_failures_ = 0;
-        // std::lock_guard<std::recursive_mutex> guard(path_mutex_);
-        path_queue_.clear();
+        mav_msgs::EigenTrajectoryPointVector path;
         mav_trajectory_generation::sampleWholeTrajectory(
-            trajectory, constraints_.sampling_dt, &path_queue_);
-        path_queue_.front().orientation_W_B = odometry_.orientation_W_B;
-        yaw_policy_.applyPolicyInPlace(&path_queue_);
-        path_index_ = 0;
+            trajectory, constraints_.sampling_dt, &path);
+        replacePath(path);
       }
     } else {
       num_failures_++;
@@ -298,12 +355,49 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
   }
 }
 
+bool MavLocalPlanner::planPathThroughWaypoints(
+    const mav_msgs::EigenTrajectoryPointVector& waypoints,
+    mav_msgs::EigenTrajectoryPointVector* path) {
+  CHECK_NOTNULL(path);
+  bool success = false;
+  if (smoother_name_ == "loco") {
+    if (waypoints.size() == 2) {
+      success = loco_smoother_.getPathBetweenTwoPoints(waypoints[0],
+                                                       waypoints[1], path);
+    } else {
+      success = loco_smoother_.getPathBetweenWaypoints(waypoints, path);
+    }
+  } else if (smoother_name_ == "polynomial") {
+    success = poly_smoother_.getPathBetweenWaypoints(waypoints, path);
+
+  } else if (smoother_name_ == "ramp") {
+    success = ramp_smoother_.getPathBetweenWaypoints(waypoints, path);
+  } else {
+    // Default case is ramp!
+    ROS_ERROR(
+        "[Mav Local Planner] Unknown smoother type %s, using ramp instead.",
+        smoother_name_.c_str());
+    success = ramp_smoother_.getPathBetweenWaypoints(waypoints, path);
+  }
+  return success;
+}
+
 void MavLocalPlanner::nextWaypoint() {
   if (waypoints_.size() <= static_cast<size_t>(current_waypoint_)) {
     current_waypoint_ = -1;
   } else {
     current_waypoint_++;
   }
+}
+
+void MavLocalPlanner::replacePath(
+    const mav_msgs::EigenTrajectoryPointVector& path) {
+  std::lock_guard<std::recursive_mutex> guard(path_mutex_);
+  path_queue_.clear();
+  path_queue_ = path;
+  path_queue_.front().orientation_W_B = odometry_.orientation_W_B;
+  yaw_policy_.applyPolicyInPlace(&path_queue_);
+  path_index_ = 0;
 }
 
 void MavLocalPlanner::startPublishingCommands() {
@@ -451,6 +545,17 @@ double MavLocalPlanner::getMapDistance(const Eigen::Vector3d& position) const {
   const bool kInterpolate = false;
   if (!esdf_server_.getEsdfMapPtr()->getDistanceAtPosition(
           position, kInterpolate, &distance)) {
+    return 0.0;
+  }
+  return distance;
+}
+
+double MavLocalPlanner::getMapDistanceAndGradient(
+    const Eigen::Vector3d& position, Eigen::Vector3d* gradient) const {
+  double distance = 0.0;
+  const bool kInterpolate = false;
+  if (!esdf_server_.getEsdfMapPtr()->getDistanceAndGradientAtPosition(
+          position, kInterpolate, &distance, gradient)) {
     return 0.0;
   }
   return distance;

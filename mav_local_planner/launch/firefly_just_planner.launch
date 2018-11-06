@@ -57,6 +57,7 @@
       <param name="verbose" value="true" />
       <param name="v_max" value="1.0" />
       <param name="a_max" value="2.0" />
+      <param name="avoid_collisions" value="false" />
     </node>
   </group>
 </launch>

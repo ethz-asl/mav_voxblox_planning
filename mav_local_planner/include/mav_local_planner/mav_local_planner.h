@@ -10,6 +10,9 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <mav_msgs/conversions.h>
 #include <mav_msgs/eigen_mav_msgs.h>
+#include <mav_path_smoothing/loco_smoother.h>
+#include <mav_path_smoothing/polynomial_smoother.h>
+#include <mav_path_smoothing/velocity_ramp_smoother.h>
 #include <mav_planning_common/color_utils.h>
 #include <mav_planning_common/path_utils.h>
 #include <mav_planning_common/path_visualization.h>
@@ -63,10 +66,15 @@ class MavLocalPlanner {
   void planningTimerCallback(const ros::TimerEvent& event);
   void planningStep();
   void nextWaypoint();
+  void replacePath(const mav_msgs::EigenTrajectoryPointVector& path);
 
   // Functions to help out replanning.
   // Track a single waypoint, planning only in a short known horizon.
   void avoidCollisionsTowardWaypoint();
+  // Get a path through a bunch of waypoints.
+  bool planPathThroughWaypoints(
+      const mav_msgs::EigenTrajectoryPointVector& waypoints,
+      mav_msgs::EigenTrajectoryPointVector* path);
 
   // Map access.
   double getMapDistance(const Eigen::Vector3d& position) const;
@@ -139,6 +147,7 @@ class MavLocalPlanner {
   bool avoid_collisions_;
   bool autostart_;  // Whether to auto-start publishing any new path or wait
   // for start service call.
+  std::string smoother_name_;
 
   // State -- robot state.
   mav_msgs::EigenOdometry odometry_;
@@ -169,6 +178,9 @@ class MavLocalPlanner {
   VoxbloxLocoPlanner loco_planner_;
 
   // Planners -- path smoothers.
+  VelocityRampSmoother ramp_smoother_;
+  PolynomialSmoother poly_smoother_;
+  LocoSmoother loco_smoother_;
 };
 
 }  // namespace mav_planning
