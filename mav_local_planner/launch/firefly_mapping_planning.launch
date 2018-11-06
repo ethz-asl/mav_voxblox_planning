@@ -1,10 +1,7 @@
 <launch>
   <arg name="mav_name" default="firefly"/>
   <arg name="frame_id" default="odom" />
-  <!-- The following line causes gzmsg and gzerr messages to be printed to the console
-      (even when Gazebo is started through roslaunch) -->
   <arg name="verbose" default="false"/>
-
 
   <group ns="$(arg mav_name)">
     <node name="voxblox_node" pkg="voxblox_ros" type="esdf_server" output="screen" args="-alsologtostderr" clear_params="true">
@@ -55,9 +52,9 @@
       <param name="planning_horizon_m" value="4.0" />
       <param name="autostart" value="true" />
       <param name="verbose" value="true" />
-      <param name="v_max" value="1.0" />
+      <param name="v_max" value="2.0" />
       <param name="a_max" value="2.0" />
-      <param name="avoid_collisions" value="false" />
+      <param name="avoid_collisions" value="true" />
     </node>
   </group>
 </launch>

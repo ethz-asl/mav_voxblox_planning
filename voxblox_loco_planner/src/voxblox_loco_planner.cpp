@@ -109,13 +109,15 @@ bool VoxbloxLocoPlanner::getTrajectoryBetweenWaypoints(
     mav_trajectory_generation::Trajectory* trajectory) {
   CHECK(esdf_map_);
 
-  ROS_INFO_STREAM("[Voxblox Loco Planner] Start: "
+  ROS_DEBUG_STREAM("[Voxblox Loco Planner] Start: "
                   << start.position_W.transpose()
                   << " goal: " << goal.position_W.transpose());
 
-  double total_time = mav_trajectory_generation::computeTimeVelocityRamp(
-      start.position_W, goal.position_W, constraints_.v_max,
-      constraints_.a_max);
+  constexpr double kTotalTimeScale = 1.2;
+  double total_time =
+      kTotalTimeScale * mav_trajectory_generation::computeTimeVelocityRamp(
+                            start.position_W, goal.position_W,
+                            constraints_.v_max, constraints_.a_max);
 
   // Check that start and goal aren't basically the same thing...
   constexpr double kMinTime = 0.01;

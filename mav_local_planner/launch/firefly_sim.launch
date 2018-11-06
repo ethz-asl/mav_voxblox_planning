@@ -36,16 +36,7 @@
       <rosparam file="$(find mav_nonlinear_mpc)/resources/nonlinear_mpc_$(arg mav_name).yaml" />
       <rosparam file="$(find mav_disturbance_observer)/resources/disturbance_observer_$(arg mav_name).yaml"/>
       <param name="use_rc_teleop" value="false"/>
-      <param name="verbose" value="true" />
-      <param name="reference_frame" value="$(arg frame_id)"/>
-    </node>
-
-    <node name="mav_linear_mpc" pkg="mav_linear_mpc" type="mav_linear_mpc_node" respawn="true" clear_params="true" output="screen" if="false">
-      <remap from="odometry" to="odometry_sensor1/odometry" />
-      <rosparam file="$(find mav_linear_mpc)/resources/linear_mpc_$(arg mav_name).yaml" />
-      <rosparam file="$(find mav_disturbance_observer)/resources/disturbance_observer_$(arg mav_name).yaml"/>
-      <param name="verbose" value="true" />
-      <param name="use_rc_teleop" value="false" />
+      <param name="verbose" value="false" />
       <param name="reference_frame" value="$(arg frame_id)"/>
     </node>
 
@@ -58,51 +49,11 @@
     </node>
 
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
-    <!-- <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" /> -->
 
     <!-- Transforms -->
     <node pkg="tf" type="static_transform_publisher" name="world_odom_broadcaster" args="0 0 0 0 0 0 1 world odom 100" />
-
-    <!-- Mapping -->
-    <node name="voxblox_node" pkg="voxblox_ros" type="esdf_server" output="screen" args="-alsologtostderr" clear_params="true">
-      <remap from="pointcloud" to="vi_sensor/camera_depth/depth/points"/>
-      <remap from="voxblox_node/esdf_map_out" to="esdf_map" />
-      <remap from="voxblox_node/tsdf_map_out" to="tsdf_map" />
-      <param name="method" value="fast" />
-      <param name="publish_tsdf_map" value="true" />
-      <param name="publish_esdf_map" value="true" />
-      <param name="tsdf_voxel_size" value="0.20" />
-      <param name="tsdf_voxels_per_side" value="16" />
-      <param name="esdf_max_distance_m" value="2.0" />
-      <param name="max_ray_length_m" value="10.0" />
-      <param name="voxel_carving_enabled" value="true" />
-      <param name="color_mode" value="color" />
-      <param name="use_tf_transforms" value="true" />
-      <param name="update_mesh_every_n_sec" value="0.25" />
-      <param name="min_time_between_msgs_sec" value="0.10" />
-      <param name="clear_sphere_for_planning" value="true" />
-      <param name="occupied_sphere_radius" value="4.0" />
-      <param name="clear_sphere_radius" value="2.0" />
-      <param name="slice_level" value="1.0" />
-      <param name="world_frame" value="$(arg frame_id)" />
-      <param name="verbose" value="false" />
-    </node>
-
-    <!-- Planning -->
-    <node name="mav_local_planner" pkg="mav_local_planner" type="mav_local_planner_node" output="screen" if="false">
-      <remap from="odometry" to="ground_truth/odometry" />
-      <remap from="mav_local_planner/esdf_map_in" to="esdf_map" />
-      <remap from="mav_local_planner/tsdf_map_in" to="tsdf_map" />
-      <param name="tsdf_voxel_size" value="0.20" />
-      <param name="tsdf_voxels_per_side" value="16" />
-      <param name="esdf_max_distance_m" value="2.0" />
-      <param name="update_mesh_every_n_sec" value="0.0" />
-      <param name="replan_dt" value="0.25" />
-      <param name="local_frame_id" value="$(arg frame_id)" />
-      <param name="world_frame" value="$(arg frame_id)" />
-      <param name="publish_traversable" value="true" />
-      <param name="verbose" value="true" />
-      <param name="autostart" value="true" />
-    </node>
   </group>
+
+  <!-- Mapping and Planning -->
+  <include file="$(find mav_local_planner)/launch/firefly_mapping_planning.launch"/>
 </launch>
