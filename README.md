@@ -149,9 +149,13 @@ Pink is the shortened path from the sparse graph, and teal is smoothed using loc
 
 ![image](https://user-images.githubusercontent.com/5616392/46147219-3155eb80-c265-11e8-9787-150906e5bf90.png)
 
+
+
 # Try out Local Planning
 This demo is about using the **mav_local_planner** to do live replanning at 4 Hz in a simulation environment.
 The local planner uses `loco` to locally track a waypoint, or if given a list of waypoints, plan a smooth path through them.
+
+![loco_really_small](https://user-images.githubusercontent.com/5616392/48132241-2c884c80-e293-11e8-98e0-56afa847d64a.png)
 
 ## Install Rotors Simulator
 Follow the installation instructions [here](https://github.com/ethz-asl/rotors_simulator#installation-instructions---ubuntu-1604-with-ros-kinetic) to install Rotors Simulator, which is an MAV simulator built on top of gazebo. This will allow us to fully simulate a typical MAV, with a visual-inertial sensor mounted on it.
@@ -167,6 +171,7 @@ A gazebo window will come up, showing something similar to this:
 ![gazebo_local_sim](https://user-images.githubusercontent.com/5616392/48097684-d5469580-e21a-11e8-8fe3-6ad024b18bf8.png)
 
 You can then control the MAV using the planning panel. Enter `firefly` as the `Namespace` in the planning panel, then either type a position for the goal or edit the goal to drag it around. To send it to the local planner, press the `Send Waypoint` button.
+
 The trajectory will be visualized as a `visualization_msgs/MarkerArray` with the topic `/firefly/mav_local_planner/local_path` and you can view the explored mesh as a `voxblox_msgs/Mesh` message with the topic `/firefly/voxblox_node/mesh`. The complete setup is shown below:
 
 ![rviz_local_sim1](https://user-images.githubusercontent.com/5616392/48097689-d8418600-e21a-11e8-9d8b-7b5194b5c302.png)
