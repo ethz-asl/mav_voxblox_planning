@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>mav_planning_benchmark</name>
+  <name>mav_local_planner</name>
   <version>0.0.0</version>
   <description>
-    Global and local benchmarking for MAV planning.
+    Local planning using various path smoothing methods, LOCO for avoidance, interpolating between local and global coordinate frames, and cooking you dinner.
   </description>
 
   <maintainer email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</maintainer>
@@ -14,7 +14,9 @@
   <buildtool_depend>catkin_simple</buildtool_depend>
 
   <depend>mav_msgs</depend>
+  <depend>mav_path_smoothing</depend>
   <depend>mav_planning_common</depend>
+  <depend>mav_planning_msgs</depend>
   <depend>mav_trajectory_generation_ros</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
@@ -22,6 +24,4 @@
   <depend>visualization_msgs</depend>
   <depend>voxblox_loco_planner</depend>
   <depend>voxblox_ros</depend>
-  <depend>voxblox_rrt_planner</depend>
-  <depend>voxblox_skeleton_planner</depend>
 </package>

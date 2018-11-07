@@ -50,6 +50,8 @@ class PlanningPanel : public rviz::Panel {
                          mav_msgs::EigenTrajectoryPoint& pose);
   void callPlannerService();
   void callPublishPath();
+  void publishWaypoint();
+  void publishToController();
 
  protected:
   // Set up the layout, only called by the constructor.
@@ -59,6 +61,8 @@ class PlanningPanel : public rviz::Panel {
 
   // ROS Stuff:
   ros::NodeHandle nh_;
+  ros::Publisher waypoint_pub_;
+  ros::Publisher controller_pub_;
 
   // QT stuff:
   QLineEdit* namespace_editor_;
@@ -67,6 +71,8 @@ class PlanningPanel : public rviz::Panel {
   PoseWidget* goal_pose_widget_;
   QPushButton* planner_service_button_;
   QPushButton* publish_path_button_;
+  QPushButton* waypoint_button_;
+  QPushButton* controller_button_;
 
   // Keep track of all the pose <-> button widgets as they're related:
   std::map<std::string, PoseWidget*> pose_widget_map_;

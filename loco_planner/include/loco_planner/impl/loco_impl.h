@@ -312,12 +312,12 @@ void Loco<N>::solveProblemCeres() {
   std::vector<Eigen::VectorXd> d_p_vec;
   poly_opt_.getFreeConstraints(&d_p_vec);
 
-  double* x0 = new double[num_free_ * K_];
+  std::vector<double> parameters(num_free_ * K_);
 
   int i = 0;
   for (int k = 0; k < K_; ++k) {
     for (int j = 0; j < num_free_; ++j) {
-      x0[i] = d_p_vec[k](j);
+      parameters[i] = d_p_vec[k](j);
       ++i;
     }
   }
@@ -327,15 +327,14 @@ void Loco<N>::solveProblemCeres() {
 
   ceres::GradientProblemSolver::Options options;
   options.line_search_direction_type = ceres::BFGS;
+  options.logging_type = ceres::SILENT;
+  options.minimizer_progress_to_stdout = false;
 
-  if (config_.verbose) {
-    options.minimizer_progress_to_stdout = true;
-  }
   options.line_search_interpolation_type = ceres::BISECTION;
   ceres::GradientProblemSolver::Summary summary;
 
   // Fire up CERES!
-  ceres::Solve(options, problem, x0, &summary);
+  ceres::Solve(options, problem, parameters.data(), &summary);
 
   if (config_.verbose) {
     std::cout << summary.FullReport() << "\n";
@@ -345,7 +344,7 @@ void Loco<N>::solveProblemCeres() {
   i = 0;
   for (int k = 0; k < K_; ++k) {
     for (int j = 0; j < num_free_; ++j) {
-      d_p_vec[k](j) = x0[i];
+      d_p_vec[k](j) = parameters[i];
       ++i;
     }
   }
@@ -911,6 +910,7 @@ template <int N>
 bool Loco<N>::NestedCeresFunction::Evaluate(const double* parameters,
                                             double* cost,
                                             double* gradient) const {
+  CHECK_NOTNULL(parent_);
   // Step 1: allocate all the necessary Eigen vectors.
   std::vector<Eigen::VectorXd> d_p(K_, Eigen::VectorXd::Zero(num_free_));
   std::vector<Eigen::VectorXd> grad_vec(K_, Eigen::VectorXd::Zero(num_free_));

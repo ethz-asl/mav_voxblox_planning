@@ -11,6 +11,7 @@ add_definitions(-std=c++11)
 #############
 cs_add_library(${PROJECT_NAME}
   src/global_planning_benchmark.cpp
+  src/local_planning_benchmark.cpp
 )
 
 ############
@@ -20,6 +21,11 @@ cs_add_executable(global_planning_benchmark_node
   src/global_planning_benchmark_node.cpp
 )
 target_link_libraries(global_planning_benchmark_node ${PROJECT_NAME})
+
+cs_add_executable(local_planning_benchmark_node
+  src/local_planning_benchmark_node.cpp
+)
+target_link_libraries(local_planning_benchmark_node ${PROJECT_NAME})
 
 ##########
 # EXPORT #
