@@ -9,10 +9,12 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <run_depend>loco_planner</run_depend>
+  <run_depend>mav_local_planner</run_depend>
   <run_depend>mav_path_smoothing</run_depend>
   <run_depend>mav_planning_benchmark</run_depend>
   <run_depend>mav_planning_common</run_depend>
   <run_depend>mav_planning_rviz</run_depend>
+  <run_depend>voxblox_loco_planner</run_depend>
   <run_depend>voxblox_rrt_planner</run_depend>
   <run_depend>voxblox_skeleton</run_depend>
   <run_depend>voxblox_skeleton_planner</run_depend>
