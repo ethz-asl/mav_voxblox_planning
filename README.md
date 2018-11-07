@@ -4,6 +4,26 @@ MAV planning tools using voxblox as the map representation.
 
 **NOTE: THIS PACKAGE IS UNDER ACTIVE DEVELOPMENT! Things are subject to change at any time.**
 
+## Table of Contents
+- [Contents and Future Work](#contents-and-future-work)
+  - [Included](#included)
+  - [To Come (by end of January 2019)](#to-come-by-end-of-january-2019)
+- [Papers and References](#papers-and-references)
+- [Getting Started](#getting-started)
+  - [Installation](#installation)
+  - [Download maps](#download-maps)
+  - [Try out RRT and Skeleton planning](#try-out-rrt-and-skeleton-planning)
+    - [Get the planning panel](#get-the-planning-panel)
+    - [Using RRT voxblox planner:](#using-rrt-voxblox-planner)
+    - [Using the Skeleton planner:](#using-the-skeleton-planner)
+  - [Try out Local Planning](#try-out-local-planning)
+    - [Install Rotors Simulator](#install-rotors-simulator)
+    - [Install the planning pannel (if you haven't yet)](#install-the-planning-pannel-if-you-havent-yet)
+    - [Run the simulation](#run-the-simulation)
+- [Advanced](#advanced)
+  - [Skeletonize your own maps](#skeletonize-your-own-maps)
+
+
 ## Contents and Future Work
 ### Included
 * Global Planning
@@ -151,19 +171,19 @@ Pink is the shortened path from the sparse graph, and teal is smoothed using loc
 
 
 
-# Try out Local Planning
+## Try out Local Planning
 This demo is about using the **mav_local_planner** to do live replanning at 4 Hz in a simulation environment.
 The local planner uses `loco` to locally track a waypoint, or if given a list of waypoints, plan a smooth path through them.
 
 ![loco_really_small](https://user-images.githubusercontent.com/5616392/48132241-2c884c80-e293-11e8-98e0-56afa847d64a.png)
 
-## Install Rotors Simulator
+### Install Rotors Simulator
 Follow the installation instructions [here](https://github.com/ethz-asl/rotors_simulator#installation-instructions---ubuntu-1604-with-ros-kinetic) to install Rotors Simulator, which is an MAV simulator built on top of gazebo. This will allow us to fully simulate a typical MAV, with a visual-inertial sensor mounted on it.
 
-## Install the planning pannel (if you haven't yet)
+### Install the planning pannel (if you haven't yet)
 See instructions above: [here](https://github.com/ethz-asl/mav_voxblox_planning#get-the-planning-panel).
 
-## Run the simulation
+### Run the simulation
 After rotors is up and running, in a new terminal, launch the firefly sim:
 ```roslaunch mav_local_planner firefly_sim.launch```
 
