@@ -15,13 +15,18 @@ MAV planning tools using voxblox as the map representation.
   * Velocity ramp `mav_path_smoothing`
   * Polynomial with adding additional vertices at collisions `mav_path_smoothing`
   * Local polynomial optimization (Loco), unconstraining waypoints and minimizing collisions `mav_path_smoothing, loco_planner`
-* RVIZ Planning Plugin
+* Local Planning -- `mav_local_planner`
+  * Interface to MAV controller, sending timed, dynamically feasible trajectories and replanning online `mav_local_planner`
+  * Planning in a short horizon in unknown or partially unknown spaces, using trajectory optimization in ESDFs `voxblox_loco_planner`
+  * Path smoothing between waypoints if all waypoints are in known free space `mav_path_smoothing`
+* RVIZ Planning Plugin -- `mav_planning_rviz`
   * Allows dragging around start and goal markers, sending planning requests to global planners `mav_planning_rviz`
+  * Allows sending goal points either directly to controller or to the local planner `mav_local_planner`
 
-### To Come (by end of October 2018)
+### To Come (by end of January 2019)
 * Local Planning
-  * Collision avoidance in unknown environments
-  * Local planning benchmark
+  * Improved goal selection
+  * Support for global and local coordinate frames
 * RVIZ Planning Plugin
   * Support for entering multiple waypoints
 
