@@ -20,6 +20,7 @@ MAV planning tools using voxblox as the map representation.
     - [Install Rotors Simulator](#install-rotors-simulator)
     - [Install the planning pannel (if you haven't yet)](#install-the-planning-pannel-if-you-havent-yet)
     - [Run the simulation](#run-the-simulation)
+    - [Try out global + local planning](#try-out-global--local-planning)
 - [Advanced](#advanced)
   - [Skeletonize your own maps](#skeletonize-your-own-maps)
 
