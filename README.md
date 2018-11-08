@@ -198,6 +198,20 @@ The trajectory will be visualized as a `visualization_msgs/MarkerArray` with the
 
 In case the MAV gets stuck, you can use `Send to Controller`, which will directly send the pose command to the controller -- with no collision avoidance or trajectory planning.
 
+### Try out global + local planning
+Once you've explored some of the map in simulation, you can also use the global planner to plan longer paths through *known* space.
+First, start the simulation global RRT* planner (this is *in addition to* the `firefly_sim.launch` file above):
+```
+roslaunch voxblox_rrt_planner firefly_rrt.launch
+```
+
+Local planning only uses the goal point, but global planning requires a start point as well (as the global planner does not know the odometry of the MAV). For this, we can use the `Set start to odom` option in the planning panel.
+To do this, in the `Odometry Topic` field, enter `ground_truth/odometry` and check the `Set start to odom` check-box. Now the start location will automatically track the odometry of the Firefly as it moves.
+
+Once the start and goal poses are set as you want, press `Planner Service`. In rviz, add a `MarkerArray` display with the topic `/firefly/voxblox_rrt_planner/path` to visualize what the planner has planned. Once you are happy with this path, press `Publish Path` to send it to the local planner, which should start tracking the path immediately.
+
+![rviz_global_local](https://user-images.githubusercontent.com/5616392/48191000-606f7a80-e344-11e8-9f0c-1609f0a99c47.png)
+
 # Advanced
 ## Skeletonize your own maps
 TODO! Instructions coming soon. See the `voxblox_skeleton/launch/skeletonize_map.launch` file for reference, please make an issue if there are any questions or problems.
