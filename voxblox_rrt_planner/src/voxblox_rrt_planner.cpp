@@ -4,6 +4,7 @@
 #include <mav_trajectory_generation/polynomial_optimization_nonlinear.h>
 #include <mav_trajectory_generation/timing.h>
 #include <mav_trajectory_generation_ros/feasibility_analytic.h>
+#include <voxblox/utils/planning_utils.h>
 
 #include "voxblox_rrt_planner/voxblox_rrt_planner.h"
 
@@ -27,6 +28,7 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
   nh_private_.param("voxblox_path", input_filepath, input_filepath);
   nh_private_.param("visualize", visualize_, visualize_);
   nh_private_.param("frame_id", frame_id_, frame_id_);
+  nh_private_.param("do_smoothing", do_smoothing_, do_smoothing_);
 
   path_marker_pub_ =
       nh_private_.advertise<visualization_msgs::MarkerArray>("path", 1, true);
@@ -49,7 +51,6 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
 
   if (!input_filepath.empty()) {
     // Verify that the map has an ESDF layer, otherwise generate it.
-
     if (!voxblox_server_.loadMap(input_filepath)) {
       ROS_ERROR("Couldn't load ESDF map!");
 
@@ -79,22 +80,6 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
 
   rrt_.setTsdfLayer(voxblox_server_.getTsdfMapPtr()->getTsdfLayerPtr());
   rrt_.setEsdfLayer(voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr());
-
-  // Figure out map bounds!
-  computeMapBounds(&lower_bound_, &upper_bound_);
-
-  ROS_INFO_STREAM("Map bounds: " << lower_bound_.transpose() << " to "
-                                 << upper_bound_.transpose() << " size: "
-                                 << (upper_bound_ - lower_bound_).transpose());
-
-  // Inflate the bounds a bit.
-  constexpr double kBoundInflationMeters = 0.5;
-  // Don't in flate in z. ;)
-  rrt_.setBounds(lower_bound_ - Eigen::Vector3d(kBoundInflationMeters,
-                                                kBoundInflationMeters, 0.0),
-                 upper_bound_ + Eigen::Vector3d(kBoundInflationMeters,
-                                                kBoundInflationMeters, 0.0));
-  rrt_.setupProblem();
 
   voxblox_server_.setTraversabilityRadius(constraints_.robot_radius);
 
@@ -152,30 +137,13 @@ bool VoxbloxRrtPlanner::publishPathCallback(std_srvs::EmptyRequest& request,
 
 void VoxbloxRrtPlanner::computeMapBounds(Eigen::Vector3d* lower_bound,
                                          Eigen::Vector3d* upper_bound) const {
-  voxblox::BlockIndexList all_blocks;
-  tsdf_map_->getTsdfLayerPtr()->getAllAllocatedBlocks(&all_blocks);
-
-  voxblox::Point lower_bound_pt;
-  voxblox::Point upper_bound_pt;
-  bool first_block = true;
-
-  for (const voxblox::BlockIndex& block_index : all_blocks) {
-    voxblox::Block<voxblox::TsdfVoxel>::ConstPtr block =
-        tsdf_map_->getTsdfLayerPtr()->getBlockPtrByIndex(block_index);
-    if (first_block) {
-      lower_bound_pt = block->origin();
-      upper_bound_pt = block->origin().array() + block->block_size();
-      first_block = false;
-      continue;
-    }
-
-    lower_bound_pt = lower_bound_pt.array().min(block->origin().array());
-    upper_bound_pt = upper_bound_pt.array().max(block->origin().array() +
-                                                block->block_size());
+  if (esdf_map_) {
+    voxblox::utils::computeMapBoundsFromLayer(*esdf_map_->getEsdfLayerPtr(),
+                                              lower_bound, upper_bound);
+  } else if (tsdf_map_) {
+    voxblox::utils::computeMapBoundsFromLayer(*tsdf_map_->getTsdfLayerPtr(),
+                                              lower_bound, upper_bound);
   }
-
-  *lower_bound = lower_bound_pt.cast<double>();
-  *upper_bound = upper_bound_pt.cast<double>();
 }
 
 bool VoxbloxRrtPlanner::plannerServiceCallback(
@@ -185,6 +153,30 @@ bool VoxbloxRrtPlanner::plannerServiceCallback(
 
   mav_msgs::eigenTrajectoryPointFromPoseMsg(request.start_pose, &start_pose);
   mav_msgs::eigenTrajectoryPointFromPoseMsg(request.goal_pose, &goal_pose);
+
+  // Setup latest copy of map.
+  if (!(esdf_map_ &&
+        esdf_map_->getEsdfLayerPtr()->getNumberOfAllocatedBlocks() > 0) &&
+      !(tsdf_map_ &&
+        tsdf_map_->getTsdfLayerPtr()->getNumberOfAllocatedBlocks() > 0)) {
+    ROS_ERROR("Both maps are empty!");
+    return false;
+  }
+  // Figure out map bounds!
+  computeMapBounds(&lower_bound_, &upper_bound_);
+
+  ROS_INFO_STREAM("Map bounds: " << lower_bound_.transpose() << " to "
+                                 << upper_bound_.transpose() << " size: "
+                                 << (upper_bound_ - lower_bound_).transpose());
+
+  // Inflate the bounds a bit.
+  constexpr double kBoundInflationMeters = 0.5;
+  // Don't in flate in z. ;)
+  rrt_.setBounds(lower_bound_ - Eigen::Vector3d(kBoundInflationMeters,
+                                                kBoundInflationMeters, 0.0),
+                 upper_bound_ + Eigen::Vector3d(kBoundInflationMeters,
+                                                kBoundInflationMeters, 0.0));
+  rrt_.setupProblem();
 
   ROS_INFO("Planning path.");
 

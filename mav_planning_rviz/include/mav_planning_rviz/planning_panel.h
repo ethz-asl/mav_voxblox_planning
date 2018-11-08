@@ -2,6 +2,7 @@
 #define MAV_PLANNING_RVIZ_PLANNING_PANEL_H_
 
 #ifndef Q_MOC_RUN
+#include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <rviz/panel.h>
 #include "mav_planning_rviz/edit_button.h"
@@ -10,6 +11,7 @@
 #endif
 
 class QLineEdit;
+class QCheckBox;
 namespace mav_planning_rviz {
 
 class PlanningPanel : public rviz::Panel {
@@ -39,11 +41,14 @@ class PlanningPanel : public rviz::Panel {
 
   // Callback from ROS when the pose updates:
   void updateInteractiveMarkerPose(const mav_msgs::EigenTrajectoryPoint& pose);
+  // And when we get robot odometry:
+  void odometryCallback(const nav_msgs::Odometry& msg);
 
   // Next come a couple of public Qt slots.
  public Q_SLOTS:
   void updateNamespace();
   void updatePlannerName();
+  void updateOdometryTopic();
   void startEditing(const std::string& id);
   void finishEditing(const std::string& id);
   void widgetPoseUpdated(const std::string& id,
@@ -52,21 +57,26 @@ class PlanningPanel : public rviz::Panel {
   void callPublishPath();
   void publishWaypoint();
   void publishToController();
+  void trackOdometryStateChanged(int state);
 
  protected:
   // Set up the layout, only called by the constructor.
   void createLayout();
   void setNamespace(const QString& new_namespace);
   void setPlannerName(const QString& new_planner_name);
+  void setOdometryTopic(const QString& new_odometry_topic);
 
   // ROS Stuff:
   ros::NodeHandle nh_;
   ros::Publisher waypoint_pub_;
   ros::Publisher controller_pub_;
+  ros::Subscriber odometry_sub_;
 
   // QT stuff:
   QLineEdit* namespace_editor_;
   QLineEdit* planner_name_editor_;
+  QLineEdit* odometry_topic_editor_;
+  QCheckBox* odometry_checkbox_;
   PoseWidget* start_pose_widget_;
   PoseWidget* goal_pose_widget_;
   QPushButton* planner_service_button_;
@@ -83,6 +93,8 @@ class PlanningPanel : public rviz::Panel {
   // QT state:
   QString namespace_;
   QString planner_name_;
+  QString odometry_topic_;
+  bool track_odometry_;
 
   // Other state:
   std::string currently_editing_;

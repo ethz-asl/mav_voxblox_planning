@@ -65,7 +65,8 @@ class MavLocalPlanner {
   // Control for planning.
   void planningTimerCallback(const ros::TimerEvent& event);
   void planningStep();
-  void nextWaypoint();
+  // Returns if the next waypoint is a valid waypoint.
+  bool nextWaypoint();
   void replacePath(const mav_msgs::EigenTrajectoryPointVector& path);
 
   // Functions to help out replanning.
