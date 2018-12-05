@@ -10,7 +10,8 @@ LocoSmoother::LocoSmoother()
       resample_trajectory_(false),
       resample_visibility_(false),
       num_segments_(3),
-      add_waypoints_(false) {
+      add_waypoints_(false),
+      scale_time_(true) {
   split_at_collisions_ = false;
 }
 
@@ -67,7 +68,7 @@ bool LocoSmoother::getTrajectoryBetweenWaypoints(
     loco.setDistanceFunction(map_distance_func_);
   }
 
-  if (resample_trajectory_) {
+  if (resample_trajectory_ && !resample_visibility_) {
     loco.setupFromTrajectoryAndResample(traj_initial, num_segments_);
   } else {
     loco.setupFromTrajectory(traj_initial);
@@ -79,7 +80,7 @@ bool LocoSmoother::getTrajectoryBetweenWaypoints(
   loco.solveProblem();
   loco.getTrajectory(trajectory);
 
-  if (optimize_time_) {
+  if (scale_time_) {
     trajectory->scaleSegmentTimesToMeetConstraints(constraints_.v_max,
                                                    constraints_.a_max);
   }
@@ -158,7 +159,8 @@ void LocoSmoother::resampleWaypointsFromVisibilityGraph(
 
   double total_time =
       std::accumulate(segment_times.begin(), segment_times.end(), 0.0);
-
+  ROS_INFO("Total time: %f Time per seg: %f", total_time,
+           total_time / num_segments_);
   // Next we'll split the total time into num_segments_ sections and evaluate
   // where the waypoint falls.
   double time_so_far = 0.0;
@@ -168,8 +170,7 @@ void LocoSmoother::resampleWaypointsFromVisibilityGraph(
 
   waypoints_out->push_back(waypoints.front());
 
-  while (time_so_far < total_time &&
-         input_waypoint_index < segment_times.size()) {
+  while (output_waypoint_index < num_segments_) {
     if (time_so_far >= time_per_segment * output_waypoint_index) {
       mav_msgs::EigenTrajectoryPoint point;
       Eigen::Vector3d direction =
@@ -182,6 +183,9 @@ void LocoSmoother::resampleWaypointsFromVisibilityGraph(
       point.position_W = waypoints[input_waypoint_index - 1].position_W +
                          magnitude * direction;
       waypoints_out->push_back(point);
+      ROS_INFO("Waypoint %d from waypoint %d at time: %f offset: %f",
+               output_waypoint_index, input_waypoint_index, time_so_far,
+               magnitude);
       output_waypoint_index++;
     } else {
       time_so_far += segment_times[input_waypoint_index];

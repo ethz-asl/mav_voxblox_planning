@@ -65,6 +65,7 @@ class LocoSmoother : public PolynomialSmoother {
   bool resample_visibility_;
   int num_segments_;
   bool add_waypoints_;
+  bool scale_time_;
 
   DistanceAndGradientFunctionType distance_and_gradient_function_;
 };

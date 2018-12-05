@@ -67,6 +67,12 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
       mav_trajectory_generation::estimateSegmentTimesVelocityRamp(
           vertices, constraints_.v_max, constraints_.a_max, 1.0);
 
+  std::cout << "Segmen times: ";
+  for (double segment_time : segment_times) {
+    std::cout << segment_time << " ";
+  }
+  std::cout << std::endl;
+
   poly_opt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
   if (poly_opt.solveLinear()) {
     poly_opt.getTrajectory(trajectory);
