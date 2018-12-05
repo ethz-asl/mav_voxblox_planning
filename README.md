@@ -4,6 +4,27 @@ MAV planning tools using voxblox as the map representation.
 
 **NOTE: THIS PACKAGE IS UNDER ACTIVE DEVELOPMENT! Things are subject to change at any time.**
 
+## Table of Contents
+- [Contents and Future Work](#contents-and-future-work)
+  - [Included](#included)
+  - [To Come (by end of January 2019)](#to-come-by-end-of-january-2019)
+- [Papers and References](#papers-and-references)
+- [Getting Started](#getting-started)
+  - [Installation](#installation)
+  - [Download maps](#download-maps)
+  - [Try out RRT and Skeleton planning](#try-out-rrt-and-skeleton-planning)
+    - [Get the planning panel](#get-the-planning-panel)
+    - [Using RRT voxblox planner:](#using-rrt-voxblox-planner)
+    - [Using the Skeleton planner:](#using-the-skeleton-planner)
+  - [Try out Local Planning](#try-out-local-planning)
+    - [Install Rotors Simulator](#install-rotors-simulator)
+    - [Install the planning pannel (if you haven't yet)](#install-the-planning-pannel-if-you-havent-yet)
+    - [Run the simulation](#run-the-simulation)
+    - [Try out global + local planning](#try-out-global--local-planning)
+- [Advanced](#advanced)
+  - [Skeletonize your own maps](#skeletonize-your-own-maps)
+
+
 ## Contents and Future Work
 ### Included
 * Global Planning
@@ -15,13 +36,18 @@ MAV planning tools using voxblox as the map representation.
   * Velocity ramp `mav_path_smoothing`
   * Polynomial with adding additional vertices at collisions `mav_path_smoothing`
   * Local polynomial optimization (Loco), unconstraining waypoints and minimizing collisions `mav_path_smoothing, loco_planner`
-* RVIZ Planning Plugin
+* Local Planning -- `mav_local_planner`
+  * Interface to MAV controller, sending timed, dynamically feasible trajectories and replanning online `mav_local_planner`
+  * Planning in a short horizon in unknown or partially unknown spaces, using trajectory optimization in ESDFs `voxblox_loco_planner`
+  * Path smoothing between waypoints if all waypoints are in known free space `mav_path_smoothing`
+* RVIZ Planning Plugin -- `mav_planning_rviz`
   * Allows dragging around start and goal markers, sending planning requests to global planners `mav_planning_rviz`
+  * Allows sending goal points either directly to controller or to the local planner `mav_local_planner`
 
-### To Come (by end of October 2018)
+### To Come (by end of January 2019)
 * Local Planning
-  * Collision avoidance in unknown environments
-  * Local planning benchmark
+  * Improved goal selection
+  * Support for global and local coordinate frames
 * RVIZ Planning Plugin
   * Support for entering multiple waypoints
 
@@ -144,6 +170,48 @@ Pink is the shortened path from the sparse graph, and teal is smoothed using loc
 
 ![image](https://user-images.githubusercontent.com/5616392/46147219-3155eb80-c265-11e8-9787-150906e5bf90.png)
 
+
+
+## Try out Local Planning
+This demo is about using the **mav_local_planner** to do live replanning at 4 Hz in a simulation environment.
+The local planner uses `loco` to locally track a waypoint, or if given a list of waypoints, plan a smooth path through them.
+
+![loco_really_small](https://user-images.githubusercontent.com/5616392/48132241-2c884c80-e293-11e8-98e0-56afa847d64a.png)
+
+### Install Rotors Simulator
+Follow the installation instructions [here](https://github.com/ethz-asl/rotors_simulator#installation-instructions---ubuntu-1604-with-ros-kinetic) to install Rotors Simulator, which is an MAV simulator built on top of gazebo. This will allow us to fully simulate a typical MAV, with a visual-inertial sensor mounted on it.
+
+### Install the planning pannel (if you haven't yet)
+See instructions above: [here](https://github.com/ethz-asl/mav_voxblox_planning#get-the-planning-panel).
+
+### Run the simulation
+After rotors is up and running, in a new terminal, launch the firefly sim:
+```roslaunch mav_local_planner firefly_sim.launch```
+
+A gazebo window will come up, showing something similar to this:
+![gazebo_local_sim](https://user-images.githubusercontent.com/5616392/48097684-d5469580-e21a-11e8-8fe3-6ad024b18bf8.png)
+
+You can then control the MAV using the planning panel. Enter `firefly` as the `Namespace` in the planning panel, then either type a position for the goal or edit the goal to drag it around. To send it to the local planner, press the `Send Waypoint` button.
+
+The trajectory will be visualized as a `visualization_msgs/MarkerArray` with the topic `/firefly/mav_local_planner/local_path` and you can view the explored mesh as a `voxblox_msgs/Mesh` message with the topic `/firefly/voxblox_node/mesh`. The complete setup is shown below:
+
+![rviz_local_sim1](https://user-images.githubusercontent.com/5616392/48097689-d8418600-e21a-11e8-9d8b-7b5194b5c302.png)
+
+In case the MAV gets stuck, you can use `Send to Controller`, which will directly send the pose command to the controller -- with no collision avoidance or trajectory planning.
+
+### Try out global + local planning
+Once you've explored some of the map in simulation, you can also use the global planner to plan longer paths through *known* space.
+First, start the simulation global RRT* planner (this is *in addition to* the `firefly_sim.launch` file above):
+```
+roslaunch voxblox_rrt_planner firefly_rrt.launch
+```
+
+Local planning only uses the goal point, but global planning requires a start point as well (as the global planner does not know the odometry of the MAV). For this, we can use the `Set start to odom` option in the planning panel.
+To do this, in the `Odometry Topic` field, enter `ground_truth/odometry` and check the `Set start to odom` check-box. Now the start location will automatically track the odometry of the Firefly as it moves.
+
+Once the start and goal poses are set as you want, press `Planner Service`. In rviz, add a `MarkerArray` display with the topic `/firefly/voxblox_rrt_planner/path` to visualize what the planner has planned. Once you are happy with this path, press `Publish Path` to send it to the local planner, which should start tracking the path immediately.
+
+![rviz_global_local](https://user-images.githubusercontent.com/5616392/48191000-606f7a80-e344-11e8-9f0c-1609f0a99c47.png)
 
 # Advanced
 ## Skeletonize your own maps
