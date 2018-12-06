@@ -29,18 +29,18 @@ GlobalPlanningBenchmark::GlobalPlanningBenchmark(
   path_marker_pub_ =
       nh_private_.advertise<visualization_msgs::MarkerArray>("path", 1, true);
 
-  // global_planning_methods_.push_back(kStraightLine);
+   global_planning_methods_.push_back(kStraightLine);
   global_planning_methods_.push_back(kRrtConnect);
   global_planning_methods_.push_back(kRrtStar);
   global_planning_methods_.push_back(kSkeletonGraph);
   global_planning_methods_.push_back(kPrm);
 
-  // path_smoothing_methods_.push_back(kNone);
-  // path_smoothing_methods_.push_back(kVelocityRamp);
-  // path_smoothing_methods_.push_back(kPolynomial);
+  path_smoothing_methods_.push_back(kNone);
+  path_smoothing_methods_.push_back(kVelocityRamp);
+  path_smoothing_methods_.push_back(kPolynomial);
   path_smoothing_methods_.push_back(kLoco);
-  path_smoothing_methods_.push_back(kLoco2);
-  path_smoothing_methods_.push_back(kLoco3);
+  //path_smoothing_methods_.push_back(kLoco2);
+  //path_smoothing_methods_.push_back(kLoco3);
 }
 
 void GlobalPlanningBenchmark::loadMap(const std::string& base_path,

@@ -1,8 +1,11 @@
 <launch>
-  <arg name="base_path" default="/home/helen/data/jfr_2018/shed/voxblox/" />
-  <arg name="esdf_name" default="stereo_esdf_0.10.voxblox" />
-  <arg name="sparse_graph_name" default="stereo_sparse_graph_0.10.voxblox" />
-  <arg name="results_name" default="loco_stereo_results_05_12_2018h.csv" />
+  <arg name="dataset" default="rubble" />
+  <arg name="sensor" default="rs" />
+  <arg name="date" default="06_12_2018" />
+  <arg name="base_path" default="/home/helen/data/jfr_2018/$(arg dataset)/voxblox/" />
+  <arg name="esdf_name" default="$(arg sensor)_esdf_0.10.voxblox" />
+  <arg name="sparse_graph_name" default="$(arg sensor)_sparse_graph_0.10.voxblox" />
+  <arg name="results_name" default="$(arg sensor)_results_$(arg date).csv" />
 
   <arg name="frame_id" default="map" />
 
