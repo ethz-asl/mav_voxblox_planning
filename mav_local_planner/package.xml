@@ -27,4 +27,5 @@
 
   <exec_depend>mav_nonlinear_mpc</exec_depend>
   <exec_depend>mav_lowlevel_attitude_controller</exec_depend>
+  <exec_depend>mav_planning_rviz</exec_depend>
 </package>
