@@ -24,4 +24,7 @@
   <depend>visualization_msgs</depend>
   <depend>voxblox_loco_planner</depend>
   <depend>voxblox_ros</depend>
+
+  <exec_depend>mav_nonlinear_mpc</exec_depend>
+  <exec_depend>mav_lowlevel_attitude_controller</exec_depend>
 </package>
