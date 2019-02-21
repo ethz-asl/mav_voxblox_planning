@@ -2,6 +2,7 @@
 #include <functional>
 #include <thread>
 
+#include <QCheckBox>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -12,6 +13,7 @@
 
 #include <geometry_msgs/Twist.h>
 #include <mav_planning_msgs/PlannerService.h>
+#include <ros/names.h>
 #include <rviz/visualization_manager.h>
 #include <std_srvs/Empty.h>
 
@@ -42,14 +44,19 @@ void PlanningPanel::onInitialize() {
 }
 
 void PlanningPanel::createLayout() {
-  QHBoxLayout* topic_layout = new QHBoxLayout;
+  QGridLayout* topic_layout = new QGridLayout;
   // Input the namespace.
-  topic_layout->addWidget(new QLabel("Namespace:"));
+  topic_layout->addWidget(new QLabel("Namespace:"), 0, 0);
   namespace_editor_ = new QLineEdit;
-  topic_layout->addWidget(namespace_editor_);
-  topic_layout->addWidget(new QLabel("Planner name:"));
+  topic_layout->addWidget(namespace_editor_, 0, 1);
+  topic_layout->addWidget(new QLabel("Planner name:"), 1, 0);
   planner_name_editor_ = new QLineEdit;
-  topic_layout->addWidget(planner_name_editor_);
+  topic_layout->addWidget(planner_name_editor_, 1, 1);
+  topic_layout->addWidget(new QLabel("Odometry topic:"), 2, 0);
+  odometry_topic_editor_ = new QLineEdit;
+  topic_layout->addWidget(odometry_topic_editor_, 2, 1);
+  odometry_checkbox_ = new QCheckBox("Set start to odom");
+  topic_layout->addWidget(odometry_checkbox_, 3, 0, 1, 2);
 
   // Start and goal poses.
   QGridLayout* start_goal_layout = new QGridLayout;
@@ -81,11 +88,15 @@ void PlanningPanel::createLayout() {
   start_goal_layout->addWidget(goal_edit_button, 1, 2);
 
   // Planner services and publications.
-  QHBoxLayout* service_layout = new QHBoxLayout;
+  QGridLayout* service_layout = new QGridLayout;
   planner_service_button_ = new QPushButton("Planner Service");
   publish_path_button_ = new QPushButton("Publish Path");
-  service_layout->addWidget(planner_service_button_);
-  service_layout->addWidget(publish_path_button_);
+  waypoint_button_ = new QPushButton("Send Waypoint");
+  controller_button_ = new QPushButton("Send To Controller");
+  service_layout->addWidget(planner_service_button_, 0, 0);
+  service_layout->addWidget(publish_path_button_, 0, 1);
+  service_layout->addWidget(waypoint_button_, 1, 0);
+  service_layout->addWidget(controller_button_, 1, 1);
 
   // First the names, then the start/goal, then service buttons.
   QVBoxLayout* layout = new QVBoxLayout;
@@ -99,10 +110,25 @@ void PlanningPanel::createLayout() {
           SLOT(updateNamespace()));
   connect(planner_name_editor_, SIGNAL(editingFinished()), this,
           SLOT(updatePlannerName()));
+  connect(odometry_topic_editor_, SIGNAL(editingFinished()), this,
+          SLOT(updateOdometryTopic()));
   connect(planner_service_button_, SIGNAL(released()), this,
           SLOT(callPlannerService()));
   connect(publish_path_button_, SIGNAL(released()), this,
           SLOT(callPublishPath()));
+  connect(waypoint_button_, SIGNAL(released()), this, SLOT(publishWaypoint()));
+  connect(controller_button_, SIGNAL(released()), this,
+          SLOT(publishToController()));
+  connect(odometry_checkbox_, SIGNAL(stateChanged(int)), this,
+          SLOT(trackOdometryStateChanged(int)));
+}
+
+void PlanningPanel::trackOdometryStateChanged(int state) {
+  if (state == 0) {
+    track_odometry_ = 0;
+  } else {
+    track_odometry_ = 1;
+  }
 }
 
 void PlanningPanel::updateNamespace() {
@@ -111,10 +137,24 @@ void PlanningPanel::updateNamespace() {
 
 // Set the topic name we are publishing to.
 void PlanningPanel::setNamespace(const QString& new_namespace) {
+  ROS_DEBUG_STREAM("Setting namespace from: " << namespace_.toStdString()
+                                              << " to "
+                                              << new_namespace.toStdString());
   // Only take action if the name has changed.
   if (new_namespace != namespace_) {
     namespace_ = new_namespace;
     Q_EMIT configChanged();
+
+    std::string error;
+    if (ros::names::validate(namespace_.toStdString(), error)) {
+      waypoint_pub_ = nh_.advertise<geometry_msgs::PoseStamped>(
+          namespace_.toStdString() + "/waypoint", 1, false);
+      controller_pub_ = nh_.advertise<geometry_msgs::PoseStamped>(
+          namespace_.toStdString() + "/command/pose", 1, false);
+      odometry_sub_ = nh_.subscribe(
+          namespace_.toStdString() + "/" + odometry_topic_.toStdString(), 1,
+          &PlanningPanel::odometryCallback, this);
+    }
   }
 }
 
@@ -128,6 +168,26 @@ void PlanningPanel::setPlannerName(const QString& new_planner_name) {
   if (new_planner_name != planner_name_) {
     planner_name_ = new_planner_name;
     Q_EMIT configChanged();
+  }
+}
+
+void PlanningPanel::updateOdometryTopic() {
+  setOdometryTopic(odometry_topic_editor_->text());
+}
+
+// Set the topic name we are publishing to.
+void PlanningPanel::setOdometryTopic(const QString& new_odometry_topic) {
+  // Only take action if the name has changed.
+  if (new_odometry_topic != odometry_topic_) {
+    odometry_topic_ = new_odometry_topic;
+    Q_EMIT configChanged();
+
+    std::string error;
+    if (ros::names::validate(namespace_.toStdString(), error)) {
+      odometry_sub_ = nh_.subscribe(
+          namespace_.toStdString() + "/" + odometry_topic_.toStdString(), 1,
+          &PlanningPanel::odometryCallback, this);
+    }
   }
 }
 
@@ -191,17 +251,24 @@ void PlanningPanel::save(rviz::Config config) const {
   rviz::Panel::save(config);
   config.mapSetValue("namespace", namespace_);
   config.mapSetValue("planner_name", planner_name_);
+  config.mapSetValue("odometry_topic", odometry_topic_);
 }
 
 // Load all configuration data for this panel from the given Config object.
 void PlanningPanel::load(const rviz::Config& config) {
   rviz::Panel::load(config);
   QString topic;
-  if (config.mapGetString("namespace", &namespace_)) {
-    namespace_editor_->setText(namespace_);
+  QString ns;
+  if (config.mapGetString("namespace", &ns)) {
+    namespace_editor_->setText(ns);
+    updateNamespace();
   }
   if (config.mapGetString("planner_name", &planner_name_)) {
     planner_name_editor_->setText(planner_name_);
+  }
+  if (config.mapGetString("odometry_topic", &topic)) {
+    odometry_topic_editor_->setText(topic);
+    updateOdometryTopic();
   }
 }
 
@@ -241,7 +308,7 @@ void PlanningPanel::callPlannerService() {
                                                      &req.request.goal_pose);
 
     try {
-      ROS_INFO_STREAM("Service name: " << service_name);
+      ROS_DEBUG_STREAM("Service name: " << service_name);
       if (!ros::service::call(service_name, req)) {
         ROS_WARN_STREAM("Couldn't call service: " << service_name);
       }
@@ -265,7 +332,50 @@ void PlanningPanel::callPublishPath() {
   }
 }
 
-}  // end namespace mav_planning_rviz
+void PlanningPanel::publishWaypoint() {
+  mav_msgs::EigenTrajectoryPoint goal_point;
+  goal_pose_widget_->getPose(&goal_point);
+
+  geometry_msgs::PoseStamped pose;
+  pose.header.frame_id = vis_manager_->getFixedFrame().toStdString();
+  mav_msgs::msgPoseStampedFromEigenTrajectoryPoint(goal_point, &pose);
+
+  ROS_DEBUG_STREAM("Publishing waypoint on "
+                   << waypoint_pub_.getTopic()
+                   << " subscribers: " << waypoint_pub_.getNumSubscribers());
+
+  waypoint_pub_.publish(pose);
+}
+
+void PlanningPanel::publishToController() {
+  mav_msgs::EigenTrajectoryPoint goal_point;
+  goal_pose_widget_->getPose(&goal_point);
+
+  geometry_msgs::PoseStamped pose;
+  pose.header.frame_id = vis_manager_->getFixedFrame().toStdString();
+  mav_msgs::msgPoseStampedFromEigenTrajectoryPoint(goal_point, &pose);
+
+  ROS_DEBUG_STREAM("Publishing controller goal on "
+                   << controller_pub_.getTopic()
+                   << " subscribers: " << controller_pub_.getNumSubscribers());
+
+  controller_pub_.publish(pose);
+}
+
+void PlanningPanel::odometryCallback(const nav_msgs::Odometry& msg) {
+  ROS_INFO_ONCE("Got odometry callback.");
+  if (track_odometry_) {
+    mav_msgs::EigenOdometry odometry;
+    mav_msgs::eigenOdometryFromMsg(msg, &odometry);
+    mav_msgs::EigenTrajectoryPoint point;
+    point.position_W = odometry.position_W;
+    point.orientation_W_B = odometry.orientation_W_B;
+    pose_widget_map_["start"]->setPose(point);
+    interactive_markers_.updateMarkerPose("start", point);
+  }
+}
+
+}  // namespace mav_planning_rviz
 
 // Tell pluginlib about this class.  Every class which should be
 // loadable by pluginlib::ClassLoader must have these two lines

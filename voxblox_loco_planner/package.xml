@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>voxblox_loco_planner</name>
+  <version>0.0.0</version>
+  <description>
+    Local planning using LOCO and a voxblox map.
+  </description>
+
+  <maintainer email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+
+  <depend>loco_planner</depend>
+  <depend>mav_msgs</depend>
+  <depend>mav_planning_common</depend>
+  <depend>mav_trajectory_generation_ros</depend>
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>tf</depend>
+  <depend>visualization_msgs</depend>
+  <depend>voxblox_ros</depend>
+</package>

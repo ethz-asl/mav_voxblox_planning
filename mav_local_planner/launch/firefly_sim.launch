@@ -1,0 +1,59 @@
+<launch>
+  <arg name="mav_name" default="firefly"/>
+  <arg name="world_name" default="$(find mav_local_planner)/worlds/maze_house.world"/>
+  <arg name="enable_logging" default="false" />
+  <arg name="enable_ground_truth" default="true" />
+  <arg name="log_file" default="$(arg mav_name)" />
+  <arg name="debug" default="false"/>
+  <arg name="gui" default="true"/>
+  <arg name="paused" default="false"/>
+  <arg name="frame_id" default="odom" />
+  <!-- The following line causes gzmsg and gzerr messages to be printed to the console
+      (even when Gazebo is started through roslaunch) -->
+  <arg name="verbose" default="false"/>
+
+  <env name="GAZEBO_MODEL_PATH" value="${GAZEBO_MODEL_PATH}:$(find rotors_gazebo)/models"/>
+  <env name="GAZEBO_RESOURCE_PATH" value="${GAZEBO_RESOURCE_PATH}:$(find rotors_gazebo)/models"/>
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg world_name)" />
+    <arg name="debug" value="$(arg debug)" />
+    <arg name="paused" value="$(arg paused)" />
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="verbose" value="$(arg verbose)"/>
+  </include>
+
+  <group ns="$(arg mav_name)">
+    <include file="$(find rotors_gazebo)/launch/spawn_mav.launch">
+      <arg name="mav_name" value="$(arg mav_name)" />
+      <arg name="model" value="$(find rotors_description)/urdf/mav_with_vi_sensor.gazebo" />
+      <arg name="enable_logging" value="$(arg enable_logging)" />
+      <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
+      <arg name="log_file" value="$(arg log_file)"/>
+    </include>
+
+    <node name="mav_nonlinear_mpc" pkg="mav_nonlinear_mpc" type="nonlinear_mpc_node" respawn="true" clear_params="true" output="screen" >
+      <remap from="odometry" to="ground_truth/odometry" />
+      <rosparam file="$(find mav_nonlinear_mpc)/resources/nonlinear_mpc_$(arg mav_name).yaml" />
+      <rosparam file="$(find mav_disturbance_observer)/resources/disturbance_observer_$(arg mav_name).yaml"/>
+      <param name="use_rc_teleop" value="false"/>
+      <param name="verbose" value="false" />
+      <param name="reference_frame" value="$(arg frame_id)"/>
+    </node>
+
+    <node name="PID_attitude_controller" pkg="mav_lowlevel_attitude_controller" type="mav_pid_attitude_controller_node" respawn="true" clear_params="true" output="screen">
+      <remap from="odometry" to="ground_truth/odometry" />
+      <rosparam file="$(find mav_lowlevel_attitude_controller)/resources/PID_attitude_$(arg mav_name).yaml" />
+    </node>
+
+    <node name="hovering_example" pkg="rotors_gazebo" type="hovering_example" output="screen" >
+    </node>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+    <!-- Transforms -->
+    <node pkg="tf" type="static_transform_publisher" name="world_odom_broadcaster" args="0 0 0 0 0 0 1 world odom 100" />
+  </group>
+
+  <!-- Mapping and Planning -->
+  <include file="$(find mav_local_planner)/launch/firefly_mapping_planning.launch"/>
+</launch>

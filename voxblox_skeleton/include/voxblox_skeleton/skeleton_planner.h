@@ -24,14 +24,18 @@ class SkeletonAStar {
   inline void setSkeletonLayer(const Layer<SkeletonVoxel>* skeleton_layer) {
     CHECK_NOTNULL(skeleton_layer);
     skeleton_layer_ = skeleton_layer;
-    neighbor_tools_.setLayer(skeleton_layer_);
   }
 
   inline void setEsdfLayer(const Layer<EsdfVoxel>* esdf_layer) {
     CHECK_NOTNULL(esdf_layer);
+    LOG(INFO) << "Setting ESDF layer.";
     esdf_layer_ = esdf_layer;
-    // Just assume that neighbor tools is set to the skeleton layer...
-    // As long as the layers are the same size, it doesn't matter.
+    if (skeleton_layer_ == nullptr) {
+      LOG(INFO) << "Setting neighbor tools to not 0! "
+                << esdf_layer->voxels_per_side();
+      skeleton_layer_ = new Layer<SkeletonVoxel>(esdf_layer->voxel_size(),
+                                                 esdf_layer->voxels_per_side());
+    }
   }
 
   // If 0, then unlimited iterations.
@@ -113,8 +117,6 @@ class SkeletonAStar {
   // this minimum distance.
   float min_esdf_distance_;
 
-  NeighborTools<SkeletonVoxel> neighbor_tools_;
-
   const Layer<SkeletonVoxel>* skeleton_layer_;
   const Layer<EsdfVoxel>* esdf_layer_;
 };
@@ -128,6 +130,8 @@ bool SkeletonAStar::getPathInVoxels(
   CHECK_NOTNULL(skeleton_layer_);
 
   int num_iterations = 0;
+
+  const size_t voxels_per_side = skeleton_layer_->voxels_per_side();
 
   // Make the 3 maps we need.
   IndexToDistanceMap f_score_map;
@@ -163,32 +167,31 @@ bool SkeletonAStar::getPathInVoxels(
     // Check if this is already the goal...
     if (current_voxel_offset == goal_voxel_offset) {
       getSolutionPath(goal_voxel_offset, parent_map, voxel_path);
+      LOG(INFO) << "Found solution in: " << num_iterations;
       return true;
     }
 
     closed_set.insert(current_voxel_offset);
 
     // Get the block and voxel index of this guy.
-    neighbor_tools_.getNeighborIndex(start_block_index, start_voxel_index,
-                                current_voxel_offset, &block_index,
-                                &voxel_index);
+    Neighborhood<>::getFromBlockAndVoxelIndexAndDirection(
+        start_block_index, start_voxel_index, current_voxel_offset,
+        voxels_per_side, &block_index, &voxel_index);
     block_ptr = getBlockPtrByIndex<VoxelType>(block_index);
     AlignedVector<VoxelKey> neighbors;
-    AlignedVector<float> distances;
-    AlignedVector<Eigen::Vector3i> directions;
-    neighbor_tools_.getNeighborIndexesAndDistances(
-        block_index, voxel_index, Connectivity::kTwentySix, &neighbors,
-        &distances, &directions);
+    Neighborhood<>::getFromBlockAndVoxelIndex(block_index, voxel_index,
+                                              voxels_per_side, &neighbors);
     for (size_t i = 0; i < neighbors.size(); ++i) {
       BlockIndex neighbor_block_index = neighbors[i].first;
       VoxelIndex neighbor_voxel_index = neighbors[i].second;
+
+      Eigen::Vector3i neighbor_voxel_offset =
+          current_voxel_offset + Neighborhood<>::kOffsets.col(i);
 
       if (!isValidVoxel<VoxelType>(neighbor_block_index, neighbor_voxel_index,
                                    block_index, block_ptr)) {
         continue;
       }
-      Eigen::Vector3i neighbor_voxel_offset =
-          current_voxel_offset + directions[i];
       if (closed_set.count(neighbor_voxel_offset) > 0) {
         // Already checked this guy as well.
         continue;
@@ -198,7 +201,7 @@ bool SkeletonAStar::getPathInVoxels(
       }
 
       FloatingPoint tentative_g_score =
-          g_score_map[current_voxel_offset] + distances[i];
+          g_score_map[current_voxel_offset] + Neighborhood<>::kDistances(i);
       if (g_score_map.count(neighbor_voxel_offset) == 0 ||
           g_score_map[neighbor_voxel_offset] < tentative_g_score) {
         g_score_map[neighbor_voxel_offset] = tentative_g_score;

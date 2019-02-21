@@ -1,0 +1,34 @@
+package voxblox;
+
+message SkeletonVertexProto {
+  optional int64 vertex_id = 1;
+  optional double point_x = 2;
+  optional double point_y = 3;
+  optional double point_z = 4;
+
+  repeated int64 edge_list = 5;
+
+  optional int32 subgraph_id = 6;
+}
+
+message SkeletonEdgeProto {
+  optional int64 edge_id = 1;
+  optional int64 start_vertex = 2;
+  optional int64 end_vertex = 3;
+
+  optional double start_point_x = 4;
+  optional double start_point_y = 5;
+  optional double start_point_z = 6;
+
+  optional double end_point_x = 7;
+  optional double end_point_y = 8;
+  optional double end_point_z = 9;
+
+  optional float start_distance = 10;
+  optional float end_distance = 11;
+}
+
+message SkeletonGraphProto {
+  repeated SkeletonVertexProto vertices = 1;
+  repeated SkeletonEdgeProto edges = 2;
+}

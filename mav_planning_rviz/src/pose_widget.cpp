@@ -8,6 +8,9 @@
 
 namespace mav_planning_rviz {
 
+constexpr double kDegToRad = M_PI / 180.0;
+constexpr double kRadToDeg = 180.0 / M_PI;
+
 PoseWidget::PoseWidget(const std::string& id, QWidget* parent)
     : QWidget(parent), id_(id) {
   createTable();
@@ -49,8 +52,7 @@ void PoseWidget::getPose(mav_msgs::EigenTrajectoryPoint* point) const {
   point->position_W.x() = table_widget_->item(0, 0)->text().toDouble();
   point->position_W.y() = table_widget_->item(0, 1)->text().toDouble();
   point->position_W.z() = table_widget_->item(0, 2)->text().toDouble();
-  point->setFromYaw(table_widget_->item(0, 3)->text().toDouble() * M_PI /
-                    180.0);
+  point->setFromYaw(table_widget_->item(0, 3)->text().toDouble() * kDegToRad);
 }
 
 void PoseWidget::setPose(const mav_msgs::EigenTrajectoryPoint& point) {
@@ -62,12 +64,11 @@ void PoseWidget::setPose(const mav_msgs::EigenTrajectoryPoint& point) {
   table_widget_->item(0, 2)->setText(
       QString::number(point.position_W.z(), 'f', 2));
   table_widget_->item(0, 3)->setText(
-      QString::number(point.getYaw() * 180.0 / M_PI, 'f', 2));
+      QString::number(point.getYaw() * kRadToDeg, 'f', 2));
   table_widget_->blockSignals(false);
 }
 
 void PoseWidget::itemChanged(QTableWidgetItem* item) {
-  std::cout << "Item changed: " << id_ << std::endl;
   mav_msgs::EigenTrajectoryPoint point;
   getPose(&point);
   Q_EMIT poseUpdated(id_, point);
@@ -85,19 +86,5 @@ QWidget* DoubleTableDelegate::createEditor(QWidget* parent,
   line_edit->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
   return line_edit;
 }
-
-/*
-// From
-//
-https://stackoverflow.com/questions/8766633/how-to-determine-the-correct-size-of-a-qtablewidget
-QSize PoseWidget::getTableSize(QTableWidget* t) const {
- int w = t->verticalHeader()->width() + 4;  // +4 seems to be needed
- for (int i = 0; i < t->columnCount(); i++)
-   w += t->columnWidth(i);  // seems to include gridline (on my machine)
- int h = t->horizontalHeader()->height() + 4;
- for (int i = 0; i < t->rowCount(); i++) h += t->rowHeight(i);
- return QSize(w, h);
-}
-*/
 
 }  // namespace mav_planning_rviz

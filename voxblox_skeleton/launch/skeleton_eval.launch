@@ -1,0 +1,23 @@
+<launch>
+  <arg name="frame_id" default="map" />
+
+  <node name="voxblox_skeletonizer" pkg="voxblox_skeleton" type="skeleton_eval" output="screen" clear_params="true" args="-v=1">
+    <param name="generate_by_layer_neighbors" value="false" />
+    <param name="full_euclidean_distance" value="true" />
+    <param name="min_separation_angle" value="0.7" />
+    <param name="min_gvd_distance" value="0.5" />
+    <param name="apply_noise" value="true" />
+    <param name="noise_sigma" value="0.01" />
+    <param name="generate_from_robot_poses" value="false" />
+    <param name="tsdf_voxel_size" value="0.1" />
+    <param name="esdf_max_distance_m" value="5.0" />
+    <param name="esdf_min_diff_m" value="0.0" />
+    <param name="esdf_add_occupied_crust" value="true" />
+    <param name="publish_pointclouds" value="true" />
+    <param name="publish_slices" value="true" />
+    <param name="world_frame" value="$(arg frame_id)" />
+    <param name="frame_id" value="$(arg frame_id)" />
+    <param name="verbose" value="true" />
+  </node>
+
+</launch>

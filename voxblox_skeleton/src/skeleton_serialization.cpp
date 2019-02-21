@@ -17,7 +17,6 @@ void Block<SkeletonVoxel>::deserializeFromIntegers(
     const uint32_t bytes_1 = data[data_idx];
     const uint32_t bytes_2 = data[data_idx + 1u];
     const int32_t bytes_3 = data[data_idx + 2u];
-
     SkeletonVoxel& voxel = voxels_[voxel_idx];
 
     memcpy(&(voxel.distance), &bytes_1, sizeof(bytes_1));
@@ -61,7 +60,16 @@ void Block<SkeletonVoxel>::serializeToIntegers(
     }
     data->push_back(bytes_3);
   }
+
   CHECK_EQ(num_voxels_ * kNumDataPacketsPerVoxel, data->size());
+}
+
+template <>
+void mergeVoxelAIntoVoxelB(const SkeletonVoxel& voxel_A,
+                           SkeletonVoxel* voxel_B) {
+  // This makes absolutely no sense.
+  // Just set voxel_B = voxel_A.
+  *voxel_B = voxel_A;
 }
 
 }  // namespace voxblox

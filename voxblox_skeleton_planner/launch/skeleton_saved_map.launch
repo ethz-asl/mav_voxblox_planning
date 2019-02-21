@@ -1,0 +1,23 @@
+<launch>
+  <arg name="voxblox_path" default="/home/helen/data/jfr_2018/machine_hall/voxblox/rs_skeleton_0.10.voxblox" />
+  <arg name="sparse_graph_path" default="/home/helen/data/jfr_2018/machine_hall/voxblox/rs_sparse_graph_0.10.voxblox" />
+  <arg name="frame_id" default="map" />
+
+  <node name="voxblox_skeleton_planner" pkg="voxblox_skeleton_planner" type="skeleton_global_planner_node" output="screen" clear_params="true">
+    <param name="voxblox_path" value="$(arg voxblox_path)" />
+    <param name="sparse_graph_path" value="$(arg sparse_graph_path)" />
+    <param name="visualize" value="true" />
+    <param name="robot_radius" value="0.5" />
+    <param name="tsdf_voxel_size" value="0.10" />
+    <param name="tsdf_voxels_per_side" value="16" />
+    <param name="update_mesh_every_n_sec" value="0.0" />
+    <param name="frame_id" value="$(arg frame_id)" />
+    <param name="world_frame" value="$(arg frame_id)" />
+    <param name="trust_approx_solution" value="true" />
+    <param name="publish_traversable" value="true" />
+    <param name="split_at_collisions" value="true" />
+    <param name="optimize_time" value="true" />
+    <param name="verbose" value="true" />
+  </node>
+
+</launch>

@@ -312,12 +312,12 @@ void Loco<N>::solveProblemCeres() {
   std::vector<Eigen::VectorXd> d_p_vec;
   poly_opt_.getFreeConstraints(&d_p_vec);
 
-  double* x0 = new double[num_free_ * K_];
+  std::vector<double> parameters(num_free_ * K_);
 
   int i = 0;
   for (int k = 0; k < K_; ++k) {
     for (int j = 0; j < num_free_; ++j) {
-      x0[i] = d_p_vec[k](j);
+      parameters[i] = d_p_vec[k](j);
       ++i;
     }
   }
@@ -327,15 +327,14 @@ void Loco<N>::solveProblemCeres() {
 
   ceres::GradientProblemSolver::Options options;
   options.line_search_direction_type = ceres::BFGS;
+  options.logging_type = ceres::SILENT;
+  options.minimizer_progress_to_stdout = false;
 
-  if (config_.verbose) {
-    options.minimizer_progress_to_stdout = true;
-  }
   options.line_search_interpolation_type = ceres::BISECTION;
   ceres::GradientProblemSolver::Summary summary;
 
   // Fire up CERES!
-  ceres::Solve(options, problem, x0, &summary);
+  ceres::Solve(options, problem, parameters.data(), &summary);
 
   if (config_.verbose) {
     std::cout << summary.FullReport() << "\n";
@@ -345,7 +344,7 @@ void Loco<N>::solveProblemCeres() {
   i = 0;
   for (int k = 0; k < K_; ++k) {
     for (int j = 0; j < num_free_; ++j) {
-      d_p_vec[k](j) = x0[i];
+      d_p_vec[k](j) = parameters[i];
       ++i;
     }
   }
@@ -534,6 +533,8 @@ double Loco<N>::computeDerivativeCostAndGradient(
 template <int N>
 double Loco<N>::computeCollisionCostAndGradient(
     std::vector<Eigen::VectorXd>* gradients) const {
+  mav_trajectory_generation::timing::Timer coll_cost_prep_timer(
+      "loco/coll_cost_prep");
   // Unpack into d_f, d_ps.
   // Get d_p and d_f vector for all axes.
   std::vector<Eigen::VectorXd> d_p_vec;
@@ -578,23 +579,29 @@ double Loco<N>::computeCollisionCostAndGradient(
   double J_c = 0;
   std::vector<Eigen::VectorXd> grad_c(K_, Eigen::VectorXd::Zero(num_free_));
 
+  coll_cost_prep_timer.Stop();
+
   Eigen::VectorXd last_position(K_);
   last_position.setZero();
   // int is "integral" in this case, not "integer."
   double time_int = -1.0;
   double distance_int = 0;
   double t = 0.0;
+
+  Eigen::VectorXd T(num_segments * N);
+  Eigen::VectorXd T_seg(N);
   for (int i = 0; i < num_segments; ++i) {
+    T.setZero();
+
     // Select a time.
-    // std::cout << "Starting segment " << i << std::endl;
     for (t = 0.0; t < segment_times[i]; t += dt) {
+      mav_trajectory_generation::timing::Timer coll_cost_sample_timer(
+          "loco/coll_cost_sample");
+
       // T is the vector for just THIS SEGMENT.
-      Eigen::VectorXd T_seg(N);
       getTVector(t, &T_seg);
 
       // Now fill this in for ALL segments.
-      Eigen::VectorXd T(num_segments * N);
-      T.setZero();
       T.segment(i * N, N) = T_seg;
 
       // Calculate the position per axis. Also calculate velocity so we don't
@@ -611,7 +618,7 @@ double Loco<N>::computeCollisionCostAndGradient(
       }
 
       // Now calculate the distance integral.
-      if (time_int < 0) {
+      if (time_int < 0.0) {
         // Skip this entry if it's the first one.
         time_int = 0.0;
         last_position = position;
@@ -625,13 +632,15 @@ double Loco<N>::computeCollisionCostAndGradient(
         continue;
       }
 
+      coll_cost_sample_timer.Stop();
+
       // Okay figure out the cost and gradient of the potential map at this
       // point.
       Eigen::VectorXd d_c_d_f(K_);
 
       mav_trajectory_generation::timing::Timer timer_map_lookup(
           "loco/map_lookup");
-      double c = 0;
+      double c = 0.0;
       if (gradients != nullptr) {
         c = computePotentialCostAndGradient(position, &d_c_d_f);
       } else {
@@ -643,9 +652,12 @@ double Loco<N>::computeCollisionCostAndGradient(
 
       J_c += cost;
 
+      mav_trajectory_generation::timing::Timer coll_cost_grad_timer(
+          "loco/coll_cost_grad");
+
       if (gradients != nullptr) {
         // Gotta make sure the norm is non-zero, since we divide by it later.
-        if (velocity.norm() > 1e-6) {
+        if (velocity.norm() > 1e-6 && (cost > 0.0 || d_c_d_f.norm() > 0.0)) {
           // Now calculate the gradient per axis.
           for (int k = 0; k < K_; ++k) {
             Eigen::VectorXd grad_c_k =
@@ -659,6 +671,8 @@ double Loco<N>::computeCollisionCostAndGradient(
           }
         }
       }
+
+      coll_cost_grad_timer.Stop();
 
       // Clear the numeric integrals.
       distance_int = 0.0;
@@ -896,6 +910,7 @@ template <int N>
 bool Loco<N>::NestedCeresFunction::Evaluate(const double* parameters,
                                             double* cost,
                                             double* gradient) const {
+  CHECK_NOTNULL(parent_);
   // Step 1: allocate all the necessary Eigen vectors.
   std::vector<Eigen::VectorXd> d_p(K_, Eigen::VectorXd::Zero(num_free_));
   std::vector<Eigen::VectorXd> grad_vec(K_, Eigen::VectorXd::Zero(num_free_));
