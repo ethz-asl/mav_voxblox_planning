@@ -35,8 +35,7 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
   nh_private_.param("voxblox_path", input_filepath, input_filepath);
   nh_private_.param("visualize", visualize_, visualize_);
   nh_private_.param("frame_id", frame_id_, frame_id_);
-  nh_private_.param("robot_radius_margin", robot_radius_margin_,
-                    robot_radius_margin_);
+  nh_private_.param("do_smoothing", do_smoothing_, do_smoothing_);
 
   nh_private_.param("num_repetitions", num_repetitions_, num_repetitions_);
   CHECK_GT(num_repetitions_, 0);
@@ -55,7 +54,6 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
 
   ROS_WARN_STREAM("num_repetitions: " << num_repetitions_);
   ROS_WARN_STREAM("robot_radius: " << constraints_.robot_radius);
-  ROS_WARN_STREAM("robot_radius_margin: " << robot_radius_margin_);
   ROS_WARN_STREAM("enable_loco: " << enable_loco_);
   ROS_WARN_STREAM("enable_loco_2: " << enable_loco_2_);
   ROS_WARN_STREAM("enable_poly: " << enable_poly_);
@@ -104,7 +102,7 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
 
       // Check if the TSDF layer is non-empty...
       if (tsdf_map_->getTsdfLayerPtr()->getNumberOfAllocatedBlocks() > 0) {
-        ROS_INFO("Generating ESDF layer from TSDF.");
+        ROS_WARN("Generating ESDF layer from TSDF.");
         // If so, generate the ESDF layer!
 
         const bool full_euclidean_distance = true;
@@ -123,7 +121,7 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxels_per_side());
 
   // TODO(helenol): figure out what to do with optimistic/pessimistic here.
-  rrt_.setRobotRadius(constraints_.robot_radius * (1.0 + robot_radius_margin_));
+  rrt_.setRobotRadius(constraints_.robot_radius);
   rrt_.setOptimistic(false);
 
   rrt_.setTsdfLayer(voxblox_server_.getTsdfMapPtr()->getTsdfLayerPtr());
@@ -250,6 +248,8 @@ bool VoxbloxRrtPlanner::plannerServiceCallback(
 
     rrt_success =
         rrt_.getPathBetweenWaypoints(start_pose, goal_pose, &waypoints);
+    rrt_success &= (waypoints.size() >= 2);
+
     rrtstar_timer.Stop();
     double path_length = computePathLength(waypoints);
     int num_vertices = waypoints.size();
@@ -295,6 +295,7 @@ bool VoxbloxRrtPlanner::plannerServiceCallback(
           createPlanningStatusMarker(repetition_idx, false /*rrt success*/,
                                      false, true, false, true, false, true);
       status_pub_.publish(status_marker);
+      path_marker_pub_.publish(marker_array);
       continue;
     }
 
@@ -336,13 +337,9 @@ bool VoxbloxRrtPlanner::plannerServiceCallback(
             << (poly_path_is_in_collision_with_gt && esdf_ground_truth_map_)
             << " | is in collision with own map: " << poly_has_collisions);
 
-        if (!poly_has_collisions) {
-          last_trajectory_valid_ = true;
-        }
-
         if (visualize_) {
           // add node if in collision
-          if (!poly_has_collisions && !poly_path_is_in_collision_with_gt) {
+          if (!(poly_has_collisions || poly_path_is_in_collision_with_gt)) {
             marker_array.markers.push_back(createMarkerForPath(
                 poly_path, frame_id_, mav_visualization::Color::Orange(),
                 "poly", 0.075));
@@ -431,7 +428,7 @@ bool VoxbloxRrtPlanner::plannerServiceCallback(
 
         if (visualize_) {
           // optmization based on esdf, soft constraints, resampling
-          if (!loco_2_has_collisions) {
+          if (!(loco_2_has_collisions || loco_2_path_is_in_collision_with_gt)) {
             marker_array.markers.push_back(createMarkerForPath(
                 loco_2_path, frame_id_, mav_visualization::Color::Teal(),
                 "loco_2", 0.075));
@@ -475,19 +472,24 @@ bool VoxbloxRrtPlanner::generateFeasibleTrajectory(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path,
     bool* path_is_in_collision_with_gt) {
-  smoother_.getPathBetweenWaypoints(coordinate_path, path);
+  if (smoother_.getPathBetweenWaypoints(coordinate_path, path)) {
+    bool path_in_collision = checkPathForCollisions(*path, NULL);
 
-  bool path_in_collision = checkPathForCollisions(*path, NULL);
+    if (path_is_in_collision_with_gt != nullptr && esdf_ground_truth_map_) {
+      *path_is_in_collision_with_gt =
+          checkPathForCollisionsWithGroundTruth(*path, NULL);
+    }
 
-  if (path_is_in_collision_with_gt != nullptr && esdf_ground_truth_map_) {
-    *path_is_in_collision_with_gt =
-        checkPathForCollisionsWithGroundTruth(*path, NULL);
+    if (!path_in_collision) {
+      return true;
+    }
+  } else {
+    // We failed to create a trajectory, so no collision checking needed.
+    if (path_is_in_collision_with_gt != nullptr && esdf_ground_truth_map_) {
+      *path_is_in_collision_with_gt = true;
+    }
   }
-
-  if (path_in_collision) {
-    return false;
-  }
-  return true;
+  return false;
 }
 
 bool VoxbloxRrtPlanner::generateFeasibleTrajectoryLoco(
@@ -537,7 +539,7 @@ bool VoxbloxRrtPlanner::generateFeasibleTrajectoryLoco2(
 bool VoxbloxRrtPlanner::checkPathForCollisions(
     const mav_msgs::EigenTrajectoryPointVector& path, double* t) const {
   for (const mav_msgs::EigenTrajectoryPoint& point : path) {
-    if (getMapDistance(point.position_W) < constraints_.robot_radius) {
+    if (getMapDistance(point.position_W) < (constraints_.robot_radius)) {
       if (t != NULL) {
         *t = mav_msgs::nanosecondsToSeconds(point.time_from_start_ns);
       }
@@ -551,7 +553,7 @@ bool VoxbloxRrtPlanner::checkPathForCollisionsWithGroundTruth(
     const mav_msgs::EigenTrajectoryPointVector& path, double* t) const {
   for (const mav_msgs::EigenTrajectoryPoint& point : path) {
     if (getMapDistanceGroundTruth(point.position_W) <
-        (constraints_.robot_radius * (1.0 - robot_radius_margin_))) {
+        (constraints_.robot_radius)) {
       if (t != NULL) {
         *t = mav_msgs::nanosecondsToSeconds(point.time_from_start_ns);
       }
@@ -691,7 +693,7 @@ visualization_msgs::Marker VoxbloxRrtPlanner::createPlanningStatusMarker(
     ss << std::endl;
   }
   if (enable_loco_2_ && rrt_success) {
-    ss << "teal    - ESDF planner V2  "
+    ss << "teal   - ESDF planner V2   "
        << ((loco_2_success && !loco_2_gt_violation)
                ? "success"
                : ((loco_2_success && loco_2_gt_violation) ? "GT collision"

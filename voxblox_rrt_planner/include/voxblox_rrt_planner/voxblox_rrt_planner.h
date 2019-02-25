@@ -127,7 +127,6 @@ class VoxbloxRrtPlanner {
 
   voxblox::EsdfMap::Ptr esdf_ground_truth_map_;
 
-  double robot_radius_margin_ = 0.2;
   int num_repetitions_ = 10;
 
   // Planners!

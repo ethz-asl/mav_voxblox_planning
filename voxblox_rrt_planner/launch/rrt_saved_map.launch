@@ -1,22 +1,46 @@
 <launch>
-  <arg name="voxblox_path" default="/home/helen/data/jfr_2018/machine_hall/voxblox/rs_esdf_0.10.voxblox" />
+  <arg name="mav_name" default="jay" />
+   <arg name="voxblox_path" default="/home/mfehr/experimental_ws/depth_prediction_for_planning/esdf_maps/mav_sparse_depth_outer_sphere_no_clear.esdf.voxblox" />
+   <!-- <arg name="voxblox_path" default="/home/mfehr/experimental_ws/depth_prediction_for_planning/esdf_maps/lidar_depth_outer_sphere_no_clear.esdf.voxblox" /> -->
+  <!-- <arg name="voxblox_path" default="/home/mfehr/experimental_ws/depth_prediction_for_planning/esdf_maps/mav_dense_depth_outer_sphere_no_clear2.esdf.voxblox" /> -->
+  <!-- <arg name="voxblox_path" default="/home/mfehr/experimental_ws/depth_prediction_for_planning/esdf_maps/mav_raw_depth_outer_sphere_no_clear.esdf.voxblox" /> -->
+  <arg name="esdf_ground_truth_map" default="/home/mfehr/experimental_ws/depth_prediction_for_planning/esdf_maps/lidar_depth_outer_sphere_no_clear.esdf.voxblox" />
   <arg name="frame_id" default="map" />
 
-  <node name="voxblox_rrt_planner" pkg="voxblox_rrt_planner" type="voxblox_rrt_planner_node" output="screen">
-    <param name="voxblox_path" value="$(arg voxblox_path)" />
-    <param name="visualize" value="true" />
-    <param name="robot_radius" value="0.5" />
-    <param name="tsdf_voxel_size" value="0.10" />
-    <param name="tsdf_voxels_per_side" value="16" />
-    <param name="update_mesh_every_n_sec" value="0.0" />
-    <param name="num_seconds_to_plan" value="5.0" />
-    <param name="frame_id" value="$(arg frame_id)" />
-    <param name="world_frame" value="$(arg frame_id)" />
-    <param name="trust_approx_solution" value="true" />
-    <param name="publish_traversable" value="true" />
-    <param name="split_at_collisions" value="true" />
-    <param name="optimize_time" value="true" />
-    <param name="verbose" value="true" />
-  </node>
+  <arg name="num_repetitions" default="50" />
+  <arg name="robot_radius" default="0.25" />
+
+  <group ns="$(arg mav_name)">
+    <node name="voxblox_rrt_planner" pkg="voxblox_rrt_planner" type="voxblox_rrt_planner_node" output="screen" args="--v=1 --alsologtostderr">
+      <param name="voxblox_path" value="$(arg voxblox_path)" />
+      <param name="esdf_ground_truth_map" value="$(arg esdf_ground_truth_map)" />
+      <param name="visualize" value="true" />
+      <param name="robot_radius" value="$(arg robot_radius)" />
+      <param name="num_repetitions" value="$(arg num_repetitions)" />
+      <param name="enable_loco" value="true" />
+      <param name="enable_loco_2" value="false" />
+      <param name="enable_poly" value="true" />
+      <param name="tsdf_voxel_size" value="0.10" />
+      <param name="tsdf_voxels_per_side" value="16" />
+      <param name="update_mesh_every_n_sec" value="2.0" />
+      <param name="num_seconds_to_plan" value="5.0" />
+      <param name="frame_id" value="$(arg frame_id)" />
+      <param name="world_frame" value="$(arg frame_id)" />
+      <param name="trust_approx_solution" value="true" />
+      <param name="publish_traversable" value="true" />
+      <param name="split_at_collisions" value="true" />
+      <param name="min_col_check_resolution" value="0.025" />
+      <param name="optimize_time" value="true" />
+      <param name="verbose" value="true" />
+
+      <param name="marker_font_size" value="1.1" />
+      <param name="status_position_x" value="22.5" />
+      <param name="status_position_y" value="28.5" />
+      <param name="status_position_z" value="0.0" />
+
+      <!-- TSDF SERVER SETTINGS -->
+      <param name="mesh_min_weight" value="10.0" />
+    </node>
+  </group>
 
 </launch>
