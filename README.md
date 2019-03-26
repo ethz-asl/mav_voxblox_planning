@@ -151,6 +151,7 @@ Then run the file:
 ```
 roslaunch voxblox_rrt_planner rrt_saved_map.launch
 ```
+Note that the `Fixed Frame` in RVIZ should match the value for the `frame_id` parameter in the launch file, in this case `map`. Using the another value for the `Fixed Frame` will result in no mesh display.
 
 In the planning panel, enter `voxblox_rrt_planner` as the planner name, and add a `VoxbloxMesh` display with the topic `/voxblox_rrt_planner/mesh` and a `MarkerArray` display with the topic `/voxblox_rrt_planner/path`.
 You can now press the "Planner Service" button to plan!
