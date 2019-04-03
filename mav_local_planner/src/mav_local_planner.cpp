@@ -20,6 +20,7 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       replan_lookahead_sec_(0.1),
       avoid_collisions_(true),
       autostart_(true),
+      plan_from_start_(true),
       smoother_name_("loco"),
       current_waypoint_(-1),
       path_index_(0),
@@ -44,6 +45,7 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
                     command_publishing_dt_);
   nh_private_.param("avoid_collisions", avoid_collisions_, avoid_collisions_);
   nh_private_.param("autostart", autostart_, autostart_);
+  nh_private_.param("plan_from_start", plan_from_start_, plan_from_start_);
   nh_private_.param("smoother_name", smoother_name_, smoother_name_);
 
   // Publishers and subscribers.
@@ -203,8 +205,9 @@ void MavLocalPlanner::planningStep() {
     // If the path doesn't ALREADY start near the odometry, the first waypoint
     // should be the current pose.
     int waypoints_added = 0;
-    if ((current_point.position_W - waypoints_.front().position_W).norm() >
-        kCloseToOdometry) {
+    if (plan_from_start_ &&
+        (current_point.position_W - waypoints_.front().position_W).norm() >
+            kCloseToOdometry) {
       free_waypoints.push_back(current_point);
       waypoints_added = 1;
     }
