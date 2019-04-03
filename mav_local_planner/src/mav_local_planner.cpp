@@ -183,7 +183,9 @@ void MavLocalPlanner::planningStep() {
     current_point.position_W = odometry_.position_W;
     current_point.orientation_W_B = odometry_.orientation_W_B;
 
-    waypoints.push_back(current_point);
+    if (plan_to_start_) {
+      waypoints.push_back(current_point);
+    }
     waypoints.insert(waypoints.end(), waypoints_.begin(), waypoints_.end());
 
     mav_msgs::EigenTrajectoryPointVector path;
