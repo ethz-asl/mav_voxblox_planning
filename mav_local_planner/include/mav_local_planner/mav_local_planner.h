@@ -148,6 +148,7 @@ class MavLocalPlanner {
   bool avoid_collisions_;
   bool autostart_;  // Whether to auto-start publishing any new path or wait
   // for start service call.
+  bool plan_to_start_; // Whether to start planning at the current odometry.
   std::string smoother_name_;
 
   // State -- robot state.
