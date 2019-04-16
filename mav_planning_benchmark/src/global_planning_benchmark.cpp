@@ -29,7 +29,7 @@ GlobalPlanningBenchmark::GlobalPlanningBenchmark(
   path_marker_pub_ =
       nh_private_.advertise<visualization_msgs::MarkerArray>("path", 1, true);
 
-   global_planning_methods_.push_back(kStraightLine);
+  global_planning_methods_.push_back(kStraightLine);
   global_planning_methods_.push_back(kRrtConnect);
   global_planning_methods_.push_back(kRrtStar);
   global_planning_methods_.push_back(kSkeletonGraph);

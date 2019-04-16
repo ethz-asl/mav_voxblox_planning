@@ -1,7 +1,7 @@
 <launch>
-  <arg name="dataset" default="rubble" />
+  <arg name="dataset" default="shed" />
   <arg name="sensor" default="rs" />
-  <arg name="date" default="06_12_2018" />
+  <arg name="date" default="06_12_2018b" />
   <arg name="base_path" default="/home/helen/data/jfr_2018/$(arg dataset)/voxblox/" />
   <arg name="esdf_name" default="$(arg sensor)_esdf_0.10.voxblox" />
   <arg name="sparse_graph_name" default="$(arg sensor)_sparse_graph_0.10.voxblox" />
@@ -15,7 +15,7 @@
     <param name="sparse_graph_name" value="$(arg sparse_graph_name)" />
     <param name="results_name" value="$(arg results_name)" />
 
-    <param name="visualize" value="false" />
+    <param name="visualize" value="true" />
     <param name="robot_radius" value="0.5" />
     <param name="tsdf_voxel_size" value="0.10" />
     <param name="tsdf_voxels_per_side" value="16" />
