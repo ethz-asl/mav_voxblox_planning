@@ -39,6 +39,8 @@ GlobalPlanningBenchmark::GlobalPlanningBenchmark(
   path_smoothing_methods_.push_back(kVelocityRamp);
   path_smoothing_methods_.push_back(kPolynomial);
   path_smoothing_methods_.push_back(kLoco);
+  //path_smoothing_methods_.push_back(kLoco2);
+  //path_smoothing_methods_.push_back(kLoco3);
 }
 
 void GlobalPlanningBenchmark::loadMap(const std::string& base_path,
@@ -168,6 +170,27 @@ void GlobalPlanningBenchmark::setupPlanners() {
   loco_smoother_.setResampleTrajectory(true);
   loco_smoother_.setResampleVisibility(true);
   loco_smoother_.setNumSegments(5);
+
+  // Loco variants
+  loco2_smoother_.setParametersFromRos(nh_private_);
+  loco2_smoother_.setMinCollisionCheckResolution(voxel_size);
+  loco2_smoother_.setDistanceAndGradientFunction(
+      std::bind(&GlobalPlanningBenchmark::getMapDistanceAndGradient, this,
+                std::placeholders::_1, std::placeholders::_2));
+  loco2_smoother_.setOptimizeTime(true);
+  loco2_smoother_.setResampleTrajectory(false);
+  loco2_smoother_.setResampleVisibility(false);
+  loco2_smoother_.setNumSegments(5);
+
+  loco3_smoother_.setParametersFromRos(nh_private_);
+  loco3_smoother_.setMinCollisionCheckResolution(voxel_size);
+  loco3_smoother_.setDistanceAndGradientFunction(
+      std::bind(&GlobalPlanningBenchmark::getMapDistanceAndGradient, this,
+                std::placeholders::_1, std::placeholders::_2));
+  loco3_smoother_.setOptimizeTime(true);
+  loco3_smoother_.setResampleTrajectory(true);
+  loco3_smoother_.setResampleVisibility(false);
+  loco3_smoother_.setNumSegments(5);
 }
 
 void GlobalPlanningBenchmark::runBenchmark(int num_trials) {
@@ -438,12 +461,37 @@ bool GlobalPlanningBenchmark::runPathSmoother(
   }
 
   if (smoothing_method == kLoco) {
+    ROS_INFO("Starting method: loco");
     bool success = false;
     if (waypoints.size() == 2) {
       success = loco_smoother_.getPathBetweenTwoPoints(waypoints[0],
                                                        waypoints[1], path);
     } else {
       success = loco_smoother_.getPathBetweenWaypoints(waypoints, path);
+    }
+    return success;
+  }
+
+  if (smoothing_method == kLoco2) {
+    ROS_INFO("Starting method: loco2");
+    bool success = false;
+    if (waypoints.size() == 2) {
+      success = loco2_smoother_.getPathBetweenTwoPoints(waypoints[0],
+                                                        waypoints[1], path);
+    } else {
+      success = loco2_smoother_.getPathBetweenWaypoints(waypoints, path);
+    }
+    return success;
+  }
+
+  if (smoothing_method == kLoco3) {
+    ROS_INFO("Starting method: loco3");
+    bool success = false;
+    if (waypoints.size() == 2) {
+      success = loco3_smoother_.getPathBetweenTwoPoints(waypoints[0],
+                                                        waypoints[1], path);
+    } else {
+      success = loco3_smoother_.getPathBetweenWaypoints(waypoints, path);
     }
     return success;
   }

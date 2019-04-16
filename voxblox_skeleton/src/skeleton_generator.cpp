@@ -138,7 +138,7 @@ void SkeletonGenerator::generateSkeleton() {
       Neighborhood<>::getFromBlockAndVoxelIndex(block_index, voxel_index,
                                                 voxels_per_side_, &neighbors);
 
-      // Just go though the 6-connectivity set of this to start.
+      // Just go though the 26-connectivity set of this to start.
       SkeletonPoint skeleton_point;
       bool on_skeleton = false;
       for (size_t i = 0; i < neighbors.size(); ++i) {
