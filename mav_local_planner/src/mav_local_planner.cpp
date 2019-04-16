@@ -73,6 +73,9 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
   stop_srv_ = nh_private_.advertiseService(
       "stop", &MavLocalPlanner::stopCallback, this);
 
+  position_hold_client_ =
+      nh_.serviceClient<std_srvs::Empty>("back_to_position_hold");
+
   // Start the planning timer. Will no-op most cycles.
   ros::TimerOptions timer_options(
       ros::Duration(replan_dt_),
