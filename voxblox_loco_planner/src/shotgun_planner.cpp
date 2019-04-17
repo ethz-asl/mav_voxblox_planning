@@ -38,10 +38,10 @@ bool ShotgunPlanner::shootParticles(
   // Figure out the voxel index of the start point.
   voxblox::GlobalIndex start_index =
       voxblox::getGridIndexFromPoint<voxblox::GlobalIndex>(
-          start.cast<voxblox::FloatingPoint>(), 1.0/voxel_size);
+          start.cast<voxblox::FloatingPoint>(), 1.0 / voxel_size);
   voxblox::GlobalIndex goal_index =
       voxblox::getGridIndexFromPoint<voxblox::GlobalIndex>(
-          goal.cast<voxblox::FloatingPoint>(), 1.0/voxel_size);
+          goal.cast<voxblox::FloatingPoint>(), 1.0 / voxel_size);
 
   voxblox::GlobalIndex current_index, last_index, best_index;
   double best_distance = std::numeric_limits<double>::max();
@@ -80,20 +80,23 @@ bool ShotgunPlanner::shootParticles(
       // Select one to go to.
       last_index = current_index;
       double best_goal_distance = std::numeric_limits<double>::max();
+      bool finish_loop = false;
       for (const voxblox::GlobalIndex& neighbor : valid_neighbors) {
         double neighbor_goal_distance = (goal_index - neighbor).norm();
         if (neighbor_goal_distance < best_goal_distance) {
           best_goal_distance = neighbor_goal_distance;
           current_index = neighbor;
         }
-        // Within a voxel! We're dealing with voxel coordinates here.
-        if (neighbor_goal_distance < 1.0) {
-          break;
-        }
       }
-      //std::cout << "Step " << step << " valid neighbors "
+
+      // Within a voxel! We're dealing with voxel coordinates here.
+      if (best_goal_distance < 1.0) {
+        std::cout << "Early abort at " << step << " steps\n";
+        break;
+      }
+      // std::cout << "Step " << step << " valid neighbors "
       //          << valid_neighbors.size() << " best_goal_distance "
-       //         << best_goal_distance << std::endl;
+      //         << best_goal_distance << std::endl;
 
       // TODO!!!! Add options other than just goal-seeking.
     }
@@ -106,8 +109,12 @@ bool ShotgunPlanner::shootParticles(
     }
   }
 
-  *best_goal = (voxblox::getCenterPointFromGridIndex(best_index, voxel_size))
-                   .cast<double>();
+  if (best_index == goal_index) {
+    *best_goal = goal;
+  } else {
+    *best_goal = (voxblox::getCenterPointFromGridIndex(best_index, voxel_size))
+                     .cast<double>();
+  }
   return true;
 }
 

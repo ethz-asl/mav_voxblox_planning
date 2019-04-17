@@ -72,6 +72,9 @@ class VoxbloxLocoPlanner {
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
+  // Debug publishers.
+  ros::Publisher planning_marker_pub_;
+
   // Settings for physical constriants.
   PhysicalConstraints constraints_;
 

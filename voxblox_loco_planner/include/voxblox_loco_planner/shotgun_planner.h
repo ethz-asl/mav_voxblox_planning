@@ -36,6 +36,7 @@ class ShotgunPlanner {
   }
   void setPhysicalConstraints(const PhysicalConstraints& constraints) {
     constraints_ = constraints;
+    constraints_.robot_radius += 0.2;
   }
 
   // MUST be called to associate the map with the planner.

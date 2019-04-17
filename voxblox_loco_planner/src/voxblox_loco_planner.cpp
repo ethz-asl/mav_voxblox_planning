@@ -36,6 +36,10 @@ VoxbloxLocoPlanner::VoxbloxLocoPlanner(const ros::NodeHandle& nh,
 
   // Set up optional shotgun intermediate point selection.
   shotgun_.setPhysicalConstraints(constraints_);
+
+  // ROS debug visualization.
+  planning_marker_pub_ = nh_private_.advertise<visualization_msgs::MarkerArray>(
+      "planning_markers", 1, true);
 }
 
 void VoxbloxLocoPlanner::setEsdfMap(
@@ -181,7 +185,7 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
   mav_msgs::EigenTrajectoryPoint goal_point = goal;
 
   // Check if we're already at the goal!
-  constexpr double kGoalReachedRange = 0.01;
+  const double kGoalReachedRange = esdf_map_->voxel_size();
   if ((goal_point.position_W - start_point.position_W).norm() <
       kGoalReachedRange) {
     if (verbose_) {
@@ -211,6 +215,13 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
     ROS_INFO("[Shotgun] Found (%d) intermediate goal at %f %f %f", goal_found,
              goal_point.position_W.x(), goal_point.position_W.y(),
              goal_point.position_W.z());
+    if ((goal_point.position_W - start_point.position_W).norm() <
+        kGoalReachedRange) {
+      if (verbose_) {
+        ROS_INFO("[Voxblox Loco Planner] Intermediate goal already reached!");
+      }
+      return true;
+    }
   } else if (getMapDistance(goal_point.position_W) <
              constraints_.robot_radius) {
     const double step_size = esdf_map_->voxel_size();
@@ -223,6 +234,14 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
           kGoalReachedRange) {
     return false;
   }
+
+  // Visualization.
+  mav_msgs::EigenTrajectoryPointVector vis_vector;
+  vis_vector.push_back(goal_point);
+  visualization_msgs::MarkerArray marker_array;
+  marker_array.markers.push_back(createMarkerForWaypoints(
+      vis_vector, "odom", mav_visualization::Color::Purple(), "goal", 0.2));
+  planning_marker_pub_.publish(marker_array);
 
   bool success =
       getTrajectoryBetweenWaypoints(start_point, goal_point, trajectory);
