@@ -1,3 +1,4 @@
+#include <mav_trajectory_generation/timing.h>
 #include <mav_trajectory_generation/trajectory_sampling.h>
 #include <mav_trajectory_generation/vertex.h>
 
@@ -47,7 +48,7 @@ void VoxbloxLocoPlanner::setEsdfMap(
                 std::placeholders::_1, std::placeholders::_2));
   loco_.setMapResolution(esdf_map->voxel_size());
 
-  shotgun_.setEsdfMap(esdf_map_);
+  shotgun_.setEsdfMap(esdf_map);
 }
 
 double VoxbloxLocoPlanner::getMapDistance(
@@ -209,6 +210,9 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
     if (use_shotgun_) {
       goal_found =
           findIntermediateGoalShotgun(start_point, goal_point, &goal_point);
+      ROS_INFO("[Shotgun] Found (%d) intermediate goal at %f %f %f", goal_found,
+               goal_point.position_W.x(), goal_point.position_W.y(),
+               goal_point.position_W.z());
     } else {
       goal_found =
           findIntermediateGoal(start_point, goal_point, step_size, &goal_point);
@@ -223,6 +227,10 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
 
   bool success =
       getTrajectoryBetweenWaypoints(start_point, goal_point, trajectory);
+
+  // TODO(DEBUG)
+  mav_trajectory_generation::timing::Timing::Print(std::cout);
+
   return success;
 }
 

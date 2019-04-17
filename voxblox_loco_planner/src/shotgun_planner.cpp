@@ -1,6 +1,7 @@
 #include <limits>
 
 #include <mav_planning_common/utils.h>
+#include <mav_trajectory_generation/timing.h>
 #include <voxblox/utils/neighbor_tools.h>
 
 #include "voxblox_loco_planner/shotgun_planner.h"
@@ -21,6 +22,8 @@ bool ShotgunPlanner::shootParticles(
     int num_particles, int max_steps, const Eigen::Vector3d& start,
     const Eigen::Vector3d& goal, Eigen::Vector3d* best_goal,
     voxblox::AlignedVector<Eigen::Vector3d>* best_path) {
+  mav_trajectory_generation::timing::Timer timer("loco/shotgun");
+
   CHECK_NOTNULL(best_goal);
   CHECK_NOTNULL(best_path);
   if (!esdf_map_) {
@@ -35,10 +38,13 @@ bool ShotgunPlanner::shootParticles(
   // Figure out the voxel index of the start point.
   voxblox::GlobalIndex start_index =
       voxblox::getGridIndexFromPoint<voxblox::GlobalIndex>(
-          start.cast<voxblox::FloatingPoint>(), voxel_size);
+          start.cast<voxblox::FloatingPoint>(), 1.0/voxel_size);
   voxblox::GlobalIndex goal_index =
       voxblox::getGridIndexFromPoint<voxblox::GlobalIndex>(
-          goal.cast<voxblox::FloatingPoint>(), voxel_size);
+          goal.cast<voxblox::FloatingPoint>(), 1.0/voxel_size);
+
+  std::cout << "Start index: " << start_index.transpose()
+            << " goal index: " << goal_index.transpose() << std::endl;
 
   voxblox::GlobalIndex current_index, last_index, best_index;
   double best_distance = std::numeric_limits<double>::max();
@@ -84,6 +90,9 @@ bool ShotgunPlanner::shootParticles(
           current_index = neighbor;
         }
       }
+      std::cout << "Step " << step << " valid neighbors "
+                << valid_neighbors.size() << " best_goal_distance "
+                << best_goal_distance << std::endl;
 
       // TODO!!!! Add options other than just goal-seeking.
     }
@@ -95,6 +104,9 @@ bool ShotgunPlanner::shootParticles(
       best_index = current_index;
     }
   }
+
+  *best_goal = (voxblox::getCenterPointFromGridIndex(best_index, voxel_size))
+                   .cast<double>();
   return true;
 }
 

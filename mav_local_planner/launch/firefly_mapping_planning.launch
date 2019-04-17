@@ -54,7 +54,7 @@
       <param name="mpc_prediction_horizon" value="300" />
 
       <param name="robot_radius" value="$(arg robot_radius)" />
-      <param name="planning_horizon_m" value="4.0" />
+      <param name="planning_horizon_m" value="20.0" />
       <param name="autostart" value="true" />
       <param name="verbose" value="true" />
       <param name="v_max" value="2.0" />
