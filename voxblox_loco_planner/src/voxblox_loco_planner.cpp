@@ -16,6 +16,7 @@ VoxbloxLocoPlanner::VoxbloxLocoPlanner(const ros::NodeHandle& nh,
       num_random_restarts_(5),
       random_restart_magnitude_(0.5),
       planning_horizon_m_(4.0),
+      use_shotgun_(true),
       loco_(3) {
   constraints_.setParametersFromRos(nh_private_);
 
@@ -31,6 +32,9 @@ VoxbloxLocoPlanner::VoxbloxLocoPlanner(const ros::NodeHandle& nh,
   nh_private_.param("loco_epsilon_inflation", loco_epsilon_inflation,
                     loco_epsilon_inflation);
   loco_.setEpsilon(constraints_.robot_radius + loco_epsilon_inflation);
+
+  // Set up optional shotgun intermediate point selection.
+  shotgun_.setPhysicalConstraints(constraints_);
 }
 
 void VoxbloxLocoPlanner::setEsdfMap(
@@ -42,6 +46,8 @@ void VoxbloxLocoPlanner::setEsdfMap(
       std::bind(&VoxbloxLocoPlanner::getMapDistanceAndGradientVector, this,
                 std::placeholders::_1, std::placeholders::_2));
   loco_.setMapResolution(esdf_map->voxel_size());
+
+  shotgun_.setEsdfMap(esdf_map_);
 }
 
 double VoxbloxLocoPlanner::getMapDistance(
@@ -110,8 +116,8 @@ bool VoxbloxLocoPlanner::getTrajectoryBetweenWaypoints(
   CHECK(esdf_map_);
 
   ROS_DEBUG_STREAM("[Voxblox Loco Planner] Start: "
-                  << start.position_W.transpose()
-                  << " goal: " << goal.position_W.transpose());
+                   << start.position_W.transpose()
+                   << " goal: " << goal.position_W.transpose());
 
   constexpr double kTotalTimeScale = 1.2;
   double total_time =
@@ -200,8 +206,13 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
   bool goal_found = true;
   if (getMapDistance(goal_point.position_W) < constraints_.robot_radius) {
     const double step_size = esdf_map_->voxel_size();
-    goal_found =
-        findIntermediateGoal(start_point, goal_point, step_size, &goal_point);
+    if (use_shotgun_) {
+      goal_found =
+          findIntermediateGoalShotgun(start_point, goal_point, &goal_point);
+    } else {
+      goal_found =
+          findIntermediateGoal(start_point, goal_point, step_size, &goal_point);
+    }
   }
 
   if (!goal_found ||
@@ -264,6 +275,19 @@ bool VoxbloxLocoPlanner::findIntermediateGoal(
   if (success) {
     *goal_out = new_goal;
   }
+  return success;
+}
+
+bool VoxbloxLocoPlanner::findIntermediateGoalShotgun(
+    const mav_msgs::EigenTrajectoryPoint& start_point,
+    const mav_msgs::EigenTrajectoryPoint& goal_point,
+    mav_msgs::EigenTrajectoryPoint* goal_out) {
+  const int num_particles = 1;
+  const int max_steps = 400;
+
+  bool success =
+      shotgun_.shootParticles(num_particles, max_steps, start_point.position_W,
+                              goal_point.position_W, &goal_out->position_W);
   return success;
 }
 
