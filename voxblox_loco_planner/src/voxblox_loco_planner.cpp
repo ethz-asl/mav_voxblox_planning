@@ -205,18 +205,17 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
   // Try to find an intermediate goal to go to if the edge of the planning
   // horizon is occupied.
   bool goal_found = true;
-  if (getMapDistance(goal_point.position_W) < constraints_.robot_radius) {
+  if (use_shotgun_) {
+    goal_found =
+        findIntermediateGoalShotgun(start_point, goal_point, &goal_point);
+    ROS_INFO("[Shotgun] Found (%d) intermediate goal at %f %f %f", goal_found,
+             goal_point.position_W.x(), goal_point.position_W.y(),
+             goal_point.position_W.z());
+  } else if (getMapDistance(goal_point.position_W) <
+             constraints_.robot_radius) {
     const double step_size = esdf_map_->voxel_size();
-    if (use_shotgun_) {
-      goal_found =
-          findIntermediateGoalShotgun(start_point, goal_point, &goal_point);
-      ROS_INFO("[Shotgun] Found (%d) intermediate goal at %f %f %f", goal_found,
-               goal_point.position_W.x(), goal_point.position_W.y(),
-               goal_point.position_W.z());
-    } else {
-      goal_found =
-          findIntermediateGoal(start_point, goal_point, step_size, &goal_point);
-    }
+    goal_found =
+        findIntermediateGoal(start_point, goal_point, step_size, &goal_point);
   }
 
   if (!goal_found ||

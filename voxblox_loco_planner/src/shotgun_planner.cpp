@@ -43,9 +43,6 @@ bool ShotgunPlanner::shootParticles(
       voxblox::getGridIndexFromPoint<voxblox::GlobalIndex>(
           goal.cast<voxblox::FloatingPoint>(), 1.0/voxel_size);
 
-  std::cout << "Start index: " << start_index.transpose()
-            << " goal index: " << goal_index.transpose() << std::endl;
-
   voxblox::GlobalIndex current_index, last_index, best_index;
   double best_distance = std::numeric_limits<double>::max();
   voxblox::Neighborhood<>::IndexMatrix neighbors;
@@ -89,10 +86,14 @@ bool ShotgunPlanner::shootParticles(
           best_goal_distance = neighbor_goal_distance;
           current_index = neighbor;
         }
+        // Within a voxel! We're dealing with voxel coordinates here.
+        if (neighbor_goal_distance < 1.0) {
+          break;
+        }
       }
-      std::cout << "Step " << step << " valid neighbors "
-                << valid_neighbors.size() << " best_goal_distance "
-                << best_goal_distance << std::endl;
+      //std::cout << "Step " << step << " valid neighbors "
+      //          << valid_neighbors.size() << " best_goal_distance "
+       //         << best_goal_distance << std::endl;
 
       // TODO!!!! Add options other than just goal-seeking.
     }
