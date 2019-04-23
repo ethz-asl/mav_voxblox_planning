@@ -14,7 +14,7 @@ struct ShotgunParameters {
 
   // Probabilities (must sum up to < 1 together) that the particle will do one
   // of the following things. Rest of the probability is just random motion.
-  float probability_follow_goal = 0.5;
+  float probability_follow_goal = 0.50;
   float probability_follow_gradient = 0.25;
 
   // Some params for evaluating the goodness of the point?

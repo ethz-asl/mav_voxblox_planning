@@ -104,7 +104,19 @@ bool ShotgunPlanner::shootParticles(
         //         << best_goal_distance << std::endl;
 
         // TODO!!!! Add options other than just goal-seeking and random.
-      } else if (decision == kRandom || decision == kFollowGradient) {
+      } else if (decision == kFollowGradient) {
+        // Then we select the neighbor that's the furthest away.
+        float highest_obstacle_distance = 0.0;
+        for (const voxblox::GlobalIndex& neighbor : valid_neighbors) {
+          voxblox::EsdfVoxel* esdf_voxel =
+              layer->getVoxelPtrByGlobalIndex(neighbor);
+          float neighbor_obstacle_distance = esdf_voxel->distance;
+          if (neighbor_obstacle_distance > highest_obstacle_distance) {
+            highest_obstacle_distance = neighbor_obstacle_distance;
+            current_index = neighbor;
+          }
+        }
+      } else if (decision == kRandom) {
         size_t random_vec_index = static_cast<size_t>(
             std::round(randMToN(0.0, valid_neighbors.size() - 1.0)));
         current_index = valid_neighbors[random_vec_index];
