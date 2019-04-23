@@ -14,10 +14,13 @@ struct ShotgunParameters {
 
   // Probabilities (must sum up to < 1 together) that the particle will do one
   // of the following things. Rest of the probability is just random motion.
-  float probability_follow_gradient = 0.25;
   float probability_follow_goal = 0.5;
+  float probability_follow_gradient = 0.25;
 
   // Some params for evaluating the goodness of the point?
+
+  // More special herustic-y hack-y params.
+  float robot_radius_inflation = 0.2;
 };
 
 // A "planner" that uses a set of probabilistic particles to find an initial
@@ -25,6 +28,8 @@ struct ShotgunParameters {
 // Uses a voxblox ESDF as the backend.
 class ShotgunPlanner {
  public:
+  enum Decision { kFollowGoal, kFollowGradient, kRandom };
+
   ShotgunPlanner() {}
   ShotgunPlanner(const ShotgunParameters& params) : params_(params) {}
 
@@ -36,7 +41,7 @@ class ShotgunPlanner {
   }
   void setPhysicalConstraints(const PhysicalConstraints& constraints) {
     constraints_ = constraints;
-    constraints_.robot_radius += 0.2;
+    constraints_.robot_radius += params_.robot_radius_inflation;
   }
 
   // MUST be called to associate the map with the planner.
@@ -59,6 +64,8 @@ class ShotgunPlanner {
   }
 
  private:
+  Decision selectDecision(int n_particle) const;
+
   // Settings for physical constriants.
   PhysicalConstraints constraints_;
 

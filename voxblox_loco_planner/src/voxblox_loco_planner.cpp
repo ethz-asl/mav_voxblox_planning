@@ -308,8 +308,8 @@ bool VoxbloxLocoPlanner::findIntermediateGoalShotgun(
     const mav_msgs::EigenTrajectoryPoint& start_point,
     const mav_msgs::EigenTrajectoryPoint& goal_point,
     mav_msgs::EigenTrajectoryPoint* goal_out) {
-  const int num_particles = 1;
-  const int max_steps = 400;
+  const int num_particles = 10;
+  const int max_steps = 200;
 
   bool success =
       shotgun_.shootParticles(num_particles, max_steps, start_point.position_W,

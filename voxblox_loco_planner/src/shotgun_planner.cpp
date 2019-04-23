@@ -79,26 +79,36 @@ bool ShotgunPlanner::shootParticles(
 
       // Select one to go to.
       last_index = current_index;
-      double best_goal_distance = std::numeric_limits<double>::max();
-      bool finish_loop = false;
-      for (const voxblox::GlobalIndex& neighbor : valid_neighbors) {
-        double neighbor_goal_distance = (goal_index - neighbor).norm();
-        if (neighbor_goal_distance < best_goal_distance) {
-          best_goal_distance = neighbor_goal_distance;
-          current_index = neighbor;
+
+      // Select an option.
+      Decision decision = selectDecision(n_particle);
+
+      // Option 1: select the best goal distance.
+      if (decision == kFollowGoal) {
+        double best_goal_distance = std::numeric_limits<double>::max();
+        for (const voxblox::GlobalIndex& neighbor : valid_neighbors) {
+          double neighbor_goal_distance = (goal_index - neighbor).norm();
+          if (neighbor_goal_distance < best_goal_distance) {
+            best_goal_distance = neighbor_goal_distance;
+            current_index = neighbor;
+          }
         }
-      }
 
-      // Within a voxel! We're dealing with voxel coordinates here.
-      if (best_goal_distance < 1.0) {
-        std::cout << "Early abort at " << step << " steps\n";
-        break;
-      }
-      // std::cout << "Step " << step << " valid neighbors "
-      //          << valid_neighbors.size() << " best_goal_distance "
-      //         << best_goal_distance << std::endl;
+        // Within a voxel! We're dealing with voxel coordinates here.
+        if (best_goal_distance < 1.0) {
+          std::cout << "Early abort at " << step << " steps\n";
+          break;
+        }
+        // std::cout << "Step " << step << " valid neighbors "
+        //          << valid_neighbors.size() << " best_goal_distance "
+        //         << best_goal_distance << std::endl;
 
-      // TODO!!!! Add options other than just goal-seeking.
+        // TODO!!!! Add options other than just goal-seeking and random.
+      } else if (decision == kRandom || decision == kFollowGradient) {
+        size_t random_vec_index = static_cast<size_t>(
+            std::round(randMToN(0.0, valid_neighbors.size() - 1.0)));
+        current_index = valid_neighbors[random_vec_index];
+      }
     }
 
     // Evaluate how good the current point is.
@@ -116,6 +126,23 @@ bool ShotgunPlanner::shootParticles(
                      .cast<double>();
   }
   return true;
+}
+
+ShotgunPlanner::Decision ShotgunPlanner::selectDecision(int n_particle) const {
+  // ALWAYS just select goal-seeking for the first particle.
+  if (n_particle == 0) {
+    return kFollowGoal;
+  }
+
+  double random_probability = randMToN(0.0, 1.0);
+  if (random_probability < params_.probability_follow_goal) {
+    return kFollowGoal;
+  } else if (random_probability < params_.probability_follow_goal +
+                                      params_.probability_follow_gradient) {
+    return kFollowGradient;
+  } else {
+    return kRandom;
+  }
 }
 
 }  // namespace mav_planning
