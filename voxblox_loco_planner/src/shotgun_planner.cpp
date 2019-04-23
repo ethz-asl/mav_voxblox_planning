@@ -48,6 +48,8 @@ bool ShotgunPlanner::shootParticles(
   voxblox::Neighborhood<>::IndexMatrix neighbors;
 
   for (int n_particle = 0; n_particle < num_particles; n_particle++) {
+    bool exit_loop = false;
+
     current_index = start_index;
     for (int step = 0; step < max_steps; step++) {
       // Get the neighbors of the current index.
@@ -97,13 +99,9 @@ bool ShotgunPlanner::shootParticles(
         // Within a voxel! We're dealing with voxel coordinates here.
         if (best_goal_distance < 1.0) {
           std::cout << "Early abort at " << step << " steps\n";
+          exit_loop = true;
           break;
         }
-        // std::cout << "Step " << step << " valid neighbors "
-        //          << valid_neighbors.size() << " best_goal_distance "
-        //         << best_goal_distance << std::endl;
-
-        // TODO!!!! Add options other than just goal-seeking and random.
       } else if (decision == kFollowGradient) {
         // Then we select the neighbor that's the furthest away.
         float highest_obstacle_distance = 0.0;
@@ -128,6 +126,9 @@ bool ShotgunPlanner::shootParticles(
     if (current_distance < best_distance) {
       best_distance = current_distance;
       best_index = current_index;
+    }
+    if (exit_loop) {
+      break;
     }
   }
 

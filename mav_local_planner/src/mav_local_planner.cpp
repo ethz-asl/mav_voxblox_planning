@@ -225,7 +225,8 @@ void MavLocalPlanner::planningStep() {
     }
 
     bool success = false;
-    if (free_waypoints.size() <= static_cast<size_t>(waypoints_added)) {
+    if (free_waypoints.size() <= static_cast<size_t>(waypoints_added) ||
+        free_waypoints.size() == 2) {
       // Okay whatever just search for the first waypoint.
       success = false;
     } else {
@@ -291,8 +292,7 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
                                                      constraints_.sampling_dt),
                    path_queue_.size());
       // Cut out the remaining snippet of the trajectory so we can do
-      // something
-      // with it.
+      // something with it.
       std::copy(path_queue_.begin() + replan_start_index, path_queue_.end(),
                 std::back_inserter(path_chunk));
       if (path_chunk.size() == 0) {

@@ -2,7 +2,7 @@
   <arg name="mav_name" default="firefly"/>
   <arg name="frame_id" default="odom" />
   <arg name="verbose" default="false"/>
-  <arg name="voxel_size" default="0.2" />
+  <arg name="voxel_size" default="0.20" />
   <arg name="robot_radius" default="0.6" />
   <arg name="clear_radius" default="0.8" />
 
