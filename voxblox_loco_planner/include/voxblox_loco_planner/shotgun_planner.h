@@ -58,9 +58,8 @@ class ShotgunPlanner {
   bool shootParticles(int num_particles, int max_steps,
                       const Eigen::Vector3d& start, const Eigen::Vector3d& goal,
                       Eigen::Vector3d* best_goal) {
-    voxblox::AlignedVector<Eigen::Vector3d> best_path;
     return shootParticles(num_particles, max_steps, start, goal, best_goal,
-                          &best_path);
+                          nullptr);
   }
 
  private:

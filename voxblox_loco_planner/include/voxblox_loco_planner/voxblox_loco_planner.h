@@ -64,7 +64,8 @@ class VoxbloxLocoPlanner {
   bool findIntermediateGoalShotgun(
       const mav_msgs::EigenTrajectoryPoint& start_point,
       const mav_msgs::EigenTrajectoryPoint& goal_point,
-      mav_msgs::EigenTrajectoryPoint* goal_out);
+      mav_msgs::EigenTrajectoryPoint* goal_out,
+      mav_msgs::EigenTrajectoryPointVector* path_out);
 
   bool getNearestFreeSpaceToPoint(const Eigen::Vector3d& pos, double step_size,
                                   Eigen::Vector3d* new_pos) const;

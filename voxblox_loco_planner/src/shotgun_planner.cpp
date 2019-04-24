@@ -25,7 +25,6 @@ bool ShotgunPlanner::shootParticles(
   mav_trajectory_generation::timing::Timer timer("loco/shotgun");
 
   CHECK_NOTNULL(best_goal);
-  CHECK_NOTNULL(best_path);
   if (!esdf_map_) {
     return false;
   }
@@ -46,11 +45,13 @@ bool ShotgunPlanner::shootParticles(
   voxblox::GlobalIndex current_index, last_index, best_index;
   double best_distance = std::numeric_limits<double>::max();
   voxblox::Neighborhood<>::IndexMatrix neighbors;
+  voxblox::AlignedVector<voxblox::GlobalIndex> best_path_voxblox;
 
   for (int n_particle = 0; n_particle < num_particles; n_particle++) {
     bool exit_loop = false;
 
     current_index = start_index;
+    voxblox::AlignedVector<voxblox::GlobalIndex> current_path;
     for (int step = 0; step < max_steps; step++) {
       // Get the neighbors of the current index.
       voxblox::Neighborhood<>::getFromGlobalIndex(current_index, &neighbors);
@@ -119,6 +120,11 @@ bool ShotgunPlanner::shootParticles(
             std::round(randMToN(0.0, valid_neighbors.size() - 1.0)));
         current_index = valid_neighbors[random_vec_index];
       }
+
+      const int kStepSize = 10;
+      if (step % kStepSize == 0) {
+        current_path.push_back(current_index);
+      }
     }
 
     // Evaluate how good the current point is.
@@ -126,6 +132,7 @@ bool ShotgunPlanner::shootParticles(
     if (current_distance < best_distance) {
       best_distance = current_distance;
       best_index = current_index;
+      best_path_voxblox = current_path;
     }
     if (exit_loop) {
       break;
@@ -137,6 +144,16 @@ bool ShotgunPlanner::shootParticles(
   } else {
     *best_goal = (voxblox::getCenterPointFromGridIndex(best_index, voxel_size))
                      .cast<double>();
+  }
+
+  // Convert best path to voxel coordinates.
+  if (best_path != nullptr) {
+    best_path->reserve(best_path_voxblox.size());
+    for (const voxblox::GlobalIndex& voxel_index : best_path_voxblox) {
+      best_path->push_back(
+          (voxblox::getCenterPointFromGridIndex(voxel_index, voxel_size))
+              .cast<double>());
+    }
   }
   return true;
 }

@@ -206,12 +206,14 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
     planning_distance = planning_horizon_m_;
   }
 
+  mav_msgs::EigenTrajectoryPointVector shotgun_path;
+
   // Try to find an intermediate goal to go to if the edge of the planning
   // horizon is occupied.
   bool goal_found = true;
   if (use_shotgun_) {
-    goal_found =
-        findIntermediateGoalShotgun(start_point, goal_point, &goal_point);
+    goal_found = findIntermediateGoalShotgun(start_point, goal_point,
+                                             &goal_point, &shotgun_path);
     ROS_INFO("[Shotgun] Found (%d) intermediate goal at %f %f %f", goal_found,
              goal_point.position_W.x(), goal_point.position_W.y(),
              goal_point.position_W.z());
@@ -241,6 +243,9 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
   visualization_msgs::MarkerArray marker_array;
   marker_array.markers.push_back(createMarkerForWaypoints(
       vis_vector, "odom", mav_visualization::Color::Purple(), "goal", 0.2));
+  marker_array.markers.push_back(createMarkerForPath(
+      shotgun_path, "odom", mav_visualization::Color::Pink(), "shotgun_path",
+      0.1));
   planning_marker_pub_.publish(marker_array);
 
   bool success =
@@ -307,13 +312,28 @@ bool VoxbloxLocoPlanner::findIntermediateGoal(
 bool VoxbloxLocoPlanner::findIntermediateGoalShotgun(
     const mav_msgs::EigenTrajectoryPoint& start_point,
     const mav_msgs::EigenTrajectoryPoint& goal_point,
-    mav_msgs::EigenTrajectoryPoint* goal_out) {
+    mav_msgs::EigenTrajectoryPoint* goal_out,
+    mav_msgs::EigenTrajectoryPointVector* path_out) {
+  CHECK_NOTNULL(goal_out);
   const int num_particles = 10;
   const int max_steps = 200;
 
-  bool success =
-      shotgun_.shootParticles(num_particles, max_steps, start_point.position_W,
-                              goal_point.position_W, &goal_out->position_W);
+  voxblox::AlignedVector<Eigen::Vector3d> path;
+  bool success = shotgun_.shootParticles(
+      num_particles, max_steps, start_point.position_W, goal_point.position_W,
+      &goal_out->position_W, &path);
+
+  if (success && path_out != nullptr) {
+    path_out->clear();
+    path_out->reserve(path.size());
+    ROS_INFO("[Shotgun] path length: %zu", path.size());
+    for (const Eigen::Vector3d& position : path) {
+      mav_msgs::EigenTrajectoryPoint point;
+      point.position_W = position;
+      path_out->push_back(point);
+    }
+  }
+
   return success;
 }
 
