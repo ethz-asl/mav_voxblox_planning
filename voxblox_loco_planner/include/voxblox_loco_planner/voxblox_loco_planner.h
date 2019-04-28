@@ -20,6 +20,7 @@ namespace mav_planning {
 class VoxbloxLocoPlanner {
  public:
   static constexpr int kN = 10;
+  static constexpr int kD = 3;
 
   VoxbloxLocoPlanner(const ros::NodeHandle& nh,
                      const ros::NodeHandle& nh_private);
@@ -41,6 +42,7 @@ class VoxbloxLocoPlanner {
   bool getTrajectoryBetweenWaypoints(
       const mav_msgs::EigenTrajectoryPoint& start,
       const mav_msgs::EigenTrajectoryPoint& goal,
+      const mav_msgs::EigenTrajectoryPointVector& initial_path,
       mav_trajectory_generation::Trajectory* trajectory);
 
  private:
@@ -70,6 +72,12 @@ class VoxbloxLocoPlanner {
 
   bool getNearestFreeSpaceToPoint(const Eigen::Vector3d& pos, double step_size,
                                   Eigen::Vector3d* new_pos) const;
+
+  // Set up an initial trajectory solution to start from.
+  bool getInitialTrajectory(
+      const mav_msgs::EigenTrajectoryPoint::Vector& waypoints,
+      double total_time,
+      mav_trajectory_generation::Trajectory* trajectory) const;
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;

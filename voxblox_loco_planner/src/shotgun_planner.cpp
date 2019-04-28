@@ -52,6 +52,7 @@ bool ShotgunPlanner::shootParticles(
 
     current_index = start_index;
     voxblox::AlignedVector<voxblox::GlobalIndex> current_path;
+    current_path.push_back(start_index);
     for (int step = 0; step < max_steps; step++) {
       // Get the neighbors of the current index.
       voxblox::Neighborhood<>::getFromGlobalIndex(current_index, &neighbors);

@@ -19,7 +19,7 @@ VoxbloxLocoPlanner::VoxbloxLocoPlanner(const ros::NodeHandle& nh,
       planning_horizon_m_(4.0),
       use_shotgun_(true),
       use_shotgun_path_(true),
-      loco_(3) {
+      loco_(kD) {
   constraints_.setParametersFromRos(nh_private_);
 
   nh_private_.param("verbose", verbose_, verbose_);
@@ -122,6 +122,7 @@ bool VoxbloxLocoPlanner::isPathFeasible(
 bool VoxbloxLocoPlanner::getTrajectoryBetweenWaypoints(
     const mav_msgs::EigenTrajectoryPoint& start,
     const mav_msgs::EigenTrajectoryPoint& goal,
+    const mav_msgs::EigenTrajectoryPointVector& initial_path,
     mav_trajectory_generation::Trajectory* trajectory) {
   CHECK(esdf_map_);
 
@@ -142,7 +143,15 @@ bool VoxbloxLocoPlanner::getTrajectoryBetweenWaypoints(
   }
 
   // If we're doing hotstarts, need to save the previous d_p.
-  loco_.setupFromTrajectoryPoints(start, goal, num_segments_, total_time);
+
+  // Use initial path if provided, otherwise just plan between goals.
+  if (!initial_path.empty() && num_segments_ == initial_path.size() - 1) {
+    mav_trajectory_generation::Trajectory traj_initial;
+    getInitialTrajectory(initial_path, total_time, &traj_initial);
+    loco_.setupFromTrajectory(traj_initial);
+  } else {
+    loco_.setupFromTrajectoryPoints(start, goal, num_segments_, total_time);
+  }
   Eigen::VectorXd x0, x;
   loco_.getParameterVector(&x0);
   x = x0;
@@ -178,6 +187,63 @@ bool VoxbloxLocoPlanner::getTrajectoryBetweenWaypoints(
              success, i);
   }
   return success;
+}
+
+bool VoxbloxLocoPlanner::getInitialTrajectory(
+    const mav_msgs::EigenTrajectoryPoint::Vector& waypoints, double total_time,
+    mav_trajectory_generation::Trajectory* trajectory) const {
+  mav_trajectory_generation::timing::Timer linear_timer("loco/initial");
+
+  mav_trajectory_generation::PolynomialOptimization<kN> poly_opt(kD);
+
+  int num_vertices = waypoints.size();
+  int derivative_to_optimize =
+      mav_trajectory_generation::derivative_order::JERK;
+
+  mav_trajectory_generation::Vertex::Vector vertices(
+      num_vertices, mav_trajectory_generation::Vertex(kD));
+
+  // Add the first and last.
+  vertices.front().makeStartOrEnd(0, derivative_to_optimize);
+  vertices.front().addConstraint(
+      mav_trajectory_generation::derivative_order::POSITION,
+      waypoints.front().position_W);
+  vertices.front().addConstraint(
+      mav_trajectory_generation::derivative_order::VELOCITY,
+      waypoints.front().velocity_W);
+  vertices.front().addConstraint(
+      mav_trajectory_generation::derivative_order::ACCELERATION,
+      waypoints.front().acceleration_W);
+  vertices.back().makeStartOrEnd(0, derivative_to_optimize);
+  vertices.back().addConstraint(
+      mav_trajectory_generation::derivative_order::POSITION,
+      waypoints.back().position_W);
+  vertices.back().addConstraint(
+      mav_trajectory_generation::derivative_order::VELOCITY,
+      waypoints.back().velocity_W);
+  vertices.back().addConstraint(
+      mav_trajectory_generation::derivative_order::ACCELERATION,
+      waypoints.back().acceleration_W);
+
+  // Now do the middle bits.
+  size_t j = 1;
+  for (size_t i = 1; i < waypoints.size() - 1; i += 1) {
+    vertices[j].addConstraint(
+        mav_trajectory_generation::derivative_order::POSITION,
+        waypoints[i].position_W);
+    j++;
+  }
+
+  std::vector<double> segment_times(num_vertices - 1,
+                                    total_time / (num_vertices - 1));
+  poly_opt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
+  if (poly_opt.solveLinear()) {
+    poly_opt.getTrajectory(trajectory);
+  } else {
+    return false;
+  }
+  linear_timer.Stop();
+  return true;
 }
 
 bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
@@ -254,15 +320,16 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
   planning_marker_pub_.publish(marker_array);
 
   bool success = false;
-  if (use_shotgun_ && use_shotgun_path_) {
-    mav_msgs::EigenTrajectoryPointVector shortened_path;
-    path_shortener_.shortenPath(shotgun_path, &shortened_path);
+  mav_msgs::EigenTrajectoryPointVector shortened_path;
 
-    success = true;
-  } else {
-    success =
-        getTrajectoryBetweenWaypoints(start_point, goal_point, trajectory);
+  if (use_shotgun_ && use_shotgun_path_) {
+    path_shortener_.shortenPath(shotgun_path, &shortened_path);
+    // Make sure we have the full state at the start and end.
+    shortened_path.front() = start_point;
+    shortened_path.back() = goal_point;
   }
+  success = getTrajectoryBetweenWaypoints(start_point, goal_point,
+                                          shortened_path, trajectory);
 
   // TODO(DEBUG)
   mav_trajectory_generation::timing::Timing::Print(std::cout);
@@ -288,7 +355,9 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoalFromInitialTrajectory(
     // going.
     mav_msgs::EigenTrajectoryPoint back;
     sampleTrajectoryAtTime(trajectory_in, trajectory_in.getMaxTime(), &back);
-    success = getTrajectoryBetweenWaypoints(start, back, trajectory);
+    mav_msgs::EigenTrajectoryPointVector empty_path;
+    success =
+        getTrajectoryBetweenWaypoints(start, back, empty_path, trajectory);
   }
   return success;
 }
