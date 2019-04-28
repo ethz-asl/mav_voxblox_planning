@@ -108,11 +108,12 @@ bool VoxbloxLocoPlanner::isPathFeasible(
     const mav_msgs::EigenTrajectoryPointVector& path) const {
   // This is easier to check in the trajectory but then we are limited in how
   // we do the smoothing.
+  const double kExcessMargin = 0.01;
   for (const mav_msgs::EigenTrajectoryPoint& point : path) {
-    if (point.acceleration_W.norm() > constraints_.a_max + 1e-2) {
+    if (point.acceleration_W.norm() > constraints_.a_max + kExcessMargin) {
       return false;
     }
-    if (point.velocity_W.norm() > constraints_.v_max + 1e-2) {
+    if (point.velocity_W.norm() > constraints_.v_max + kExcessMargin) {
       return false;
     }
   }
@@ -149,7 +150,6 @@ bool VoxbloxLocoPlanner::getTrajectoryBetweenWaypoints(
     mav_trajectory_generation::Trajectory traj_initial;
     getInitialTrajectory(initial_path, total_time, &traj_initial);
     loco_.setupFromTrajectory(traj_initial);
-    ROS_INFO("Used initial trajectory!");
   } else {
     loco_.setupFromTrajectoryPoints(start, goal, num_segments_, total_time);
   }
@@ -337,7 +337,7 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
                                           shortened_path, trajectory);
 
   // TODO(DEBUG)
-  mav_trajectory_generation::timing::Timing::Print(std::cout);
+  //mav_trajectory_generation::timing::Timing::Print(std::cout);
 
   return success;
 }
@@ -348,7 +348,7 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoalFromInitialTrajectory(
     const mav_msgs::EigenTrajectoryPoint& goal,
     mav_trajectory_generation::Trajectory* trajectory) {
   mav_msgs::EigenTrajectoryPoint start;
-  start_time = std::min(trajectory->getMaxTime(), start_time);
+  start_time = std::min(trajectory_in.getMaxTime(), start_time);
   bool success = sampleTrajectoryAtTime(trajectory_in, start_time, &start);
   if (!success) {
     return false;

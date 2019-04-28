@@ -100,7 +100,6 @@ bool ShotgunPlanner::shootParticles(
 
         // Within a voxel! We're dealing with voxel coordinates here.
         if (best_goal_distance < 1.0) {
-          std::cout << "Early abort at " << step << " steps\n";
           exit_loop = true;
           break;
         }

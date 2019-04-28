@@ -60,7 +60,7 @@ void LocalPlanningBenchmark::generateWorld(double density) {
 
 void LocalPlanningBenchmark::runBenchmark(int trial_number) {
   constexpr double kPlanningHeight = 1.5;
-  constexpr double kMinDistanceToGoal = 0.1;
+  constexpr double kMinDistanceToGoal = 0.2;
 
   srand(trial_number);
   esdf_server_.clear();
@@ -143,10 +143,21 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
     } else {
       success = loco_planner_.getTrajectoryTowardGoalFromInitialTrajectory(
           start_time, last_trajectory, goal, &trajectory);
+
+      int j = 0;
+      while (!success && j < 5) {
+        trajectory.clear();
+        success = loco_planner_.getTrajectoryTowardGoalFromInitialTrajectory(
+          start_time, last_trajectory, goal, &trajectory);
+        j++;
+      }
+      if (j > 0 && success) {
+        ROS_INFO("[Local benchmark] Needed %d retries", j);
+      }
     }
     plan_elapsed_time += timer.stop();
 
-    if (!success) {
+    if (!success || trajectory.empty()) {
       break;
     }
 
