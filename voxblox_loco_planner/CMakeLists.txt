@@ -14,14 +14,6 @@ cs_add_library(${PROJECT_NAME}
   src/shotgun_planner.cpp
 )
 
-############
-# BINARIES #
-############
-#cs_add_executable(global_planning_benchmark_node
-#  src/global_planning_benchmark_node.cpp
-#)
-#target_link_libraries(global_planning_benchmark_node ${PROJECT_NAME})
-
 ##########
 # EXPORT #
 ##########

@@ -133,6 +133,7 @@ bool ShotgunPlanner::shootParticles(
       best_distance = current_distance;
       best_index = current_index;
       best_path_voxblox = current_path;
+      best_path_voxblox.push_back(current_index);
     }
     if (exit_loop) {
       break;

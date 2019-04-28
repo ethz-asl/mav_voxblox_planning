@@ -11,6 +11,7 @@
 #include <voxblox/core/common.h>
 #include <voxblox/core/esdf_map.h>
 #include <voxblox/utils/planning_utils.h>
+#include <voxblox_planning_common/path_shortening.h>
 
 #include "voxblox_loco_planner/shotgun_planner.h"
 
@@ -90,12 +91,14 @@ class VoxbloxLocoPlanner {
   double random_restart_magnitude_;
   double planning_horizon_m_;
   bool use_shotgun_;
+  bool use_shotgun_path_;
 
   // Planner.
   loco_planner::Loco<kN> loco_;
 
   // Optional intermediate planner.
   ShotgunPlanner shotgun_;
+  EsdfPathShortener path_shortener_;
 
   // Map.
   std::shared_ptr<voxblox::EsdfMap> esdf_map_;

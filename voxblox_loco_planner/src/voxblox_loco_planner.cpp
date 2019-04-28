@@ -18,6 +18,7 @@ VoxbloxLocoPlanner::VoxbloxLocoPlanner(const ros::NodeHandle& nh,
       random_restart_magnitude_(0.5),
       planning_horizon_m_(4.0),
       use_shotgun_(true),
+      use_shotgun_path_(true),
       loco_(3) {
   constraints_.setParametersFromRos(nh_private_);
 
@@ -26,6 +27,8 @@ VoxbloxLocoPlanner::VoxbloxLocoPlanner(const ros::NodeHandle& nh,
   nh_private_.param("frame_id", frame_id_, frame_id_);
   nh_private_.param("planning_horizon_m", planning_horizon_m_,
                     planning_horizon_m_);
+  nh_private_.param("use_shotgun", use_shotgun_, use_shotgun_);
+  nh_private_.param("use_shotgun_path", use_shotgun_path_, use_shotgun_path_);
 
   loco_.setRobotRadius(constraints_.robot_radius);
 
@@ -36,6 +39,7 @@ VoxbloxLocoPlanner::VoxbloxLocoPlanner(const ros::NodeHandle& nh,
 
   // Set up optional shotgun intermediate point selection.
   shotgun_.setPhysicalConstraints(constraints_);
+  path_shortener_.setConstraints(constraints_);
 
   // ROS debug visualization.
   planning_marker_pub_ = nh_private_.advertise<visualization_msgs::MarkerArray>(
@@ -53,6 +57,7 @@ void VoxbloxLocoPlanner::setEsdfMap(
   loco_.setMapResolution(esdf_map->voxel_size());
 
   shotgun_.setEsdfMap(esdf_map);
+  path_shortener_.setEsdfLayer(esdf_map->getEsdfLayerPtr());
 }
 
 double VoxbloxLocoPlanner::getMapDistance(
@@ -248,8 +253,16 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
       0.1));
   planning_marker_pub_.publish(marker_array);
 
-  bool success =
-      getTrajectoryBetweenWaypoints(start_point, goal_point, trajectory);
+  bool success = false;
+  if (use_shotgun_ && use_shotgun_path_) {
+    mav_msgs::EigenTrajectoryPointVector shortened_path;
+    path_shortener_.shortenPath(shotgun_path, &shortened_path);
+
+    success = true;
+  } else {
+    success =
+        getTrajectoryBetweenWaypoints(start_point, goal_point, trajectory);
+  }
 
   // TODO(DEBUG)
   mav_trajectory_generation::timing::Timing::Print(std::cout);

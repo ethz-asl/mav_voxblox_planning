@@ -17,6 +17,7 @@
 
   <depend>mav_msgs</depend>
   <depend>mav_planning_common</depend>
+  <depend>mav_trajectory_generation</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>tf</depend>

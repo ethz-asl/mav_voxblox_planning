@@ -57,9 +57,6 @@ class LocoSmoother : public PolynomialSmoother {
  protected:
   double getMapDistanceAndGradient(const Eigen::VectorXd& position,
                                    Eigen::VectorXd* gradient) const;
-  void resampleWaypointsFromVisibilityGraph(
-      const mav_msgs::EigenTrajectoryPoint::Vector& waypoints,
-      mav_msgs::EigenTrajectoryPoint::Vector* waypoints_out) const;
 
   bool resample_trajectory_;
   bool resample_visibility_;

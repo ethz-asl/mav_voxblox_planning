@@ -22,4 +22,5 @@
   <depend>tf</depend>
   <depend>visualization_msgs</depend>
   <depend>voxblox_ros</depend>
+  <depend>voxblox_planning_common</depend>
 </package>

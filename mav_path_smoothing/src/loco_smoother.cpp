@@ -1,4 +1,5 @@
 #include <loco_planner/loco.h>
+#include <mav_planning_common/visibility_resampling.h>
 #include <mav_trajectory_generation/trajectory_sampling.h>
 
 #include "mav_path_smoothing/loco_smoother.h"
@@ -45,7 +46,8 @@ bool LocoSmoother::getTrajectoryBetweenWaypoints(
     // If resampling the visibility graph, then basically divide the whole thing
     // into evenly spaced waypoints on the graph.
     mav_msgs::EigenTrajectoryPoint::Vector resampled_waypoints;
-    resampleWaypointsFromVisibilityGraph(waypoints, &resampled_waypoints);
+    resampleWaypointsFromVisibilityGraph(num_segments_, constraints_, waypoints,
+                                         &resampled_waypoints);
     PolynomialSmoother::getTrajectoryBetweenWaypoints(resampled_waypoints,
                                                       &traj_initial);
   } else {
@@ -137,62 +139,6 @@ bool LocoSmoother::getPathBetweenTwoPoints(
     return true;
   }
   return false;
-}
-
-void LocoSmoother::resampleWaypointsFromVisibilityGraph(
-    const mav_msgs::EigenTrajectoryPoint::Vector& waypoints,
-    mav_msgs::EigenTrajectoryPoint::Vector* waypoints_out) const {
-  // We will divide the trajectory into num_segments_+1 waypoints.
-  CHECK_NOTNULL(waypoints_out);
-  CHECK_GT(waypoints.size(), 1u);
-  waypoints_out->reserve(num_segments_ + 1);
-  // Create a temporary estimate of segment times for the original waypoints,
-  // for convenience.
-  std::vector<double> segment_times;
-  segment_times.reserve(waypoints.size() - 1);
-
-  for (size_t i = 1; i < waypoints.size(); i++) {
-    segment_times.push_back(mav_trajectory_generation::computeTimeVelocityRamp(
-        waypoints[i - 1].position_W, waypoints[i].position_W,
-        constraints_.v_max, constraints_.a_max));
-  }
-
-  double total_time =
-      std::accumulate(segment_times.begin(), segment_times.end(), 0.0);
-  ROS_INFO("Total time: %f Time per seg: %f", total_time,
-           total_time / num_segments_);
-  // Next we'll split the total time into num_segments_ sections and evaluate
-  // where the waypoint falls.
-  double time_so_far = 0.0;
-  double time_per_segment = total_time / num_segments_;
-  size_t input_waypoint_index = 0;
-  size_t output_waypoint_index = 1;
-
-  waypoints_out->push_back(waypoints.front());
-
-  while (output_waypoint_index < num_segments_) {
-    if (time_so_far >= time_per_segment * output_waypoint_index) {
-      mav_msgs::EigenTrajectoryPoint point;
-      Eigen::Vector3d direction =
-          waypoints[input_waypoint_index].position_W -
-          waypoints[input_waypoint_index - 1].position_W;
-      double magnitude =
-          1.0 -
-          (time_so_far - time_per_segment * output_waypoint_index) /
-              segment_times[input_waypoint_index - 1];
-      point.position_W = waypoints[input_waypoint_index - 1].position_W +
-                         magnitude * direction;
-      waypoints_out->push_back(point);
-      ROS_INFO("Waypoint %d from waypoint %d at time: %f offset: %f",
-               output_waypoint_index, input_waypoint_index, time_so_far,
-               magnitude);
-      output_waypoint_index++;
-    } else {
-      time_so_far += segment_times[input_waypoint_index];
-      input_waypoint_index++;
-    }
-  }
-  waypoints_out->push_back(waypoints.back());
 }
 
 double LocoSmoother::getMapDistanceAndGradient(
