@@ -10,6 +10,7 @@ struct ShotgunParameters {
   // How large a step, in meters, to make.
   float max_step_size = 1.0;
   // Whether to take 1 voxel (false) or multi-voxel (true) steps.
+  // TODO(helenol): NOT IMPLEMENTED YET!
   bool take_large_steps = false;
 
   // Probabilities (must sum up to < 1 together) that the particle will do one
@@ -20,7 +21,7 @@ struct ShotgunParameters {
   // Some params for evaluating the goodness of the point?
 
   // More special herustic-y hack-y params.
-  float robot_radius_inflation = 0.2;
+  float robot_radius_inflation = 0.0;
 };
 
 // A "planner" that uses a set of probabilistic particles to find an initial

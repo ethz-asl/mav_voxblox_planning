@@ -149,6 +149,7 @@ bool VoxbloxLocoPlanner::getTrajectoryBetweenWaypoints(
     mav_trajectory_generation::Trajectory traj_initial;
     getInitialTrajectory(initial_path, total_time, &traj_initial);
     loco_.setupFromTrajectory(traj_initial);
+    ROS_INFO("Used initial trajectory!");
   } else {
     loco_.setupFromTrajectoryPoints(start, goal, num_segments_, total_time);
   }
@@ -317,7 +318,6 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
   marker_array.markers.push_back(createMarkerForPath(
       shotgun_path, "odom", mav_visualization::Color::Pink(), "shotgun_path",
       0.1));
-  planning_marker_pub_.publish(marker_array);
 
   bool success = false;
   mav_msgs::EigenTrajectoryPointVector shortened_path;
@@ -327,7 +327,12 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
     // Make sure we have the full state at the start and end.
     shortened_path.front() = start_point;
     shortened_path.back() = goal_point;
+    marker_array.markers.push_back(createMarkerForPath(
+        shortened_path, "odom", mav_visualization::Color::Purple(),
+        "shortened_path", 0.05));
   }
+  planning_marker_pub_.publish(marker_array);
+
   success = getTrajectoryBetweenWaypoints(start_point, goal_point,
                                           shortened_path, trajectory);
 
@@ -398,7 +403,7 @@ bool VoxbloxLocoPlanner::findIntermediateGoalShotgun(
     mav_msgs::EigenTrajectoryPointVector* path_out) {
   CHECK_NOTNULL(goal_out);
   const int num_particles = 10;
-  const int max_steps = 200;
+  const int max_steps = 400;
 
   voxblox::AlignedVector<Eigen::Vector3d> path;
   bool success = shotgun_.shootParticles(
