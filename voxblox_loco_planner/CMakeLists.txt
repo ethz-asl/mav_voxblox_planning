@@ -12,6 +12,7 @@ add_definitions(-std=c++11)
 cs_add_library(${PROJECT_NAME}
   src/voxblox_loco_planner.cpp
   src/shotgun_planner.cpp
+  src/goal_point_selector.cpp
 )
 
 ##########
