@@ -48,6 +48,11 @@ bool GoalPointSelector::selectNextGoal(
   }
 
   if (params_.strategy == GoalPointSelectorParameters::kLocalExploration) {
+    if (!tsdf_map_) {
+      return false;
+    }
+    return selectLocalExplorationGoal(global_goal, current_goal, current_pose,
+                                      next_goal);
   }
 }
 
