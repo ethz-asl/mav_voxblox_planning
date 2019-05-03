@@ -144,16 +144,9 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
       success = loco_planner_.getTrajectoryTowardGoalFromInitialTrajectory(
           start_time, last_trajectory, goal, &trajectory);
 
-      int j = 0;
-      while (!success && j < 5) {
         trajectory.clear();
         success = loco_planner_.getTrajectoryTowardGoalFromInitialTrajectory(
           start_time, last_trajectory, goal, &trajectory);
-        j++;
-      }
-      if (j > 0 && success) {
-        ROS_INFO("[Local benchmark] Needed %d retries", j);
-      }
     }
     plan_elapsed_time += timer.stop();
 
