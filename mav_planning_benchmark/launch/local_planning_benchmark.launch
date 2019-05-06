@@ -1,5 +1,5 @@
 <launch>
-  <arg name="results_path" default="/home/helen/data/jfr_2018/local_benchmark/local_28_04_2019_nopath_shotgun_5.csv" />
+  <arg name="results_path" default="/home/helen/data/jfr_2018/local_benchmark/local_03_05_2019_shotgun_all_random.csv" />
 
   <arg name="frame_id" default="odom" />
 
@@ -20,7 +20,7 @@
     <param name="frame_id" value="$(arg frame_id)" />
     <param name="world_frame" value="$(arg frame_id)" />
     <param name="publish_pointclouds" value="true" />
-    <param name="use_shotgun_path" value="false" />
+    <param name="use_shotgun_path" value="true" />
     <param name="use_shotgun" value="true" />
 
     <param name="verbose" value="true" />

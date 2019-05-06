@@ -12,7 +12,7 @@ namespace mav_planning {
 struct GoalPointSelectorParameters {
   enum Strategy { kNoIntermediateGoal = 0, kRandom, kLocalExploration };
 
-  Strategy strategy = kNoIntermediateGoal;
+  Strategy strategy = kRandom;
 
   // For all random-based selectors.
   double random_sample_range = 10.0;

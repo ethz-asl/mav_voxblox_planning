@@ -48,6 +48,7 @@ LocalPlanningBenchmark::LocalPlanningBenchmark(
   esdf_server_.setClearSphere(true);
 
   loco_planner_.setEsdfMap(esdf_server_.getEsdfMapPtr());
+  goal_selector_.setTsdfMap(esdf_server_.getTsdfMapPtr());
 }
 
 void LocalPlanningBenchmark::generateWorld(double density) {
@@ -139,19 +140,26 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
     bool success = false;
 
     if (i == 0) {
-      success = loco_planner_.getTrajectoryTowardGoal(start, goal, &trajectory);
+      success = loco_planner_.getTrajectoryTowardGoal(start, current_goal,
+                                                      &trajectory);
     } else {
       success = loco_planner_.getTrajectoryTowardGoalFromInitialTrajectory(
-          start_time, last_trajectory, goal, &trajectory);
-
-        trajectory.clear();
-        success = loco_planner_.getTrajectoryTowardGoalFromInitialTrajectory(
-          start_time, last_trajectory, goal, &trajectory);
+          start_time, last_trajectory, current_goal, &trajectory);
     }
     plan_elapsed_time += timer.stop();
 
-    if (!success || trajectory.empty()) {
+    if (trajectory.empty() &&
+        (current_goal.position_W - goal.position_W).norm() <
+            kMinDistanceToGoal) {
       break;
+    }
+    if (!success) {
+      if (!goal_selector_.selectNextGoal(goal, current_goal, viewpoint,
+                                         &current_goal)) {
+        // In case we're not tracking a new goal...
+        break;
+      }
+      continue;
     }
 
     // Sample the trajectory, set the yaw, and append to the executed path.
