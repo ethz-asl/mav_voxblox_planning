@@ -33,3 +33,6 @@
 
 # I own a mac
 .DS_Store
+
+# IDE
+*.idea/
