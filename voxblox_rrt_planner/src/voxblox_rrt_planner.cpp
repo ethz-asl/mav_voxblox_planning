@@ -22,14 +22,38 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
       upper_bound_(Eigen::Vector3d::Zero()),
       voxblox_server_(nh_, nh_private_),
       rrt_(nh_, nh_private_) {
-  constraints_.setParametersFromRos(nh_private_);
 
-  std::string input_filepath;
-  nh_private_.param("voxblox_path", input_filepath, input_filepath);
+  getParametersFromRos();
+  subscribeToTopics();
+  advertiseTopics();
+
+  double voxel_size = initializeMap();
+
+  // TODO(helenol): figure out what to do with optimistic/pessimistic here.
+  rrt_.setRobotRadius(constraints_.robot_radius);
+  rrt_.setOptimistic(false);
+
+  // Set up the path smoother as well.
+  smoother_.setParametersFromRos(nh_private_);
+  smoother_.setMinCollisionCheckResolution(voxel_size);
+
+  // Loco smoother!
+  loco_smoother_.setParametersFromRos(nh_private_);
+  loco_smoother_.setMinCollisionCheckResolution(voxel_size);
+
+  setupPlannerAndSmootherMap();
+
+  visualizeMap();
+}
+
+void VoxbloxRrtPlanner::getParametersFromRos() {
+  constraints_.setParametersFromRos(nh_private_);
+  nh_private_.param("voxblox_path", input_filepath_, input_filepath_);
   nh_private_.param("visualize", visualize_, visualize_);
   nh_private_.param("frame_id", frame_id_, frame_id_);
   nh_private_.param("do_smoothing", do_smoothing_, do_smoothing_);
-
+}
+void VoxbloxRrtPlanner::advertiseTopics() {
   path_marker_pub_ =
       nh_private_.advertise<visualization_msgs::MarkerArray>("path", 1, true);
   polynomial_trajectory_pub_ =
@@ -43,15 +67,17 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
       "plan", &VoxbloxRrtPlanner::plannerServiceCallback, this);
   path_pub_srv_ = nh_private_.advertiseService(
       "publish_path", &VoxbloxRrtPlanner::publishPathCallback, this);
-
+}
+void VoxbloxRrtPlanner::subscribeToTopics() {}
+double VoxbloxRrtPlanner::initializeMap() {
   esdf_map_ = voxblox_server_.getEsdfMapPtr();
   CHECK(esdf_map_);
   tsdf_map_ = voxblox_server_.getTsdfMapPtr();
   CHECK(tsdf_map_);
 
-  if (!input_filepath.empty()) {
+  if (!input_filepath_.empty()) {
     // Verify that the map has an ESDF layer, otherwise generate it.
-    if (!voxblox_server_.loadMap(input_filepath)) {
+    if (!voxblox_server_.loadMap(input_filepath_)) {
       ROS_ERROR("Couldn't load ESDF map!");
 
       // Check if the TSDF layer is non-empty...
@@ -65,6 +91,8 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
         ROS_ERROR("TSDF map also empty! Check voxel size!");
       }
     }
+
+    voxblox_server_.setTraversabilityRadius(constraints_.robot_radius);
   }
   double voxel_size =
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxel_size();
@@ -74,34 +102,25 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxel_size(),
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxels_per_side());
 
-  // TODO(helenol): figure out what to do with optimistic/pessimistic here.
-  rrt_.setRobotRadius(constraints_.robot_radius);
-  rrt_.setOptimistic(false);
-
+  return voxel_size;
+}
+void VoxbloxRrtPlanner::setupPlannerAndSmootherMap() {
   rrt_.setTsdfLayer(voxblox_server_.getTsdfMapPtr()->getTsdfLayerPtr());
   rrt_.setEsdfLayer(voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr());
 
-  voxblox_server_.setTraversabilityRadius(constraints_.robot_radius);
-
-  // Set up the path smoother as well.
-  smoother_.setParametersFromRos(nh_private_);
-  smoother_.setMinCollisionCheckResolution(voxel_size);
   smoother_.setMapDistanceCallback(std::bind(&VoxbloxRrtPlanner::getMapDistance,
                                              this, std::placeholders::_1));
 
-  // Loco smoother!
-  loco_smoother_.setParametersFromRos(nh_private_);
-  loco_smoother_.setMinCollisionCheckResolution(voxel_size);
   loco_smoother_.setMapDistanceCallback(std::bind(
       &VoxbloxRrtPlanner::getMapDistance, this, std::placeholders::_1));
-
+}
+void VoxbloxRrtPlanner::visualizeMap() {
   if (visualize_) {
     voxblox_server_.generateMesh();
     voxblox_server_.publishSlices();
     voxblox_server_.publishPointclouds();
     voxblox_server_.publishTraversable();
-  }
-}
+  }}
 
 bool VoxbloxRrtPlanner::publishPathCallback(std_srvs::EmptyRequest& request,
                                             std_srvs::EmptyResponse& response) {
@@ -155,13 +174,10 @@ bool VoxbloxRrtPlanner::plannerServiceCallback(
   mav_msgs::eigenTrajectoryPointFromPoseMsg(request.goal_pose, &goal_pose);
 
   // Setup latest copy of map.
-  if (!(esdf_map_ &&
-        esdf_map_->getEsdfLayerPtr()->getNumberOfAllocatedBlocks() > 0) &&
-      !(tsdf_map_ &&
-        tsdf_map_->getTsdfLayerPtr()->getNumberOfAllocatedBlocks() > 0)) {
-    ROS_ERROR("Both maps are empty!");
+  if (!isMapInitialized()) {
     return false;
   }
+
   // Figure out map bounds!
   computeMapBounds(&lower_bound_, &upper_bound_);
 
@@ -272,6 +288,19 @@ bool VoxbloxRrtPlanner::plannerServiceCallback(
                   << start_pose.position_W.transpose()
                   << " and goal point: " << goal_pose.position_W.transpose());
   return success;
+}
+
+bool VoxbloxRrtPlanner::isMapInitialized() {
+  bool esdf_initialized = esdf_map_ &&
+      esdf_map_->getEsdfLayerPtr()->getNumberOfAllocatedBlocks() > 0;
+  bool tsdf_initialized = tsdf_map_ &&
+      tsdf_map_->getTsdfLayerPtr()->getNumberOfAllocatedBlocks() > 0;
+
+  if (!(esdf_initialized) && !(tsdf_initialized)) {
+    ROS_ERROR("Both maps are empty!");
+  }
+
+  return esdf_initialized || tsdf_initialized;
 }
 
 bool VoxbloxRrtPlanner::generateFeasibleTrajectory(

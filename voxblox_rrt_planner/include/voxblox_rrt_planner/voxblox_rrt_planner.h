@@ -32,6 +32,14 @@ class VoxbloxRrtPlanner {
                     const ros::NodeHandle& nh_private);
   virtual ~VoxbloxRrtPlanner() {}
 
+  // constructor functions
+  void getParametersFromRos();
+  void advertiseTopics();
+  void subscribeToTopics();
+  virtual double initializeMap();
+  virtual void setupPlannerAndSmootherMap();
+  virtual void visualizeMap();
+
   bool plannerServiceCallback(
       mav_planning_msgs::PlannerServiceRequest& request,
       mav_planning_msgs::PlannerServiceResponse& response);
@@ -49,23 +57,16 @@ class VoxbloxRrtPlanner {
   bool generateFeasibleTrajectoryLoco2(
       const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
       mav_msgs::EigenTrajectoryPointVector* path);
-
-  double getMapDistance(const Eigen::Vector3d& position) const;
+  // map functions
+  virtual bool isMapInitialized();
+  virtual double getMapDistance(const Eigen::Vector3d& position) const;
   bool checkPathForCollisions(const mav_msgs::EigenTrajectoryPointVector& path,
                               double* t) const;
   bool checkPhysicalConstraints(
       const mav_trajectory_generation::Trajectory& trajectory);
 
- private:
-  void inferValidityCheckingResolution(const Eigen::Vector3d& bounding_box);
-
-  bool sanityCheckWorldAndInputs(const Eigen::Vector3d& start_pos,
-                                 const Eigen::Vector3d& goal_pos,
-                                 const Eigen::Vector3d& bounding_box) const;
-  bool checkStartAndGoalFree(const Eigen::Vector3d& start_pos,
-                             const Eigen::Vector3d& goal_pos) const;
-
-  void computeMapBounds(Eigen::Vector3d* lower_bound,
+ protected:
+  virtual void computeMapBounds(Eigen::Vector3d* lower_bound,
                         Eigen::Vector3d* upper_bound) const;
 
   ros::NodeHandle nh_;
@@ -82,6 +83,7 @@ class VoxbloxRrtPlanner {
   std::string frame_id_;
   bool visualize_;
   bool do_smoothing_;
+  std::string input_filepath_;
 
   // Robot parameters -- v max, a max, radius, etc.
   PhysicalConstraints constraints_;
@@ -101,18 +103,27 @@ class VoxbloxRrtPlanner {
   bool last_trajectory_valid_;
   mav_msgs::EigenTrajectoryPointVector last_waypoints_;
 
-  // Map!
-  voxblox::EsdfServer voxblox_server_;
-  // Shortcuts to the maps:
-  voxblox::EsdfMap::Ptr esdf_map_;
-  voxblox::TsdfMap::Ptr tsdf_map_;
-
   // Planners!
   VoxbloxOmplRrt rrt_;
 
   // Smoothing!
   PolynomialSmoother smoother_;
   LocoSmoother loco_smoother_;
+
+ private:
+  void inferValidityCheckingResolution(const Eigen::Vector3d& bounding_box);
+
+  bool sanityCheckWorldAndInputs(const Eigen::Vector3d& start_pos,
+                                 const Eigen::Vector3d& goal_pos,
+                                 const Eigen::Vector3d& bounding_box) const;
+  bool checkStartAndGoalFree(const Eigen::Vector3d& start_pos,
+                             const Eigen::Vector3d& goal_pos) const;
+
+  // Map!
+  voxblox::EsdfServer voxblox_server_;
+  // Shortcuts to the maps:
+  voxblox::EsdfMap::Ptr esdf_map_;
+  voxblox::TsdfMap::Ptr tsdf_map_;
 };
 
 }  // namespace mav_planning
