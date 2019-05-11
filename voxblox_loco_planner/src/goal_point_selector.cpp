@@ -13,6 +13,24 @@ GoalPointSelectorParameters GoalPointSelector::getParameters() const {
   return params_;
 }
 
+void GoalPointSelector::setParametersFromRos(const ros::NodeHandle& nh) {
+  std::string strategy = "none";
+
+  nh.param("goal_selector_strategy", strategy, strategy);
+  if (strategy == "none") {
+    params_.strategy = GoalPointSelectorParameters::kNoIntermediateGoal;
+  } else if (strategy == "random") {
+    params_.strategy = GoalPointSelectorParameters::kRandom;
+  } else if (strategy == "local" || strategy == "local_exploration") {
+    params_.strategy = GoalPointSelectorParameters::kLocalExploration;
+  } else {
+    ROS_ERROR_STREAM("[Goal Point Selector] Invalid strategy: " << strategy);
+  }
+
+  nh.param("goal_selector_range", params_.random_sample_range,
+           params_.random_sample_range);
+}
+
 void GoalPointSelector::setTsdfMap(
     const std::shared_ptr<voxblox::TsdfMap>& tsdf_map) {
   tsdf_map_ = tsdf_map;

@@ -29,6 +29,7 @@ LocalPlanningBenchmark::LocalPlanningBenchmark(
       loco_planner_(nh_, nh_private_),
       esdf_server_(nh_, nh_private_) {
   constraints_.setParametersFromRos(nh_private_);
+  goal_selector_.setParametersFromRos(nh_private_);
 
   nh_private_.param("visualize", visualize_, visualize_);
   nh_private_.param("frame_id", frame_id_, frame_id_);
@@ -148,12 +149,15 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
     }
     plan_elapsed_time += timer.stop();
 
-    if (trajectory.empty() &&
+    /* if (trajectory.empty() &&
         (current_goal.position_W - goal.position_W).norm() <
             kMinDistanceToGoal) {
+      ROS_INFO(
+          "[Local Benchmark] Bailing because current goal already set to goal, "
+          "and we're already there.");
       break;
-    }
-    if (!success) {
+    } */
+    if (!success || trajectory.empty()) {
       if (!goal_selector_.selectNextGoal(goal, current_goal, viewpoint,
                                          &current_goal)) {
         // In case we're not tracking a new goal...

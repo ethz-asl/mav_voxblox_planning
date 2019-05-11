@@ -6,13 +6,14 @@
 #include <voxblox/core/common.h>
 #include <voxblox/core/tsdf_map.h>
 #include <voxblox_planning_common/gain_evaluator.h>
+#include <ros/node_handle.h>
 
 namespace mav_planning {
 
 struct GoalPointSelectorParameters {
   enum Strategy { kNoIntermediateGoal = 0, kRandom, kLocalExploration };
 
-  Strategy strategy = kRandom;
+  Strategy strategy = kNoIntermediateGoal;
 
   // For all random-based selectors.
   double random_sample_range = 10.0;
@@ -34,6 +35,7 @@ class GoalPointSelector {
   // Setup
   void setParameters(const GoalPointSelectorParameters& params);
   GoalPointSelectorParameters getParameters() const;
+  void setParametersFromRos(const ros::NodeHandle& nh);
 
   void setTsdfMap(const std::shared_ptr<voxblox::TsdfMap>& tsdf_map);
 

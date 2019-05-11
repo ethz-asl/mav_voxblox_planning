@@ -286,9 +286,11 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
   if (use_shotgun_) {
     goal_found = findIntermediateGoalShotgun(start_point, goal_point,
                                              &goal_point, &shotgun_path);
-    ROS_INFO("[Shotgun] Found (%d) intermediate goal at %f %f %f", goal_found,
-             goal_point.position_W.x(), goal_point.position_W.y(),
-             goal_point.position_W.z());
+    if (verbose_) {
+      ROS_INFO("[Shotgun] Found (%d) intermediate goal at %f %f %f", goal_found,
+               goal_point.position_W.x(), goal_point.position_W.y(),
+               goal_point.position_W.z());
+    }
     if ((goal_point.position_W - start_point.position_W).norm() <
         kGoalReachedRange) {
       if (verbose_) {
@@ -310,14 +312,16 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
   }
 
   // Visualization.
-  mav_msgs::EigenTrajectoryPointVector vis_vector;
-  vis_vector.push_back(goal_point);
   visualization_msgs::MarkerArray marker_array;
-  marker_array.markers.push_back(createMarkerForWaypoints(
-      vis_vector, "odom", mav_visualization::Color::Purple(), "goal", 0.2));
-  marker_array.markers.push_back(createMarkerForPath(
-      shotgun_path, "odom", mav_visualization::Color::Pink(), "shotgun_path",
-      0.1));
+  if (visualize_) {
+    mav_msgs::EigenTrajectoryPointVector vis_vector;
+    vis_vector.push_back(goal_point);
+    marker_array.markers.push_back(createMarkerForWaypoints(
+        vis_vector, "odom", mav_visualization::Color::Purple(), "goal", 0.2));
+    marker_array.markers.push_back(createMarkerForPath(
+        shotgun_path, "odom", mav_visualization::Color::Pink(), "shotgun_path",
+        0.1));
+  }
 
   bool success = false;
   mav_msgs::EigenTrajectoryPointVector shortened_path;
@@ -327,17 +331,21 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
     // Make sure we have the full state at the start and end.
     shortened_path.front() = start_point;
     shortened_path.back() = goal_point;
-    marker_array.markers.push_back(createMarkerForPath(
-        shortened_path, "odom", mav_visualization::Color::Purple(),
-        "shortened_path", 0.05));
+    if (visualize_) {
+      marker_array.markers.push_back(createMarkerForPath(
+          shortened_path, "odom", mav_visualization::Color::Purple(),
+          "shortened_path", 0.05));
+    }
   }
-  planning_marker_pub_.publish(marker_array);
+  if (visualize_) {
+    planning_marker_pub_.publish(marker_array);
+  }
 
   success = getTrajectoryBetweenWaypoints(start_point, goal_point,
                                           shortened_path, trajectory);
 
   // TODO(DEBUG)
-  //mav_trajectory_generation::timing::Timing::Print(std::cout);
+  // mav_trajectory_generation::timing::Timing::Print(std::cout);
 
   return success;
 }
@@ -355,7 +363,7 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoalFromInitialTrajectory(
   }
   success = getTrajectoryTowardGoal(start, goal, trajectory);
   const bool attempt_to_use_initial = true;
-  if (!success && attempt_to_use_initial) {
+  if ((!success || trajectory->empty()) && attempt_to_use_initial) {
     // Ok that failed, let's just see if we can get the existing trajectory
     // going.
     mav_msgs::EigenTrajectoryPoint back;
@@ -413,7 +421,6 @@ bool VoxbloxLocoPlanner::findIntermediateGoalShotgun(
   if (success && path_out != nullptr) {
     path_out->clear();
     path_out->reserve(path.size());
-    ROS_INFO("[Shotgun] path length: %zu", path.size());
     for (const Eigen::Vector3d& position : path) {
       mav_msgs::EigenTrajectoryPoint point;
       point.position_W = position;

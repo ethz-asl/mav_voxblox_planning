@@ -1,5 +1,10 @@
 <launch>
-  <arg name="results_path" default="/home/helen/data/jfr_2018/local_benchmark/local_03_05_2019_shotgun_all_random.csv" />
+  <arg name="results_path" default="/home/helen/data/jfr_2018/local_benchmark/local_06_05_2019_shotgun_all_local2.csv" />
+  <arg name="num_trials" default="100" />
+  <arg name="strategy" default="none" />
+  <arg name="exit_at_end" default="false" />
+  <arg name="shotgun" default="true" />
+  <arg name="shotgun_path" default="true" />
 
   <arg name="frame_id" default="odom" />
 
@@ -7,6 +12,7 @@
     <param name="results_path" value="$(arg results_path)" />
 
     <param name="visualize" value="false" />
+    <param name="verbose" value="false" />
 
     <param name="robot_radius" value="0.5" />
     <param name="tsdf_voxel_size" value="0.20" />
@@ -20,10 +26,18 @@
     <param name="frame_id" value="$(arg frame_id)" />
     <param name="world_frame" value="$(arg frame_id)" />
     <param name="publish_pointclouds" value="true" />
-    <param name="use_shotgun_path" value="true" />
-    <param name="use_shotgun" value="true" />
 
-    <param name="verbose" value="true" />
+    <!-- Benchmark params. -->
+    <param name="num_trials" value="$(arg num_trials)" />
+    <param name="exit_at_end" value="$(arg exit_at_end)" />
+
+    <!-- Shotgun params. -->
+    <param name="use_shotgun_path" value="$(arg shotgun_path)" />
+    <param name="use_shotgun" value="$(arg shotgun)" />
+
+    <!-- Goal selector params. -->
+    <param name="goal_selector_strategy" value="$(arg strategy)" />
+    <param name="goal_selector_range" value="5.0" />
 
   </node>
 
