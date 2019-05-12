@@ -8,6 +8,15 @@
 
 namespace mav_planning {
 
+void ShotgunPlanner::setParametersFromRos(const ros::NodeHandle& nh) {
+  nh.param("robot_radius_inflation", params_.robot_radius_inflation,
+           params_.robot_radius_inflation);
+  nh.param("probability_follow_goal", params_.probability_follow_goal,
+           params_.probability_follow_goal);
+  nh.param("probability_follow_gradient", params_.probability_follow_gradient,
+           params_.probability_follow_gradient);
+}
+
 void ShotgunPlanner::setEsdfMap(
     const std::shared_ptr<voxblox::EsdfMap>& esdf_map) {
   CHECK(esdf_map);

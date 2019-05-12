@@ -3,11 +3,13 @@
 
 #include <mav_planning_common/physical_constraints.h>
 #include <voxblox/core/esdf_map.h>
+#include <ros/node_handle.h>
 
 namespace mav_planning {
 
 struct ShotgunParameters {
   // How large a step, in meters, to make.
+  // TODO(helenol): NOT IMPLEMENTED YET!
   float max_step_size = 1.0;
   // Whether to take 1 voxel (false) or multi-voxel (true) steps.
   // TODO(helenol): NOT IMPLEMENTED YET!
@@ -36,6 +38,7 @@ class ShotgunPlanner {
 
   const ShotgunParameters& getParams() const { return params_; }
   void setParams(const ShotgunParameters& params) { params_ = params; }
+  void setParametersFromRos(const ros::NodeHandle& nh);
 
   const PhysicalConstraints& getPhysicalConstraints() const {
     return constraints_;

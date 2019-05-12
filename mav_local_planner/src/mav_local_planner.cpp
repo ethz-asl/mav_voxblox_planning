@@ -240,7 +240,7 @@ void MavLocalPlanner::planningStep() {
           current_waypoint_ = free_waypoints.size() - waypoints_added;
           ROS_INFO(
               "[Mav Local Planner] Used smoothing through %zu waypoints! Total "
-              "waypoint size: %zu, current point: %d, added? %d",
+              "waypoint size: %zu, current point: %zd, added? %d",
               free_waypoints.size(), waypoints_.size(), current_waypoint_,
               waypoints_added);
         }
@@ -261,7 +261,7 @@ void MavLocalPlanner::planningStep() {
 }
 
 void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
-  if (current_waypoint_ >= waypoints_.size()) {
+  if (current_waypoint_ >= static_cast<int64_t>(waypoints_.size())) {
     return;
   }
   mav_msgs::EigenTrajectoryPoint waypoint = waypoints_[current_waypoint_];

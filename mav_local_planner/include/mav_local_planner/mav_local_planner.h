@@ -156,7 +156,7 @@ class MavLocalPlanner {
 
   // State -- waypoints.
   mav_msgs::EigenTrajectoryPointVector waypoints_;
-  int current_waypoint_;
+  int64_t current_waypoint_;
 
   // State -- current tracked path.
   mav_msgs::EigenTrajectoryPointVector path_queue_;
