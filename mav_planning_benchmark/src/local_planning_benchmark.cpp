@@ -149,14 +149,6 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
     }
     plan_elapsed_time += timer.stop();
 
-    /* if (trajectory.empty() &&
-        (current_goal.position_W - goal.position_W).norm() <
-            kMinDistanceToGoal) {
-      ROS_INFO(
-          "[Local Benchmark] Bailing because current goal already set to goal, "
-          "and we're already there.");
-      break;
-    } */
     if (!success || trajectory.empty()) {
       if (!goal_selector_.selectNextGoal(goal, current_goal, viewpoint,
                                          &current_goal)) {
@@ -168,9 +160,11 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
 
     // Sample the trajectory, set the yaw, and append to the executed path.
     mav_msgs::EigenTrajectoryPointVector path;
-    mav_trajectory_generation::sampleWholeTrajectory(
-        trajectory, constraints_.sampling_dt, &path);
-    setYawFromVelocity(start.getYaw(), &path);
+    if (!trajectory.empty()) {
+      mav_trajectory_generation::sampleWholeTrajectory(
+          trajectory, constraints_.sampling_dt, &path);
+      setYawFromVelocity(start.getYaw(), &path);
+    }
 
     // Append the next stretch of the trajectory. This will also take care of
     // the end.
@@ -266,7 +260,11 @@ void LocalPlanningBenchmark::generateCustomWorld(const Eigen::Vector3d& size,
   density_ = density;  // Cache this for result output.
   world_.clear();
   world_.addPlaneBoundaries(0.0, size.x(), 0.0, size.y());
-  world_.addGroundLevel(0.0);
+
+  world_.addObject(std::unique_ptr<voxblox::Object>(new voxblox::PlaneObject(
+      voxblox::Point(0.0, 0.0, 0.0), voxblox::Point(0.0, 0.0, 1.0),
+      voxblox::Color::Green())));
+
   // Sets the display bounds.
   world_.setBounds(
       Eigen::Vector3f(-1.0, -1.0, -1.0),
@@ -296,7 +294,7 @@ void LocalPlanningBenchmark::generateCustomWorld(const Eigen::Vector3d& size,
         height / 2.0);
 
     world_.addObject(std::unique_ptr<voxblox::Object>(new voxblox::Cylinder(
-        position.cast<float>(), radius, height, voxblox::Color::Gray())));
+        position.cast<float>(), radius, height, voxblox::Color(165, 42, 42))));
   }
 
   esdf_server_.setSliceLevel(1.5);

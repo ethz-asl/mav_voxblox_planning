@@ -30,8 +30,8 @@ int main(int argc, char** argv) {
                       1;
 
   int trials_per_density = num_trials / num_densities;
-  std::cout << "Trials per density: " << trials_per_density
-            << " num densities: " << num_densities;
+  ROS_INFO_STREAM("[Local Planning Benchmark]: Trials per density: "
+                  << trials_per_density << " num densities: " << num_densities);
   int trial_number = 0;
 
   for (int i = 0; i < num_densities; ++i) {
@@ -45,6 +45,7 @@ int main(int argc, char** argv) {
       }
       srand(trial_number);
       node.generateWorld(density);
+      srand(trial_number);
       node.runBenchmark(trial_number);
       trial_number++;
     }
