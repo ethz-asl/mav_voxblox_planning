@@ -32,6 +32,8 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
   constraints_.setParametersFromRos(nh_private_);
   esdf_server_.setTraversabilityRadius(constraints_.robot_radius);
   loco_planner_.setEsdfMap(esdf_server_.getEsdfMapPtr());
+  goal_selector_.setParametersFromRos(nh_private_);
+  goal_selector_.setTsdfMap(esdf_server_.getTsdfMapPtr());
 
   nh_private_.param("verbose", verbose_, verbose_);
   nh_private_.param("global_frame_id", global_frame_id_, global_frame_id_);
@@ -328,11 +330,9 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
         ROS_INFO(
             "[Mav Local Planner][Plan Step] ABORTING! No local solution "
             "found.");
+        // TODO(helenol): which order to abort in?
         abort();
-        num_failures_++;
-        if (num_failures_ > max_failures_) {
-          current_waypoint_ = -1;
-        }
+        dealWithFailure();
       }
       return;
     } else {
@@ -635,6 +635,50 @@ bool MavLocalPlanner::isPathFeasible(
     }
   }
   return true;
+}
+
+bool MavLocalPlanner::dealWithFailure() {
+  if (current_waypoint_ < 0) {
+    return false;
+  }
+
+  constexpr double kCloseEnough = 0.05;
+  mav_msgs::EigenTrajectoryPoint waypoint = waypoints_[current_waypoint_];
+  mav_msgs::EigenTrajectoryPoint goal = waypoint;
+  if (temporary_goal_ &&
+      static_cast<int64_t>(waypoints_.size()) > current_waypoint_ + 1) {
+    goal = waypoints_[current_waypoint_ + 1];
+  }
+  mav_msgs::EigenTrajectoryPoint current_point;
+  current_point.position_W = odometry_.position_W;
+  current_point.orientation_W_B = odometry_.orientation_W_B;
+
+  mav_msgs::EigenTrajectoryPoint current_goal;
+  if (!goal_selector_.selectNextGoal(goal, waypoint, current_point,
+                                     &current_goal)) {
+    num_failures_++;
+    if (num_failures_ > max_failures_) {
+      current_waypoint_ = -1;
+    }
+    return false;
+  } else {
+    if ((current_goal.position_W - waypoint.position_W).norm() < kCloseEnough) {
+      // Goal is unchanged. :(
+      temporary_goal_ = false;
+      return false;
+    } else if ((current_goal.position_W - goal.position_W).norm() <
+               kCloseEnough) {
+      // This is just the next waypoint that we're trying to go to.
+      current_waypoint_++;
+      temporary_goal_ = false;
+      return true;
+    } else {
+      // Then this is something different!
+      temporary_goal_ = true;
+      waypoints_.insert(waypoints_.begin() + current_waypoint_, current_goal);
+      return true;
+    }
+  }
 }
 
 }  // namespace mav_planning

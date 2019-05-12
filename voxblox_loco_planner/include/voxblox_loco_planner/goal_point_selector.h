@@ -16,7 +16,7 @@ struct GoalPointSelectorParameters {
   Strategy strategy = kNoIntermediateGoal;
 
   // For all random-based selectors.
-  double random_sample_range = 10.0;
+  double random_sample_range = 5.0;
 
   // For random sampling in general.
   int max_random_tries = 100;

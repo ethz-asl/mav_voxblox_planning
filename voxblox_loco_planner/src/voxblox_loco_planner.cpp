@@ -21,6 +21,7 @@ VoxbloxLocoPlanner::VoxbloxLocoPlanner(const ros::NodeHandle& nh,
       use_shotgun_path_(true),
       loco_(kD) {
   constraints_.setParametersFromRos(nh_private_);
+  shotgun_.setParametersFromRos(nh_private_);
 
   nh_private_.param("verbose", verbose_, verbose_);
   nh_private_.param("visualize", visualize_, visualize_);
