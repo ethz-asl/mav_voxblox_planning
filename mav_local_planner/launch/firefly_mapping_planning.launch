@@ -62,7 +62,7 @@
       <param name="avoid_collisions" value="true" />
 
       <!-- What to do in case of failure. -->
-      <param name="goal_selector_strategy" value="local" />
+      <param name="goal_selector_strategy" value="none" />
     </node>
   </group>
 </launch>
