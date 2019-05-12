@@ -10,8 +10,7 @@
 #include <voxblox_skeleton/skeleton_generator.h>
 #include <voxblox_skeleton/skeleton_planner.h>
 #include <voxblox_skeleton/sparse_graph_planner.h>
-
-#include "voxblox_skeleton_planner/path_shortening.h"
+#include <voxblox_planning_common/path_shortening.h>
 
 namespace mav_planning {
 

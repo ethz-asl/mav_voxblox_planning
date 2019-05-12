@@ -29,6 +29,7 @@ LocalPlanningBenchmark::LocalPlanningBenchmark(
       loco_planner_(nh_, nh_private_),
       esdf_server_(nh_, nh_private_) {
   constraints_.setParametersFromRos(nh_private_);
+  goal_selector_.setParametersFromRos(nh_private_);
 
   nh_private_.param("visualize", visualize_, visualize_);
   nh_private_.param("frame_id", frame_id_, frame_id_);
@@ -48,6 +49,7 @@ LocalPlanningBenchmark::LocalPlanningBenchmark(
   esdf_server_.setClearSphere(true);
 
   loco_planner_.setEsdfMap(esdf_server_.getEsdfMapPtr());
+  goal_selector_.setTsdfMap(esdf_server_.getTsdfMapPtr());
 }
 
 void LocalPlanningBenchmark::generateWorld(double density) {
@@ -60,7 +62,7 @@ void LocalPlanningBenchmark::generateWorld(double density) {
 
 void LocalPlanningBenchmark::runBenchmark(int trial_number) {
   constexpr double kPlanningHeight = 1.5;
-  constexpr double kMinDistanceToGoal = 0.1;
+  constexpr double kMinDistanceToGoal = 0.2;
 
   srand(trial_number);
   esdf_server_.clear();
@@ -139,22 +141,30 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
     bool success = false;
 
     if (i == 0) {
-      success = loco_planner_.getTrajectoryTowardGoal(start, goal, &trajectory);
+      success = loco_planner_.getTrajectoryTowardGoal(start, current_goal,
+                                                      &trajectory);
     } else {
       success = loco_planner_.getTrajectoryTowardGoalFromInitialTrajectory(
-          start_time, last_trajectory, goal, &trajectory);
+          start_time, last_trajectory, current_goal, &trajectory);
     }
     plan_elapsed_time += timer.stop();
 
-    if (!success) {
-      break;
+    if (!success || trajectory.empty()) {
+      if (!goal_selector_.selectNextGoal(goal, current_goal, viewpoint,
+                                         &current_goal)) {
+        // In case we're not tracking a new goal...
+        break;
+      }
+      continue;
     }
 
     // Sample the trajectory, set the yaw, and append to the executed path.
     mav_msgs::EigenTrajectoryPointVector path;
-    mav_trajectory_generation::sampleWholeTrajectory(
-        trajectory, constraints_.sampling_dt, &path);
-    setYawFromVelocity(start.getYaw(), &path);
+    if (!trajectory.empty()) {
+      mav_trajectory_generation::sampleWholeTrajectory(
+          trajectory, constraints_.sampling_dt, &path);
+      setYawFromVelocity(start.getYaw(), &path);
+    }
 
     // Append the next stretch of the trajectory. This will also take care of
     // the end.
@@ -250,7 +260,11 @@ void LocalPlanningBenchmark::generateCustomWorld(const Eigen::Vector3d& size,
   density_ = density;  // Cache this for result output.
   world_.clear();
   world_.addPlaneBoundaries(0.0, size.x(), 0.0, size.y());
-  world_.addGroundLevel(0.0);
+
+  world_.addObject(std::unique_ptr<voxblox::Object>(new voxblox::PlaneObject(
+      voxblox::Point(0.0, 0.0, 0.0), voxblox::Point(0.0, 0.0, 1.0),
+      voxblox::Color::Green())));
+
   // Sets the display bounds.
   world_.setBounds(
       Eigen::Vector3f(-1.0, -1.0, -1.0),
@@ -280,7 +294,7 @@ void LocalPlanningBenchmark::generateCustomWorld(const Eigen::Vector3d& size,
         height / 2.0);
 
     world_.addObject(std::unique_ptr<voxblox::Object>(new voxblox::Cylinder(
-        position.cast<float>(), radius, height, voxblox::Color::Gray())));
+        position.cast<float>(), radius, height, voxblox::Color(165, 42, 42))));
   }
 
   esdf_server_.setSliceLevel(1.5);

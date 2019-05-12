@@ -12,6 +12,7 @@
 #include <mav_planning_msgs/PlannerService.h>
 #include <mav_trajectory_generation/timing.h>
 #include <mav_visualization/helpers.h>
+#include <voxblox_planning_common/path_shortening.h>
 #include <voxblox_ros/esdf_server.h>
 #include <voxblox_skeleton/ros/skeleton_vis.h>
 #include <voxblox_skeleton/skeleton.h>
@@ -20,7 +21,6 @@
 #include <voxblox_skeleton/sparse_graph_planner.h>
 
 #include "voxblox_skeleton_planner/skeleton_graph_planner.h"
-#include "voxblox_skeleton_planner/path_shortening.h"
 
 namespace mav_planning {
 

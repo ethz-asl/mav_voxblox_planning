@@ -22,6 +22,7 @@
 #include <mav_planning_msgs/PolynomialTrajectory4D.h>
 #include <mav_visualization/helpers.h>
 #include <minkindr_conversions/kindr_msg.h>
+#include <voxblox_loco_planner/goal_point_selector.h>
 #include <voxblox_loco_planner/voxblox_loco_planner.h>
 #include <voxblox_ros/esdf_server.h>
 
@@ -68,6 +69,10 @@ class MavLocalPlanner {
   // Returns if the next waypoint is a valid waypoint.
   bool nextWaypoint();
   void replacePath(const mav_msgs::EigenTrajectoryPointVector& path);
+
+  // What to do if we fail to find a suitable path, depending on the
+  // intermediate goal selection settings.
+  bool dealWithFailure();
 
   // Functions to help out replanning.
   // Track a single waypoint, planning only in a short known horizon.
@@ -148,7 +153,7 @@ class MavLocalPlanner {
   bool avoid_collisions_;
   bool autostart_;  // Whether to auto-start publishing any new path or wait
   // for start service call.
-  bool plan_to_start_; // Whether to start planning at the current odometry.
+  bool plan_to_start_;  // Whether to start planning at the current odometry.
   std::string smoother_name_;
 
   // State -- robot state.
@@ -156,7 +161,7 @@ class MavLocalPlanner {
 
   // State -- waypoints.
   mav_msgs::EigenTrajectoryPointVector waypoints_;
-  int current_waypoint_;
+  int64_t current_waypoint_;
 
   // State -- current tracked path.
   mav_msgs::EigenTrajectoryPointVector path_queue_;
@@ -183,6 +188,10 @@ class MavLocalPlanner {
   VelocityRampSmoother ramp_smoother_;
   PolynomialSmoother poly_smoother_;
   LocoSmoother loco_smoother_;
+
+  // Intermediate goal selection, optionally in case of path-planning failures:
+  GoalPointSelector goal_selector_;
+  bool temporary_goal_;
 };
 
 }  // namespace mav_planning

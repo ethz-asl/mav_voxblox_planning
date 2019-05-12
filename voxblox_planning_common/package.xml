@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>voxblox_skeleton_planner</name>
+  <name>voxblox_planning_common</name>
   <version>0.0.0</version>
   <description>
-    Global planning with voxblox skeletons.
+    Utilities for planning with voxblox maps.
   </description>
 
   <author email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</author>
@@ -16,14 +16,11 @@
   <buildtool_depend>catkin_simple</buildtool_depend>
 
   <depend>mav_msgs</depend>
-  <depend>mav_path_smoothing</depend>
   <depend>mav_planning_common</depend>
-  <depend>mav_trajectory_generation_ros</depend>
+  <depend>mav_trajectory_generation</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>tf</depend>
   <depend>visualization_msgs</depend>
   <depend>voxblox_ros</depend>
-  <depend>voxblox_skeleton</depend>
-  <depend>voxblox_planning_common</depend>
 </package>
