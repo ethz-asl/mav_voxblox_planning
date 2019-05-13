@@ -346,8 +346,9 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
                                           shortened_path, trajectory);
 
   // TODO(DEBUG)
-  // mav_trajectory_generation::timing::Timing::Print(std::cout);
-
+  if (verbose_) {
+    mav_trajectory_generation::timing::Timing::Print(std::cout);
+  }
   return success;
 }
 
