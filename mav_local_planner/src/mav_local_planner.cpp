@@ -174,7 +174,15 @@ void MavLocalPlanner::planningTimerCallback(const ros::TimerEvent& event) {
 void MavLocalPlanner::planningStep() {
   if (current_waypoint_ < 0 ||
       static_cast<int>(waypoints_.size()) <= current_waypoint_) {
-    return;
+    // This means that we probably planned to the end of the waypoints!
+
+    // If we're done with sending waypoints, alllll good. Just quit.
+    if (path_index_ >= path_queue_.size() || path_queue_.empty()) {
+      return;
+    }
+
+    // If we're not though, we should probably double check the trajectory!
+    avoidCollisionsTowardWaypoint();
   }
   mav_trajectory_generation::timing::MiniTimer timer;
   constexpr double kCloseToOdometry = 0.1;
@@ -239,7 +247,8 @@ void MavLocalPlanner::planningStep() {
         success = isPathCollisionFree(path);
         if (success) {
           replacePath(path);
-          current_waypoint_ = free_waypoints.size() - waypoints_added;
+          current_waypoint_ = std::min(free_waypoints.size() - waypoints_added,
+                                       waypoints_.size() - 1);
           ROS_INFO(
               "[Mav Local Planner] Used smoothing through %zu waypoints! Total "
               "waypoint size: %zu, current point: %zd, added? %d",
