@@ -45,8 +45,15 @@ class VoxbloxRrtPlanner : public ParentRrtPlanner {
  protected:
   void computeMapBounds(Eigen::Vector3d* lower_bound,
                         Eigen::Vector3d* upper_bound) const;
+  void setupRrtPlanner();
+  bool planRrt(mav_msgs::EigenTrajectoryPoint& start_pose,
+      mav_msgs::EigenTrajectoryPoint& goal_pose,
+      mav_msgs::EigenTrajectoryPoint::Vector* waypoints);
 
  private:
+  // Planners!
+  VoxbloxOmplRrt rrt_;
+
   // Map!
   voxblox::EsdfServer voxblox_server_;
   // Shortcuts to the maps:

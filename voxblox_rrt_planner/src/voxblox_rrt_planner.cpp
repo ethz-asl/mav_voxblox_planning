@@ -14,7 +14,8 @@ namespace mav_planning {
 VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
                                      const ros::NodeHandle& nh_private)
     : ParentRrtPlanner(nh, nh_private),
-      voxblox_server_(nh_, nh_private_) {
+      voxblox_server_(nh_, nh_private_),
+      rrt_(nh_, nh_private_) {
 
   getParametersFromRos();
   subscribeToTopics();
@@ -129,6 +130,23 @@ void VoxbloxRrtPlanner::computeMapBounds(Eigen::Vector3d* lower_bound,
     voxblox::utils::computeMapBoundsFromLayer(*tsdf_map_->getTsdfLayerPtr(),
                                               lower_bound, upper_bound);
   }
+}
+
+void VoxbloxRrtPlanner::setupRrtPlanner() {
+  // Inflate the bounds a bit.
+  constexpr double kBoundInflationMeters = 0.5;
+  // Don't in flate in z. ;)
+  rrt_.setBounds(lower_bound_ - Eigen::Vector3d(kBoundInflationMeters,
+                                                kBoundInflationMeters, 0.0),
+                 upper_bound_ + Eigen::Vector3d(kBoundInflationMeters,
+                                                kBoundInflationMeters, 0.0));
+  rrt_.setupProblem();
+}
+
+bool VoxbloxRrtPlanner::planRrt(mav_msgs::EigenTrajectoryPoint& start_pose,
+    mav_msgs::EigenTrajectoryPoint& goal_pose,
+    mav_msgs::EigenTrajectoryPoint::Vector* waypoints) {
+  return rrt_.getPathBetweenWaypoints(start_pose, goal_pose, waypoints);
 }
 
 }  // namespace mav_planning

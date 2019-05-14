@@ -19,8 +19,7 @@ ParentRrtPlanner::ParentRrtPlanner(const ros::NodeHandle& nh,
       do_smoothing_(true),
       last_trajectory_valid_(false),
       lower_bound_(Eigen::Vector3d::Zero()),
-      upper_bound_(Eigen::Vector3d::Zero()),
-      rrt_(nh_, nh_private_) { }
+      upper_bound_(Eigen::Vector3d::Zero()) { }
 
 void ParentRrtPlanner::getParametersFromRos() {
   constraints_.setParametersFromRos(nh_private_);
@@ -97,15 +96,7 @@ bool ParentRrtPlanner::plannerServiceCallback(
   ROS_INFO_STREAM("Map bounds: " << lower_bound_.transpose() << " to "
                                  << upper_bound_.transpose() << " size: "
                                  << (upper_bound_ - lower_bound_).transpose());
-
-  // Inflate the bounds a bit.
-  constexpr double kBoundInflationMeters = 0.5;
-  // Don't in flate in z. ;)
-  rrt_.setBounds(lower_bound_ - Eigen::Vector3d(kBoundInflationMeters,
-                                                kBoundInflationMeters, 0.0),
-                 upper_bound_ + Eigen::Vector3d(kBoundInflationMeters,
-                                                kBoundInflationMeters, 0.0));
-  rrt_.setupProblem();
+  setupRrtPlanner();
 
   ROS_INFO("Planning path.");
 
@@ -122,7 +113,7 @@ bool ParentRrtPlanner::plannerServiceCallback(
   mav_trajectory_generation::timing::Timer rrtstar_timer("plan/rrt_star");
 
   bool success =
-      rrt_.getPathBetweenWaypoints(start_pose, goal_pose, &waypoints);
+      planRrt(start_pose, goal_pose, &waypoints);
   rrtstar_timer.Stop();
   double path_length = computePathLength(waypoints);
   int num_vertices = waypoints.size();

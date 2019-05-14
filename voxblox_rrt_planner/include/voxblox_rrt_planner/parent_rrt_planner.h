@@ -69,6 +69,11 @@ class ParentRrtPlanner {
   virtual void computeMapBounds(Eigen::Vector3d* lower_bound,
                                 Eigen::Vector3d* upper_bound) const = 0;
 
+  virtual void setupRrtPlanner() = 0;
+  virtual bool planRrt(mav_msgs::EigenTrajectoryPoint& start_pose,
+      mav_msgs::EigenTrajectoryPoint& goal_pose,
+      mav_msgs::EigenTrajectoryPoint::Vector* waypoints) = 0;
+
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
@@ -102,9 +107,6 @@ class ParentRrtPlanner {
   mav_trajectory_generation::Trajectory last_trajectory_;
   bool last_trajectory_valid_;
   mav_msgs::EigenTrajectoryPointVector last_waypoints_;
-
-  // Planners!
-  VoxbloxOmplRrt rrt_;
 
   // Smoothing!
   PolynomialSmoother smoother_;
