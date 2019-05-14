@@ -172,6 +172,9 @@ void MavLocalPlanner::planningTimerCallback(const ros::TimerEvent& event) {
 }
 
 void MavLocalPlanner::planningStep() {
+  ROS_INFO(
+      "[Mav Local Planner][Plan Step] Waypoint index: %zd Total waypoints: %zu",
+      current_waypoint_, waypoints_.size());
   if (current_waypoint_ < 0 ||
       static_cast<int>(waypoints_.size()) <= current_waypoint_) {
     // This means that we probably planned to the end of the waypoints!
@@ -182,8 +185,8 @@ void MavLocalPlanner::planningStep() {
     }
 
     // If we're not though, we should probably double check the trajectory!
-    avoidCollisionsTowardWaypoint();
   }
+
   mav_trajectory_generation::timing::MiniTimer timer;
   constexpr double kCloseToOdometry = 0.1;
 
@@ -308,6 +311,9 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
                 std::back_inserter(path_chunk));
       if (path_chunk.size() == 0) {
         path_chunk.push_back(path_queue_.back());
+        if (!nextWaypoint()) {
+          finishWaypoints();
+        }
       }
     }
 
@@ -405,10 +411,7 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
         replacePath(path);
       }
     } else {
-      num_failures_++;
-      if (num_failures_ > max_failures_) {
-        current_waypoint_ = -1;
-      }
+      dealWithFailure();
     }
   }
 }
@@ -441,13 +444,17 @@ bool MavLocalPlanner::planPathThroughWaypoints(
 }
 
 bool MavLocalPlanner::nextWaypoint() {
-  if (waypoints_.size() <= static_cast<size_t>(current_waypoint_)) {
-    current_waypoint_ = -1;
+  if (current_waypoint_ >= static_cast<int64_t>(waypoints_.size()) - 1) {
+    current_waypoint_ = waypoints_.size() - 1;
     return false;
   } else {
     current_waypoint_++;
     return true;
   }
+}
+
+void MavLocalPlanner::finishWaypoints() {
+  current_waypoint_ = waypoints_.size();
 }
 
 void MavLocalPlanner::replacePath(
