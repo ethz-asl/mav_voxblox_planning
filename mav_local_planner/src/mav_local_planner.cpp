@@ -313,6 +313,10 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
           std::min(path_index_ + static_cast<size_t>((replan_lookahead_sec_) /
                                                      constraints_.sampling_dt),
                    path_queue_.size());
+      ROS_INFO(
+          "[Mav Local Planner][Plan Step] Current path index: %zu Replan start "
+          "index: %zu",
+          path_index_, replan_start_index);
       // Cut out the remaining snippet of the trajectory so we can do
       // something with it.
       std::copy(path_queue_.begin() + replan_start_index, path_queue_.end(),
