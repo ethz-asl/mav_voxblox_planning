@@ -14,6 +14,7 @@ cs_add_library(${PROJECT_NAME}
   src/voxblox_ompl_rrt.cpp
   src/voxblox_rrt_planner.cpp
   src/parent_rrt_planner.cpp
+  src/blox_ompl_rrt.cpp
 )
 target_link_libraries(${PROJECT_NAME} ${OMPL_LIBRARIES})
 

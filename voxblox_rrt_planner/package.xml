@@ -25,4 +25,5 @@
   <depend>tf</depend>
   <depend>visualization_msgs</depend>
   <depend>voxblox_ros</depend>
+  <depend>cblox</depend>
 </package>

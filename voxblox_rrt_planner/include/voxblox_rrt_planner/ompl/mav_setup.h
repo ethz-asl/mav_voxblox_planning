@@ -10,6 +10,8 @@
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
 #include <ompl/geometric/planners/rrt/RRTstar.h>
 
+#include <cblox/core/submap_collection.h>
+
 #include "voxblox_rrt_planner/ompl/ompl_types.h"
 #include "voxblox_rrt_planner/ompl/ompl_voxblox.h"
 
@@ -87,6 +89,21 @@ class MavSetup : public geometric::SimpleSetup {
     si_->setMotionValidator(
         base::MotionValidatorPtr(new VoxbloxMotionValidator<voxblox::EsdfVoxel>(
             getSpaceInformation(), validity_checker)));
+  }
+
+  void setCbloxCollisionChecking(double robot_radius,
+      voxblox::FloatingPoint voxel_size,
+      std::function<double(const Eigen::Vector3d& position)> function) {
+
+    // state validity checker
+    std::shared_ptr<CbloxValidityChecker> validity_checker(
+        new CbloxValidityChecker(getSpaceInformation(), robot_radius, function));
+    setStateValidityChecker(base::StateValidityCheckerPtr(validity_checker));
+
+    // motion validator
+    si_->setMotionValidator(
+        base::MotionValidatorPtr(new CbloxMotionValidator(
+            getSpaceInformation(), validity_checker, voxel_size)));
   }
 
   void constructPrmRoadmap(double num_seconds_to_construct) {

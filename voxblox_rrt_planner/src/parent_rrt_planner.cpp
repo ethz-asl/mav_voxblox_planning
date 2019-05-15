@@ -82,6 +82,7 @@ bool ParentRrtPlanner::plannerServiceCallback(
     mav_planning_msgs::PlannerServiceResponse& response) {
   mav_msgs::EigenTrajectoryPoint start_pose, goal_pose;
 
+  ROS_INFO("[RRT planner] planning request received");
   mav_msgs::eigenTrajectoryPointFromPoseMsg(request.start_pose, &start_pose);
   mav_msgs::eigenTrajectoryPointFromPoseMsg(request.goal_pose, &goal_pose);
 
