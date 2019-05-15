@@ -307,7 +307,7 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
   mav_trajectory_generation::Trajectory trajectory;
   bool success = false;
 
-  if (!path_queue_.empty() && path_index_ < path_queue_.size()) {
+  if (!path_queue_.empty()) {
     std::lock_guard<std::recursive_mutex> guard(path_mutex_);
 
     ROS_INFO(
