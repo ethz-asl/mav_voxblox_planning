@@ -237,6 +237,8 @@ void MavLocalPlanner::planningStep() {
       free_waypoints.push_back(waypoint);
     }
 
+    ROS_INFO("[Mav Local Planner] Of %zu waypoints, %zu are free.",
+             waypoints_.size(), free_waypoints.size());
     bool success = false;
     if (free_waypoints.size() <= static_cast<size_t>(waypoints_added) ||
         free_waypoints.size() == 2) {
@@ -245,8 +247,12 @@ void MavLocalPlanner::planningStep() {
     } else {
       // There is some hope! Maybe we can do path smoothing on these guys.
       mav_msgs::EigenTrajectoryPointVector path;
-      bool success = planPathThroughWaypoints(free_waypoints, &path);
+      success = planPathThroughWaypoints(free_waypoints, &path);
       if (success) {
+        ROS_INFO(
+            "[Mav Local Planner]  Successfully planned path through %zu free "
+            "waypoints.",
+            free_waypoints.size());
         success = isPathCollisionFree(path);
         if (success) {
           replacePath(path);
@@ -257,6 +263,8 @@ void MavLocalPlanner::planningStep() {
               "waypoint size: %zu, current point: %zd, added? %d",
               free_waypoints.size(), waypoints_.size(), current_waypoint_,
               waypoints_added);
+        } else {
+          ROS_WARN("[Mav Local Planner] But path was not collision free. :(");
         }
       }
     }
