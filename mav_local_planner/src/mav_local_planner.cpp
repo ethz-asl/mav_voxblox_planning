@@ -165,6 +165,8 @@ void MavLocalPlanner::waypointListCallback(
 }
 
 void MavLocalPlanner::planningTimerCallback(const ros::TimerEvent& event) {
+  ROS_WARN("[Mav Planning Timer] Difference between real and expected: %d",
+           (event.current_expected - event.current_real).toSec());
   // Wait on the condition variable from the publishing...
   if (should_replan_.wait_for(replan_dt_)) {
     planningStep();
