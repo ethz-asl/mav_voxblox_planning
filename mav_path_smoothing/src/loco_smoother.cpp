@@ -58,7 +58,7 @@ bool LocoSmoother::getTrajectoryBetweenWaypoints(
   constexpr int D = 3;
   loco_planner::Loco<N> loco(D);
   // This is because our initial solution is nearly collision-free.
-  loco.setWd(0.01);
+  loco.setWd(0.1);
 
   loco.setRobotRadius(constraints_.robot_radius);
   loco.setMapResolution(min_col_check_resolution_);
