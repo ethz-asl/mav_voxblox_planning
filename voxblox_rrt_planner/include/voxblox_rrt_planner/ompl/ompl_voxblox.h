@@ -172,10 +172,12 @@ class CbloxValidityChecker : public base::StateValidityChecker {
         : base::StateValidityChecker(space_info),
           robot_radius_(robot_radius) {
     get_map_distance_ = function;
+//    ROS_INFO("[CbloxValidityChecker] initializing");
   }
 
   virtual bool isValid(const base::State* state) const {
     Eigen::Vector3d robot_position = omplToEigen(state);
+//    ROS_INFO("[CbloxValidityChecker] checking state validity");
     if (!si_->satisfiesBounds(state)) {
       return false;
     }
@@ -189,6 +191,7 @@ class CbloxValidityChecker : public base::StateValidityChecker {
   // Returns whether there is a collision: true if yes, false if not.
   virtual bool checkCollisionWithRobot(
       const Eigen::Vector3d& robot_position) const {
+//    ROS_INFO("[CbloxValidityChecker] checking for collision");
     double distance = get_map_distance_(robot_position);
     return robot_radius_ >= distance;
   }
@@ -284,10 +287,12 @@ class CbloxMotionValidator : public base::MotionValidator {
         validity_checker_(validity_checker),
         voxel_size_(voxel_size) {
     CHECK(validity_checker);
+//    ROS_INFO("[CbloxMotionValidator] initializing");
   }
 
   bool checkMotion(const base::State* s1, const base::State* s2) const {
     std::pair<base::State*, double> unused;
+//    ROS_INFO("[CbloxMotionValidator] checking motion (wrapper)");
     return checkMotion(s1, s2, unused);
   }
 
@@ -297,6 +302,7 @@ class CbloxMotionValidator : public base::MotionValidator {
   // a valid state.
   bool checkMotion(const base::State* s1, const base::State* s2,
                    std::pair<base::State*, double>& last_valid) const {
+//    ROS_INFO("[CbloxMotionValidator] checking motion");
     Eigen::Vector3d start = omplToEigen(s1);
     Eigen::Vector3d goal = omplToEigen(s2);
 
@@ -317,6 +323,7 @@ class CbloxMotionValidator : public base::MotionValidator {
 
       // find last valid and copy to si_ (?!)
       if (collision) {
+//        ROS_INFO("[CbloxMotionValidator] collision detected");
         Eigen::Vector3d last_position =
             position - step_size_temp*ray_direction;
 
@@ -332,13 +339,37 @@ class CbloxMotionValidator : public base::MotionValidator {
 
         last_valid.second = static_cast<double>(
             (last_position - start).norm()/ray_length);
+//        ROS_INFO_STREAM("fraction: " << last_valid.second);
+//        ROS_INFO_STREAM((last_position - start).norm() << "/" << ray_length);
         return false;
       }
 
       // update position with dynamic step size
+      // TODO: almost always the case! smth smarter?
       if (remaining_distance < step_size) {
-        ROS_WARN_STREAM("rem dist: " << remaining_distance
-            << ", step size: " << step_size);
+//        ROS_WARN_STREAM("rem dist: " << remaining_distance
+//            << ", step size: " << step_size);
+        if (remaining_distance < 1.0e-2) {
+//          ROS_INFO_STREAM("counts as collision");
+          Eigen::Vector3d last_position =
+              position - step_size_temp*ray_direction;
+
+          if (last_valid.first != nullptr) {
+            ompl::base::ScopedState<ompl::mav::StateSpace> last_valid_state(
+                si_->getStateSpace());
+            last_valid_state->values[0] = last_position.x();
+            last_valid_state->values[1] = last_position.y();
+            last_valid_state->values[2] = last_position.z();
+
+            si_->copyState(last_valid.first, last_valid_state.get());
+          }
+
+          last_valid.second = static_cast<double>(
+              (last_position - start).norm()/ray_length);
+//        ROS_INFO_STREAM("fraction: " << last_valid.second);
+//        ROS_INFO_STREAM((last_position - start).norm() << "/" << ray_length);
+          return false;
+        }
         position = position + remaining_distance*ray_direction;
       } else {
         position = position + step_size*ray_direction;
@@ -348,6 +379,7 @@ class CbloxMotionValidator : public base::MotionValidator {
     // additionally check goal position
     collision = validity_checker_->checkCollisionWithRobot(goal);
     if (collision) {
+//      ROS_INFO("[CbloxMotionValidator] collision at goal point detected");
       if (last_valid.first != nullptr) {
         ompl::base::ScopedState<ompl::mav::StateSpace>
             last_valid_state(si_->getStateSpace());
@@ -363,6 +395,7 @@ class CbloxMotionValidator : public base::MotionValidator {
       return false;
     }
 
+//    ROS_INFO("[CbloxMotionValidator] no collision detected");
     return true;
   }
 

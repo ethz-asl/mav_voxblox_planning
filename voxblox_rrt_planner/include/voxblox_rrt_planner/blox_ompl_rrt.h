@@ -113,7 +113,6 @@ class BloxOmplRrt {
   double voxel_size_;
 };
 
-template <typename SubmapType>
 class CbloxOmplRrt : public BloxOmplRrt {
  public:
   CbloxOmplRrt(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
@@ -122,28 +121,20 @@ class CbloxOmplRrt : public BloxOmplRrt {
 
   // Only call this once, only call this after setting all settings correctly.
   void setupProblem(){
-    problem_setup_.setCbloxCollisionChecking(robot_radius_,
-        submap_collection_ptr_->getActiveSubMapPtr()->getTsdfMapPtr()->voxel_size,
+    problem_setup_.setCbloxCollisionChecking(robot_radius_, voxel_size_,
         map_distance_function_);
-//        std::bind(&CbloxOmplRrt<SubmapType>::getMapDistance, this, std::placeholders::_1));
-
     BloxOmplRrt::setupProblem();
-  }
-  void setSubmapCollection(typename cblox::SubmapCollection<SubmapType>::Ptr
-      submap_collection_ptr) {
-    submap_collection_ptr_ = submap_collection_ptr;
   }
   void setMapDistanceCallback(
       std::function<double(const Eigen::Vector3d& position)> function) {
     map_distance_function_ = function;
   }
-  double getMapDistance(Eigen::Vector3d& position) {
-    return map_distance_function_(position);
+  void setVoxelSize(voxblox::FloatingPoint voxel_size) {
+    voxel_size_ = voxel_size;
   }
 
  private:
   // map of some sorts
-  typename cblox::SubmapCollection<SubmapType>::Ptr submap_collection_ptr_;
   std::function<double(const Eigen::Vector3d& position)> map_distance_function_;
 };
 

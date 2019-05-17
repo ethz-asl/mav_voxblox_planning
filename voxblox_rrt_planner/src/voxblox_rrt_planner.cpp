@@ -21,7 +21,7 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
   subscribeToTopics();
   advertiseTopics();
 
-  double voxel_size = initializeMap();
+  initializeMap();
 
   // TODO(helenol): figure out what to do with optimistic/pessimistic here.
   rrt_.setRobotRadius(constraints_.robot_radius);
@@ -29,18 +29,18 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
 
   // Set up the path smoother as well.
   smoother_.setParametersFromRos(nh_private_);
-  smoother_.setMinCollisionCheckResolution(voxel_size);
+  smoother_.setMinCollisionCheckResolution(voxel_size_);
 
   // Loco smoother!
   loco_smoother_.setParametersFromRos(nh_private_);
-  loco_smoother_.setMinCollisionCheckResolution(voxel_size);
+  loco_smoother_.setMinCollisionCheckResolution(voxel_size_);
 
   setupPlannerAndSmootherMap();
 
   visualizeMap();
 }
 
-double VoxbloxRrtPlanner::initializeMap() {
+void VoxbloxRrtPlanner::initializeMap() {
   esdf_map_ = voxblox_server_.getEsdfMapPtr();
   CHECK(esdf_map_);
   tsdf_map_ = voxblox_server_.getTsdfMapPtr();
@@ -65,15 +65,13 @@ double VoxbloxRrtPlanner::initializeMap() {
 
     voxblox_server_.setTraversabilityRadius(constraints_.robot_radius);
   }
-  double voxel_size =
+  voxel_size_ =
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxel_size();
 
   ROS_INFO(
       "Size: %f VPS: %lu",
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxel_size(),
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxels_per_side());
-
-  return voxel_size;
 }
 
 void VoxbloxRrtPlanner::setupPlannerAndSmootherMap() {

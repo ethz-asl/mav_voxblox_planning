@@ -34,7 +34,7 @@ class VoxbloxRrtPlanner : public ParentRrtPlanner {
   ~VoxbloxRrtPlanner() {}
 
   // constructor functions
-  double initializeMap();
+  void initializeMap();
   void setupPlannerAndSmootherMap();
   void visualizeMap();
 

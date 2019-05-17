@@ -81,8 +81,9 @@ bool ParentRrtPlanner::plannerServiceCallback(
     mav_planning_msgs::PlannerServiceRequest& request,
     mav_planning_msgs::PlannerServiceResponse& response) {
   mav_msgs::EigenTrajectoryPoint start_pose, goal_pose;
+  ROS_INFO("[RrtPlanner] planning request received");
 
-  ROS_INFO("[RRT planner] planning request received");
+  mav_trajectory_generation::timing::Timer rrttotal_timer("plan/rrt_total");
   mav_msgs::eigenTrajectoryPointFromPoseMsg(request.start_pose, &start_pose);
   mav_msgs::eigenTrajectoryPointFromPoseMsg(request.goal_pose, &goal_pose);
 
@@ -113,15 +114,21 @@ bool ParentRrtPlanner::plannerServiceCallback(
   mav_msgs::EigenTrajectoryPoint::Vector waypoints;
   mav_trajectory_generation::timing::Timer rrtstar_timer("plan/rrt_star");
 
-  bool success =
-      planRrt(start_pose, goal_pose, &waypoints);
+  bool success = planRrt(start_pose, goal_pose, &waypoints);
   rrtstar_timer.Stop();
+  rrttotal_timer.Stop();
   double path_length = computePathLength(waypoints);
   int num_vertices = waypoints.size();
   ROS_INFO("RRT* Success? %d Path length: %f Vertices: %d", success,
            path_length, num_vertices);
 
   if (!success) {
+    ROS_INFO_STREAM("All timings: "
+                    << std::endl
+                    << mav_trajectory_generation::timing::Timing::Print());
+    ROS_INFO_STREAM("Finished planning with start point: "
+                    << start_pose.position_W.transpose()
+                    << " and goal point: " << goal_pose.position_W.transpose());
     return false;
   }
 

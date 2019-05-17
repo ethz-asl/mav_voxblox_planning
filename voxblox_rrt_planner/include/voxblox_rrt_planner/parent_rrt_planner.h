@@ -36,7 +36,7 @@ class ParentRrtPlanner {
   void getParametersFromRos();
   void advertiseTopics();
   void subscribeToTopics();
-  virtual double initializeMap() = 0;
+  virtual void initializeMap() = 0;
   virtual void setupPlannerAndSmootherMap() = 0;
   virtual void visualizeMap() = 0;
 

@@ -1,9 +1,12 @@
 <launch>
-  <arg name="voxblox_path" default="/home/helen/data/jfr_2018/machine_hall/voxblox/rs_skeleton_0.10.voxblox" />
-  <arg name="sparse_graph_path" default="/home/helen/data/jfr_2018/machine_hall/voxblox/rs_sparse_graph_0.10.voxblox" />
+  <arg name="voxblox_path"
+      default="/home/helen/data/jfr_2018/machine_hall/voxblox/rs_skeleton_0.10.voxblox" />
+  <arg name="sparse_graph_path"
+      default="/home/helen/data/jfr_2018/machine_hall/voxblox/rs_sparse_graph_0.10.voxblox" />
   <arg name="frame_id" default="map" />
 
-  <node name="voxblox_skeleton_planner" pkg="voxblox_skeleton_planner" type="skeleton_global_planner_node" output="screen" clear_params="true">
+  <node name="voxblox_skeleton_planner" pkg="voxblox_skeleton_planner"
+      type="skeleton_global_planner_node" output="screen" clear_params="true">
     <param name="voxblox_path" value="$(arg voxblox_path)" />
     <param name="sparse_graph_path" value="$(arg sparse_graph_path)" />
     <param name="visualize" value="true" />
