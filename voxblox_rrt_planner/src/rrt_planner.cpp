@@ -6,29 +6,26 @@
 #include <mav_trajectory_generation_ros/feasibility_analytic.h>
 #include <voxblox/utils/planning_utils.h>
 
-#include "voxblox_rrt_planner/parent_rrt_planner.h"
+#include "voxblox_rrt_planner/rrt_planner.h"
 
 namespace mav_planning {
 
-ParentRrtPlanner::ParentRrtPlanner(const ros::NodeHandle& nh,
+RrtPlanner::RrtPlanner(const ros::NodeHandle& nh,
                                    const ros::NodeHandle& nh_private)
     : nh_(nh),
       nh_private_(nh_private),
       frame_id_("odom"),
       visualize_(true),
       do_smoothing_(true),
-      last_trajectory_valid_(false),
-      lower_bound_(Eigen::Vector3d::Zero()),
-      upper_bound_(Eigen::Vector3d::Zero()) { }
+      last_trajectory_valid_(false) { }
 
-void ParentRrtPlanner::getParametersFromRos() {
+void RrtPlanner::getParametersFromRos() {
   constraints_.setParametersFromRos(nh_private_);
-  nh_private_.param("voxblox_path", input_filepath_, input_filepath_);
   nh_private_.param("visualize", visualize_, visualize_);
   nh_private_.param("frame_id", frame_id_, frame_id_);
   nh_private_.param("do_smoothing", do_smoothing_, do_smoothing_);
 }
-void ParentRrtPlanner::advertiseTopics() {
+void RrtPlanner::advertiseTopics() {
   path_marker_pub_ =
       nh_private_.advertise<visualization_msgs::MarkerArray>("path", 1, true);
   polynomial_trajectory_pub_ =
@@ -39,13 +36,13 @@ void ParentRrtPlanner::advertiseTopics() {
       nh_.advertise<geometry_msgs::PoseArray>("waypoint_list", 1);
 
   planner_srv_ = nh_private_.advertiseService(
-      "plan", &ParentRrtPlanner::plannerServiceCallback, this);
+      "plan", &RrtPlanner::plannerServiceCallback, this);
   path_pub_srv_ = nh_private_.advertiseService(
-      "publish_path", &ParentRrtPlanner::publishPathCallback, this);
+      "publish_path", &RrtPlanner::publishPathCallback, this);
 }
-void ParentRrtPlanner::subscribeToTopics() {}
+void RrtPlanner::subscribeToTopics() {}
 
-bool ParentRrtPlanner::publishPathCallback(std_srvs::EmptyRequest& request,
+bool RrtPlanner::publishPathCallback(std_srvs::EmptyRequest& request,
                                             std_srvs::EmptyResponse& response) {
   if (!last_trajectory_valid_) {
     ROS_ERROR("Can't publish trajectory, marked as invalid.");
@@ -77,7 +74,7 @@ bool ParentRrtPlanner::publishPathCallback(std_srvs::EmptyRequest& request,
   return true;
 }
 
-bool ParentRrtPlanner::plannerServiceCallback(
+bool RrtPlanner::plannerServiceCallback(
     mav_planning_msgs::PlannerServiceRequest& request,
     mav_planning_msgs::PlannerServiceResponse& response) {
   mav_msgs::EigenTrajectoryPoint start_pose, goal_pose;
@@ -202,7 +199,7 @@ bool ParentRrtPlanner::plannerServiceCallback(
   return success;
 }
 
-bool ParentRrtPlanner::generateFeasibleTrajectory(
+bool RrtPlanner::generateFeasibleTrajectory(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) {
   smoother_.getPathBetweenWaypoints(coordinate_path, path);
@@ -215,7 +212,7 @@ bool ParentRrtPlanner::generateFeasibleTrajectory(
   return true;
 }
 
-bool ParentRrtPlanner::generateFeasibleTrajectoryLoco(
+bool RrtPlanner::generateFeasibleTrajectoryLoco(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) {
   loco_smoother_.setResampleTrajectory(false);
@@ -231,7 +228,7 @@ bool ParentRrtPlanner::generateFeasibleTrajectoryLoco(
   return true;
 }
 
-bool ParentRrtPlanner::generateFeasibleTrajectoryLoco2(
+bool RrtPlanner::generateFeasibleTrajectoryLoco2(
     const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
     mav_msgs::EigenTrajectoryPointVector* path) {
   loco_smoother_.setResampleTrajectory(true);
@@ -247,7 +244,7 @@ bool ParentRrtPlanner::generateFeasibleTrajectoryLoco2(
   return true;
 }
 
-bool ParentRrtPlanner::checkPathForCollisions(
+bool RrtPlanner::checkPathForCollisions(
     const mav_msgs::EigenTrajectoryPointVector& path, double* t) const {
   for (const mav_msgs::EigenTrajectoryPoint& point : path) {
     if (getMapDistance(point.position_W) < constraints_.robot_radius) {
@@ -260,7 +257,7 @@ bool ParentRrtPlanner::checkPathForCollisions(
   return false;
 }
 
-bool ParentRrtPlanner::checkPhysicalConstraints(
+bool RrtPlanner::checkPhysicalConstraints(
     const mav_trajectory_generation::Trajectory& trajectory) {
   // Check min/max manually.
   // Evaluate min/max extrema

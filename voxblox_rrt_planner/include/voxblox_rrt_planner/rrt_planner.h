@@ -20,25 +20,24 @@
 #include <minkindr_conversions/kindr_msg.h>
 #include <voxblox_ros/esdf_server.h>
 
+#include <cblox_planning/map_interface.h>
 #include "voxblox_rrt_planner/voxblox_ompl_rrt.h"
 
 namespace mav_planning {
 
-class ParentRrtPlanner {
+class RrtPlanner: public MapInterface {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  ParentRrtPlanner(const ros::NodeHandle& nh,
-                   const ros::NodeHandle& nh_private);
-  ~ParentRrtPlanner() {}
+  RrtPlanner(const ros::NodeHandle& nh,
+             const ros::NodeHandle& nh_private);
+  ~RrtPlanner() {}
 
   // constructor functions
   void getParametersFromRos();
   void advertiseTopics();
   void subscribeToTopics();
-  virtual void initializeMap() = 0;
   virtual void setupPlannerAndSmootherMap() = 0;
-  virtual void visualizeMap() = 0;
 
   bool plannerServiceCallback(
       mav_planning_msgs::PlannerServiceRequest& request,
@@ -57,18 +56,14 @@ class ParentRrtPlanner {
   bool generateFeasibleTrajectoryLoco2(
       const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
       mav_msgs::EigenTrajectoryPointVector* path);
+
   // map functions
-  virtual bool isMapInitialized() = 0;
-  virtual double getMapDistance(const Eigen::Vector3d& position) const = 0;
   bool checkPathForCollisions(const mav_msgs::EigenTrajectoryPointVector& path,
                               double* t) const;
   bool checkPhysicalConstraints(
       const mav_trajectory_generation::Trajectory& trajectory);
 
  protected:
-  virtual void computeMapBounds(Eigen::Vector3d* lower_bound,
-                                Eigen::Vector3d* upper_bound) const = 0;
-
   virtual void setupRrtPlanner() = 0;
   virtual bool planRrt(mav_msgs::EigenTrajectoryPoint& start_pose,
       mav_msgs::EigenTrajectoryPoint& goal_pose,
@@ -88,7 +83,6 @@ class ParentRrtPlanner {
   std::string frame_id_;
   bool visualize_;
   bool do_smoothing_;
-  std::string input_filepath_;
 
   // Robot parameters -- v max, a max, radius, etc.
   PhysicalConstraints constraints_;
@@ -97,11 +91,6 @@ class ParentRrtPlanner {
   double bounding_box_inflation_m_;
   double num_seconds_to_plan_;
   bool simplify_solution_;
-
-  // Bounds on the size of the map.
-  Eigen::Vector3d lower_bound_;
-  Eigen::Vector3d upper_bound_;
-  double voxel_size_;  // Cache the size of the voxels used by the map.
 
   // Cache the last trajectory for output :)
   mav_trajectory_generation::Trajectory last_trajectory_;

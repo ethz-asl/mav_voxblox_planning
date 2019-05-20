@@ -21,11 +21,12 @@
 #include <voxblox_ros/esdf_server.h>
 
 #include "voxblox_rrt_planner/voxblox_ompl_rrt.h"
-#include "voxblox_rrt_planner/parent_rrt_planner.h"
+#include <cblox_planning/voxblox_planner.h>
+#include "voxblox_rrt_planner/rrt_planner.h"
 
 namespace mav_planning {
 
-class VoxbloxRrtPlanner : public ParentRrtPlanner {
+class VoxbloxRrtPlanner : public RrtPlanner, public VoxbloxPlanner {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -34,17 +35,9 @@ class VoxbloxRrtPlanner : public ParentRrtPlanner {
   ~VoxbloxRrtPlanner() {}
 
   // constructor functions
-  void initializeMap();
   void setupPlannerAndSmootherMap();
-  void visualizeMap();
-
-  // map functions
-  bool isMapInitialized();
-  double getMapDistance(const Eigen::Vector3d& position) const;
 
  protected:
-  void computeMapBounds(Eigen::Vector3d* lower_bound,
-                        Eigen::Vector3d* upper_bound) const;
   void setupRrtPlanner();
   bool planRrt(mav_msgs::EigenTrajectoryPoint& start_pose,
       mav_msgs::EigenTrajectoryPoint& goal_pose,
@@ -53,12 +46,6 @@ class VoxbloxRrtPlanner : public ParentRrtPlanner {
  private:
   // Planners!
   VoxbloxOmplRrt rrt_;
-
-  // Map!
-  voxblox::EsdfServer voxblox_server_;
-  // Shortcuts to the maps:
-  voxblox::EsdfMap::Ptr esdf_map_;
-  voxblox::TsdfMap::Ptr tsdf_map_;
 };
 
 }  // namespace mav_planning

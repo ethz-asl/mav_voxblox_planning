@@ -26,4 +26,5 @@
   <depend>visualization_msgs</depend>
   <depend>voxblox_ros</depend>
   <depend>cblox</depend>
+  <depend>cblox_planning</depend>
 </package>
