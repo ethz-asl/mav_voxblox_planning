@@ -1,6 +1,6 @@
 <launch>
-  <arg name="results_path" default="/home/helen/data/jfr_2018/local_benchmark/local_10_05_2019_shotgun_all_none.csv" />
-  <arg name="num_trials" default="100" />
+  <arg name="results_path" default="/home/helen/data/jfr_2018/local_benchmark/local_18_05_2019_shotgun_all_none.csv" />
+  <arg name="num_trials" default="10" />
   <arg name="strategy" default="none" />
   <arg name="exit_at_end" default="false" />
   <arg name="shotgun" default="true" />
@@ -11,7 +11,7 @@
   <node name="local_planning_benchmark" pkg="mav_planning_benchmark" type="local_planning_benchmark_node" output="screen" args="--alsologtostderr">
     <param name="results_path" value="$(arg results_path)" />
 
-    <param name="visualize" value="false" />
+    <param name="visualize" value="true" />
     <param name="verbose" value="false" />
     <param name="color_mode" value="lambert_color" />
 

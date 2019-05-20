@@ -106,7 +106,9 @@ void LocalPlanningBenchmark::runBenchmark(int trial_number) {
     marker_array.markers.push_back(marker);
     path_marker_pub_.publish(marker_array);
     marker_array.markers.clear();
+
     ros::spinOnce();
+    ros::Duration(1.0).sleep();
   }
 
   // In case we're finding new goal if needed, we have to keep track of which

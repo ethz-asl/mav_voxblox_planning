@@ -1,6 +1,7 @@
 #include <mav_trajectory_generation/timing.h>
 #include <mav_trajectory_generation/trajectory_sampling.h>
 #include <mav_trajectory_generation/vertex.h>
+#include <voxblox/utils/timing.h>
 
 #include "voxblox_loco_planner/voxblox_loco_planner.h"
 
@@ -346,8 +347,10 @@ bool VoxbloxLocoPlanner::getTrajectoryTowardGoal(
                                           shortened_path, trajectory);
 
   // TODO(DEBUG)
-  // mav_trajectory_generation::timing::Timing::Print(std::cout);
-
+  if (verbose_) {
+    mav_trajectory_generation::timing::Timing::Print(std::cout);
+    voxblox::timing::Timing::Print(std::cout);
+  }
   return success;
 }
 
