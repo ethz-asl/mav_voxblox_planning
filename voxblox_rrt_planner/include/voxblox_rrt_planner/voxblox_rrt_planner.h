@@ -46,6 +46,16 @@ class VoxbloxRrtPlanner : public RrtPlanner, public VoxbloxPlanner {
  private:
   // Planners!
   VoxbloxOmplRrt rrt_;
+
+  /*
+  // Map!
+  voxblox::EsdfServer voxblox_server_;
+  // Shortcuts to the maps:
+  voxblox::EsdfMap::Ptr esdf_map_;
+  voxblox::TsdfMap::Ptr tsdf_map_;
+
+  std::string input_filepath_;
+  */
 };
 
 }  // namespace mav_planning

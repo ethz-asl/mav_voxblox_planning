@@ -25,7 +25,7 @@
 
 namespace mav_planning {
 
-class RrtPlanner: public MapInterface {
+class RrtPlanner {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -80,6 +80,10 @@ class RrtPlanner: public MapInterface {
   ros::ServiceServer planner_srv_;
   ros::ServiceServer path_pub_srv_;
 
+  // Map object
+  MapInterface* map_;
+
+  // Parameters
   std::string frame_id_;
   bool visualize_;
   bool do_smoothing_;

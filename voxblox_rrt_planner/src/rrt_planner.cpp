@@ -85,25 +85,26 @@ bool RrtPlanner::plannerServiceCallback(
   mav_msgs::eigenTrajectoryPointFromPoseMsg(request.goal_pose, &goal_pose);
 
   // Setup latest copy of map.
-  if (!isMapInitialized()) {
+  if (!map_->isMapInitialized()) {
     return false;
   }
 
   // Figure out map bounds!
-  computeMapBounds(&lower_bound_, &upper_bound_);
+  Eigen::Vector3d lower_bound, upper_bound;
+  map_->computeMapBounds(&lower_bound, &upper_bound);
 
-  ROS_INFO_STREAM("Map bounds: " << lower_bound_.transpose() << " to "
-                                 << upper_bound_.transpose() << " size: "
-                                 << (upper_bound_ - lower_bound_).transpose());
+  ROS_INFO_STREAM("Map bounds: " << lower_bound.transpose() << " to "
+                                 << upper_bound.transpose() << " size: "
+                                 << (upper_bound - lower_bound).transpose());
   setupRrtPlanner();
 
   ROS_INFO("Planning path.");
 
-  if (getMapDistance(start_pose.position_W) < constraints_.robot_radius) {
+  if (map_->getMapDistance(start_pose.position_W) < constraints_.robot_radius) {
     ROS_ERROR("Start pose occupied!");
     return false;
   }
-  if (getMapDistance(goal_pose.position_W) < constraints_.robot_radius) {
+  if (map_->getMapDistance(goal_pose.position_W) < constraints_.robot_radius) {
     ROS_ERROR("Goal pose occupied!");
     return false;
   }
@@ -247,7 +248,7 @@ bool RrtPlanner::generateFeasibleTrajectoryLoco2(
 bool RrtPlanner::checkPathForCollisions(
     const mav_msgs::EigenTrajectoryPointVector& path, double* t) const {
   for (const mav_msgs::EigenTrajectoryPoint& point : path) {
-    if (getMapDistance(point.position_W) < constraints_.robot_radius) {
+    if (map_->getMapDistance(point.position_W) < constraints_.robot_radius) {
       if (t != NULL) {
         *t = mav_msgs::nanosecondsToSeconds(point.time_from_start_ns);
       }

@@ -14,8 +14,10 @@ namespace mav_planning {
 VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
                                      const ros::NodeHandle& nh_private)
     : RrtPlanner(nh, nh_private),
-      voxblox_server_(nh_, nh_private_),
+      VoxbloxPlanner(nh_, nh_private_),
       rrt_(nh_, nh_private_) {
+
+  map_ = this;
 
   getParametersFromRos();
   subscribeToTopics();
@@ -29,11 +31,11 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
 
   // Set up the path smoother as well.
   smoother_.setParametersFromRos(nh_private_);
-  smoother_.setMinCollisionCheckResolution(voxel_size_);
+  smoother_.setMinCollisionCheckResolution(map_->getVoxelSize());
 
   // Loco smoother!
   loco_smoother_.setParametersFromRos(nh_private_);
-  loco_smoother_.setMinCollisionCheckResolution(voxel_size_);
+  loco_smoother_.setMinCollisionCheckResolution(map_->getVoxelSize());
 
   setupPlannerAndSmootherMap();
 
@@ -52,13 +54,16 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
   }
 
 void VoxbloxRrtPlanner::setupRrtPlanner() {
+  Eigen::Vector3d lower_bound, upper_bound;
+  map_->computeMapBounds(&lower_bound, &upper_bound);
+
   // Inflate the bounds a bit.
   constexpr double kBoundInflationMeters = 0.5;
   // Don't in flate in z. ;)
-  rrt_.setBounds(lower_bound_ - Eigen::Vector3d(kBoundInflationMeters,
-                                                kBoundInflationMeters, 0.0),
-                 upper_bound_ + Eigen::Vector3d(kBoundInflationMeters,
-                                                kBoundInflationMeters, 0.0));
+  rrt_.setBounds(lower_bound - Eigen::Vector3d(kBoundInflationMeters,
+                                               kBoundInflationMeters, 0.0),
+                 upper_bound + Eigen::Vector3d(kBoundInflationMeters,
+                                               kBoundInflationMeters, 0.0));
   rrt_.setupProblem();
 }
 
