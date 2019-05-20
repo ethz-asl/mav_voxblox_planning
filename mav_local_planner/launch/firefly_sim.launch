@@ -55,5 +55,5 @@
   </group>
 
   <!-- Mapping and Planning -->
-  <include file="$(find mav_local_planner)/launch/firefly_mapping_planning.launch" if="false"/>
+  <include file="$(find mav_local_planner)/launch/firefly_mapping_planning.launch"/>
 </launch>

@@ -2,17 +2,16 @@
   <arg name="mav_name" default="firefly"/>
   <arg name="frame_id" default="odom" />
   <arg name="voxel_size" default="0.2" />
-  <arg name="robot_radius" default="0.6" />
 
   <group ns="$(arg mav_name)">
     <node name="voxblox_rrt_planner" pkg="voxblox_rrt_planner" type="voxblox_rrt_planner_node" output="screen" clear_params="true">
-      <remap from="voxblox_rrt_planner/esdf_map_in" to="esdf_map" if="false"/>
-      <remap from="voxblox_rrt_planner/tsdf_map_in" to="tsdf_map" if="false"/>
+      <remap from="voxblox_rrt_planner/esdf_map_in" to="esdf_map" />
+      <remap from="voxblox_rrt_planner/tsdf_map_in" to="tsdf_map" />
       <param name="tsdf_voxel_size" value="$(arg voxel_size)" />
       <param name="tsdf_voxels_per_side" value="16" />
 
       <param name="visualize" value="true" />
-      <param name="robot_radius" value="$(arg robot_radius)" />
+      <param name="robot_radius" value="0.5" />
 
       <param name="update_mesh_every_n_sec" value="0.0" />
       <param name="num_seconds_to_plan" value="2.0" />
