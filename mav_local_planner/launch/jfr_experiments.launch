@@ -1,0 +1,81 @@
+<launch>
+  <arg name="mav_name" default="sheep"/>
+  <arg name="frame_id" default="odom" />
+  <arg name="verbose" default="false"/>
+  <arg name="voxel_size" default="0.15" />
+  <arg name="robot_radius" default="0.6" />
+  <arg name="clear_radius" default="0.8" />
+
+  <arg name="play_bag" default="true" />->
+  <arg name="bag_file" default="/home/helen/data/jfr_2019/exp3b_fail.bag" />
+
+  <param name="use_sim_time" value="true" />
+
+  <node name="player" pkg="rosbag" type="play" output="screen" args="-r 1.0 -s 80 --clock $(arg bag_file)" if="$(arg play_bag)">
+  </node>
+
+
+  <group ns="$(arg mav_name)" >
+
+    <node name="mav_local_planner" pkg="mav_local_planner" type="mav_local_planner_node" output="screen">
+      <remap from="odometry" to="rovio/odometry" />
+      <remap from="mav_local_planner/esdf_map_in" to="esdf_map" />
+      <remap from="mav_local_planner/tsdf_map_in" to="tsdf_map" />
+      <remap from="mav_local_planner/local_path" to="mav_local_planner/local_path2" />
+
+      <param name="tsdf_voxel_size" value="$(arg voxel_size)" />
+      <param name="tsdf_voxels_per_side" value="16" />
+      <param name="esdf_max_distance_m" value="2.0" />
+      <param name="update_mesh_every_n_sec" value="0.0" />
+      <param name="traversability_radius" value="$(arg robot_radius)" />
+      <param name="publish_traversable" value="true" />
+      <param name="slice_level" value="1.0" />
+      <param name="publish_slices" value="true" />
+
+      <param name="local_frame_id" value="$(arg frame_id)" />
+      <param name="world_frame" value="$(arg frame_id)" />
+      <param name="replan_dt" value="0.25" />
+      <param name="command_publishing_dt" value="0.25" />
+      <param name="replan_lookahead_sec" value="1.0" />
+      <param name="mpc_prediction_horizon" value="300" />
+
+      <param name="robot_radius" value="$(arg robot_radius)" />
+      <param name="planning_horizon_m" value="10.0" />
+      <param name="autostart" value="true" />
+      <param name="verbose" value="true" />
+      <param name="v_max" value="1.0" />
+      <param name="a_max" value="1.0" />
+      <param name="avoid_collisions" value="true" />
+
+      <param name="use_shotgun_path" value="true" />
+      <param name="use_shotgun" value="true" />
+
+      <!-- What to do in case of failure. -->
+      <param name="goal_selector_strategy" value="none" />
+      <param name="capability_group" value="Planning" />
+    </node>
+
+    <node name="voxblox_rrt_planner" pkg="voxblox_rrt_planner" type="voxblox_rrt_planner_node" output="screen">
+
+      <remap from="voxblox_rrt_planner/esdf_map_in" to="esdf_map" />
+      <remap from="voxblox_rrt_planner/tsdf_map_in" to="tsdf_map" />
+
+      <param name="visualize" value="true" />
+      <param name="robot_radius" value="$(arg robot_radius)" />
+      <param name="tsdf_voxel_size" value="$(arg voxel_size)" />
+      <param name="tsdf_voxels_per_side" value="16" />
+      <param name="update_mesh_every_n_sec" value="0.0" />
+
+      <param name="num_seconds_to_plan" value="2.0" />
+      <param name="frame_id" value="$(arg frame_id)" />
+      <param name="world_frame" value="$(arg frame_id)" />
+      <param name="trust_approx_solution" value="true" />
+      <param name="publish_traversable" value="true" />
+      <param name="split_at_collisions" value="true" />
+      <param name="optimize_time" value="true" />
+      <param name="verbose" value="true" />
+      <param name="do_smoothing" value="false" />
+      <param name="capability_group" value="Planning" />
+    </node>
+  </group>
+</launch>

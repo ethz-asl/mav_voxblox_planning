@@ -1,6 +1,6 @@
 <launch>
   <arg name="voxblox_path" default="/home/helen/data/jfr_2018/machine_hall/voxblox/rs_esdf_0.10.voxblox" />
-  <arg name="frame_id" default="map" />
+  <arg name="frame_id" default="odom" />
 
   <node name="voxblox_rrt_planner" pkg="voxblox_rrt_planner" type="voxblox_rrt_planner_node" output="screen">
     <param name="voxblox_path" value="$(arg voxblox_path)" />

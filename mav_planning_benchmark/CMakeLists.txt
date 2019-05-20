@@ -27,6 +27,12 @@ cs_add_executable(local_planning_benchmark_node
 )
 target_link_libraries(local_planning_benchmark_node ${PROJECT_NAME})
 
+cs_add_executable(trajectory_recolor
+  src/trajectory_recolor.cpp
+)
+target_link_libraries(trajectory_recolor ${PROJECT_NAME})
+
+
 ##########
 # EXPORT #
 ##########
