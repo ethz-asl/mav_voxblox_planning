@@ -1,5 +1,6 @@
 <launch>
-  <arg name="voxblox_path" default="/home/helen/data/jfr_2018/machine_hall/voxblox/rs_esdf_0.10.voxblox" />
+  <arg name="voxblox_path"
+      default="/home/laura/Documents/maps/mav_voxblox_planning_maps/machine_hall/voxblox/rs_esdf_0.10.voxblox" />
   <arg name="frame_id" default="map" />
 
   <node name="voxblox_rrt_planner" pkg="voxblox_rrt_planner" type="voxblox_rrt_planner_node" output="screen">

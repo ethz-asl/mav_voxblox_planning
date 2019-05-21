@@ -17,7 +17,9 @@ RrtPlanner::RrtPlanner(const ros::NodeHandle& nh,
       frame_id_("odom"),
       visualize_(true),
       do_smoothing_(true),
-      last_trajectory_valid_(false) { }
+      last_trajectory_valid_(false) {
+  ROS_INFO("[RrtPlanner] initialized.");
+}
 
 void RrtPlanner::getParametersFromRos() {
   constraints_.setParametersFromRos(nh_private_);
@@ -39,6 +41,7 @@ void RrtPlanner::advertiseTopics() {
       "plan", &RrtPlanner::plannerServiceCallback, this);
   path_pub_srv_ = nh_private_.advertiseService(
       "publish_path", &RrtPlanner::publishPathCallback, this);
+  ROS_INFO("[RrtPlanner] advertized topics.");
 }
 void RrtPlanner::subscribeToTopics() {}
 
