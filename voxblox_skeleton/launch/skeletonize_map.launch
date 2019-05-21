@@ -6,10 +6,12 @@
 
   <arg name="voxblox_path" default="$(arg base_path)/$(arg input_map_name)" />
   <arg name="output_path" default="$(arg base_path)/$(arg output_map_name)" />
-  <arg name="sparse_graph_path" default="$(arg base_path)/$(arg sparse_graph_name)" />
+  <arg name="sparse_graph_path"
+      default="$(arg base_path)/$(arg sparse_graph_name)" />
   <arg name="frame_id" default="map" />
 
-  <node name="voxblox_skeletonizer" pkg="voxblox_skeleton" type="skeletonizer" output="screen" clear_params="true" args="-v=1">
+  <node name="voxblox_skeletonizer" pkg="voxblox_skeleton" type="skeletonizer"
+      output="screen" clear_params="true" args="-v=1">
     <param name="input_filepath" value="$(arg voxblox_path)" />
     <param name="output_filepath" value="$(arg output_path)" />
     <param name="sparse_graph_filepath" value="$(arg sparse_graph_path)" />
