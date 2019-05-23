@@ -80,6 +80,9 @@ struct SkeletonEdge {
 };
 
 class SparseSkeletonGraph {
+  typedef kindr::minimal::QuatTransformationTemplate<FloatingPoint>
+      Transformation;
+
  public:
   SparseSkeletonGraph();
 
@@ -128,6 +131,9 @@ class SparseSkeletonGraph {
   // already in the structure.
   void addSerializedVertex(const SkeletonVertex& vertex);
   void addSerializedEdge(const SkeletonEdge& edge);
+
+  // transforms vertex locations into different frame
+  void transformFrame(Transformation T_G_S);
 
  private:
   // Vertex and edge IDs are separate.
