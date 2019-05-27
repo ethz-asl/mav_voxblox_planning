@@ -12,9 +12,15 @@
       <remap from="voxblox_node/esdf_map_out" to="esdf_map" />
       <remap from="voxblox_node/tsdf_map_out" to="tsdf_map" />
 
-      <param name="method" value="fast" />
+      <!-- Publishing settings. -->
       <param name="publish_tsdf_map" value="true" />
       <param name="publish_esdf_map" value="true" />
+      <param name="update_mesh_every_n_sec" value="0.25" />
+      <param name="update_esdf_every_n_sec" value="0.25" />
+      <param name="publish_map_every_n_sec" value="0.25" />
+
+
+      <param name="method" value="fast" />
       <param name="tsdf_voxel_size" value="$(arg voxel_size)" />
       <param name="tsdf_voxels_per_side" value="16" />
       <param name="esdf_max_distance_m" value="2.0" />
@@ -22,7 +28,6 @@
       <param name="voxel_carving_enabled" value="true" />
       <param name="color_mode" value="color" />
       <param name="use_tf_transforms" value="true" />
-      <param name="update_mesh_every_n_sec" value="0.25" />
       <param name="min_time_between_msgs_sec" value="0.10" />
       <param name="clear_sphere_for_planning" value="true" />
       <param name="occupied_sphere_radius" value="4.0" />
