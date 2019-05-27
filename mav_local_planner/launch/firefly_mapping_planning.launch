@@ -19,7 +19,6 @@
       <param name="update_esdf_every_n_sec" value="0.25" />
       <param name="publish_map_every_n_sec" value="0.25" />
 
-
       <param name="method" value="fast" />
       <param name="tsdf_voxel_size" value="$(arg voxel_size)" />
       <param name="tsdf_voxels_per_side" value="16" />
