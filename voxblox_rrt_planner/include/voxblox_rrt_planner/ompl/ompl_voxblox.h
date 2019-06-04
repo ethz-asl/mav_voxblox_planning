@@ -346,7 +346,7 @@ class CbloxMotionValidator : public base::MotionValidator {
 
       // update position with dynamic step size
       // TODO: almost always the case! smth smarter?
-      if (remaining_distance < step_size) {
+      if (remaining_distance < step_size and false) {
 //        ROS_WARN_STREAM("rem dist: " << remaining_distance
 //            << ", step size: " << step_size);
         if (remaining_distance < 1.0e-2) {

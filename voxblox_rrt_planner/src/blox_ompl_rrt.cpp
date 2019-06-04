@@ -72,6 +72,8 @@ void BloxOmplRrt::setupProblem() {
     problem_setup_.getGeometricComponentStateSpace()
         ->as<ompl::mav::StateSpace>()
         ->setBounds(bounds);
+  } else {
+    ROS_WARN("[BloxOmplRrt] bounds are the same! Not set.");
   }
 
   // This is a fraction of the space extent! Not actual metric units. For

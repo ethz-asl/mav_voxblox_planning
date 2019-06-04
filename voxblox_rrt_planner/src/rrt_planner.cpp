@@ -103,13 +103,54 @@ bool RrtPlanner::plannerServiceCallback(
 
   ROS_INFO("Planning path.");
 
+  bool random_start = false, random_goal = false;
   if (map_->getMapDistance(start_pose.position_W) < constraints_.robot_radius) {
     ROS_ERROR("Start pose occupied!");
-    return false;
+    random_start = true;
   }
   if (map_->getMapDistance(goal_pose.position_W) < constraints_.robot_radius) {
     ROS_ERROR("Goal pose occupied!");
-    return false;
+    random_goal = true;
+  }
+
+  if ((goal_pose.position_W - start_pose.position_W).norm() < 2) {
+    random_goal = true;
+  }
+
+  if (random_start) {
+    srand(time(nullptr));
+    double distance = 0;
+    int counter = 0;
+    while (distance < constraints_.robot_radius and counter < 1000) {
+      Eigen::Vector3d random = Eigen::Vector3d::Random();
+      start_pose.position_W = random.cwiseProduct(
+          (upper_bound - lower_bound) / 2) + ((upper_bound + lower_bound) / 2);
+      start_pose.position_W << randMToN(lower_bound.x(), upper_bound.x()),
+          randMToN(lower_bound.y(), upper_bound.y()),
+          randMToN(lower_bound.z(), upper_bound.z());
+      distance = map_->getMapDistance(start_pose.position_W);
+      counter++;
+    }
+    ROS_WARN_STREAM("Start set to [" << start_pose.position_W.transpose() << "]");
+  }
+  if (random_goal) {
+    srand(time(nullptr));
+    double distance = 0;
+    int counter = 0;
+    goal_pose.position_W = start_pose.position_W;
+    while (counter < 1000 and (distance < constraints_.robot_radius or
+                               (goal_pose.position_W - start_pose.position_W).norm() < 2)) {
+      goal_pose.position_W = Eigen::Vector3d::Random().cwiseProduct(
+          (upper_bound - lower_bound) / 2) + ((upper_bound + lower_bound) / 2);
+      goal_pose.position_W << randMToN(lower_bound.x(), upper_bound.x()),
+          randMToN(lower_bound.y(), upper_bound.y()),
+          randMToN(lower_bound.z(), upper_bound.z());
+      distance = map_->getMapDistance(goal_pose.position_W);
+      counter++;
+    }
+    ROS_WARN_STREAM("Goal set to [" << goal_pose.position_W.transpose() << "]");
+    ROS_INFO_STREAM("path length "
+                        << (goal_pose.position_W - start_pose.position_W).norm());
   }
 
   mav_msgs::EigenTrajectoryPoint::Vector waypoints;
@@ -124,6 +165,20 @@ bool RrtPlanner::plannerServiceCallback(
            path_length, num_vertices);
 
   if (!success) {
+    visualization_msgs::MarkerArray marker_array;
+    if (visualize_) {
+      waypoints.emplace_back(start_pose);
+      waypoints.emplace_back(goal_pose);
+
+      marker_array.markers.push_back(createMarkerForPath(
+          waypoints, frame_id_, mav_visualization::Color::White(), "rrt_star",
+          0.075));
+      marker_array.markers.push_back(createMarkerForWaypoints(
+          waypoints, frame_id_, mav_visualization::Color::White(),
+          "rrt_star_waypoints", 0.15));
+    }
+    path_marker_pub_.publish(marker_array);
+
     ROS_INFO_STREAM("All timings: "
                     << std::endl
                     << mav_trajectory_generation::timing::Timing::Print());
