@@ -2,6 +2,8 @@
 
 #include "mav_planning_common/visibility_resampling.h"
 
+#include <numeric> 
+
 namespace mav_planning {
 
 void resampleWaypointsFromVisibilityGraph(
