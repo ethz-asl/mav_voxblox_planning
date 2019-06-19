@@ -14,6 +14,7 @@
 
 #include "voxblox_rrt_planner/ompl/ompl_types.h"
 #include "voxblox_rrt_planner/ompl/ompl_voxblox.h"
+#include "voxblox_rrt_planner/ompl/ompl_cblox.h"
 
 namespace ompl {
 namespace mav {
@@ -112,6 +113,52 @@ class MavSetup : public geometric::SimpleSetup {
 
     std::dynamic_pointer_cast<ompl::geometric::PRM>(getPlanner())
         ->constructRoadmap(ptc);
+  }
+
+  void getPrmRoadmap() {
+    ROS_INFO_STREAM("[MavSetup] getting roadmap");
+    const ompl::geometric::PRM::Graph& roadmap_graph =
+        std::dynamic_pointer_cast<ompl::geometric::PRM>(getPlanner())
+            ->getRoadmap();
+//    bool prm_edges = roadmap_graph.m_edges;
+//    bool prm_vertices = roadmap_graph.m_vertices;
+    auto it_pair = boost::vertices(roadmap_graph);
+    ROS_INFO_STREAM("[MavSetup] 1");
+    auto it = it_pair.first;
+    ROS_INFO_STREAM("[MavSetup] 2");
+    const auto it_end = it_pair.second;
+    ROS_INFO_STREAM("[MavSetup] 3");
+    int count = 0;
+    while (it != it_end) {
+//      bool test = state(it);
+      ompl::base::State* state;
+      ROS_INFO_STREAM("[MavSetup] 4");
+      boost::get(state, *it);
+      ROS_INFO_STREAM("[MavSetup] 5");
+      if(state == nullptr) {
+        ROS_INFO_STREAM("[MavSetup] empty state");
+      } else {
+        ROS_INFO_STREAM("[MavSetup] filled state");
+      }
+      const ompl::base::RealVectorStateSpace::StateType* state_new =
+          static_cast<const ompl::base::RealVectorStateSpace::StateType*>(state);
+      ROS_INFO_STREAM("[MavSetup] 6");
+      Eigen::Vector3d state_eigen = omplToEigen(state);
+      ROS_INFO_STREAM("[MavSetup] 7");
+      ROS_INFO_STREAM(count << ": " << state_eigen.transpose());
+      it++;
+      count++;
+    }
+    auto edge_pair = boost::edges(roadmap_graph);
+    auto edge = edge_pair.first;
+    const auto edge_end = edge_pair.second;
+    count = 0;
+    while (edge != edge_end) {
+      ROS_INFO_STREAM(count << ": " << source(*edge, roadmap_graph) << "-"
+                                    << target(*edge, roadmap_graph));
+      it++;
+      count++;
+    }
   }
 
   // Uses the path simplifier WITHOUT using B-spline smoothing which leads to

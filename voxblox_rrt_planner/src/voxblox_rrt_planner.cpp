@@ -42,16 +42,16 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
   visualizeMap();
 }
 
-  void VoxbloxRrtPlanner::setupPlannerAndSmootherMap() {
-    rrt_.setTsdfLayer(voxblox_server_.getTsdfMapPtr()->getTsdfLayerPtr());
-    rrt_.setEsdfLayer(voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr());
+void VoxbloxRrtPlanner::setupPlannerAndSmootherMap() {
+  rrt_.setTsdfLayer(voxblox_server_.getTsdfMapPtr()->getTsdfLayerPtr());
+  rrt_.setEsdfLayer(voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr());
 
-    smoother_.setMapDistanceCallback(std::bind(&VoxbloxRrtPlanner::getMapDistance,
-                                               this, std::placeholders::_1));
+  smoother_.setMapDistanceCallback(std::bind(&VoxbloxRrtPlanner::getMapDistance,
+                                             this, std::placeholders::_1));
 
-    loco_smoother_.setMapDistanceCallback(std::bind(
-        &VoxbloxRrtPlanner::getMapDistance, this, std::placeholders::_1));
-  }
+  loco_smoother_.setMapDistanceCallback(std::bind(
+      &VoxbloxRrtPlanner::getMapDistance, this, std::placeholders::_1));
+}
 
 void VoxbloxRrtPlanner::setupRrtPlanner() {
   Eigen::Vector3d lower_bound, upper_bound;

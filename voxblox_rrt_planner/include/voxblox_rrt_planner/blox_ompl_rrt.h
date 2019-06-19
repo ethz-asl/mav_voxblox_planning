@@ -71,6 +71,11 @@ class BloxOmplRrt {
     problem_setup_.constructPrmRoadmap(roadmap_construction_sec);
   }
 
+  void getPrmRoadmap() {
+    ROS_INFO_STREAM("[BloxOmplRrt] getting roadmap");
+    problem_setup_.getPrmRoadmap();
+  }
+
  protected:
   void setupFromStartAndGoal(const mav_msgs::EigenTrajectoryPoint& start,
                              const mav_msgs::EigenTrajectoryPoint& goal);
@@ -102,13 +107,6 @@ class BloxOmplRrt {
   // Planning bounds, if set.
   Eigen::Vector3d lower_bound_;
   Eigen::Vector3d upper_bound_;
-
-  // NON-OWNED pointers to the relevant layers. TSDF only used if optimistic,
-  // ESDF only used if pessimistic.
-  /*
-  voxblox::Layer<voxblox::TsdfVoxel>* tsdf_layer_;
-  voxblox::Layer<voxblox::EsdfVoxel>* esdf_layer_;
-  */
 
   double voxel_size_;
 };
