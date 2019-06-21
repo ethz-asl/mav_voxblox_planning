@@ -1,4 +1,4 @@
-#include "voxblox_rrt_planner/blox_ompl_rrt.h"
+#include "voxblox_rrt_planner/ompl_rrt.h"
 
 namespace mav_planning {
 

@@ -1,5 +1,5 @@
-#ifndef VOXBLOX_RRT_PLANNER_VOXBLOX_RRT_PLANNER_H
-#define VOXBLOX_RRT_PLANNER_VOXBLOX_RRT_PLANNER_H
+#ifndef VOXBLOX_RRT_PLANNER_RRT_PLANNER_VOXBLOX_H
+#define VOXBLOX_RRT_PLANNER_RRT_PLANNER_VOXBLOX_H
 
 #include <ros/package.h>
 #include <ros/ros.h>
@@ -20,7 +20,7 @@
 #include <minkindr_conversions/kindr_msg.h>
 #include <voxblox_ros/esdf_server.h>
 
-#include "voxblox_rrt_planner/voxblox_ompl_rrt.h"
+#include "voxblox_rrt_planner/ompl_rrt_voxblox.h"
 #include <cblox_planning/voxblox_planner.h>
 #include "voxblox_rrt_planner/rrt_planner.h"
 
@@ -60,4 +60,4 @@ class VoxbloxRrtPlanner : public RrtPlanner, public VoxbloxPlanner {
 
 }  // namespace mav_planning
 
-#endif  // VOXBLOX_RRT_PLANNER_VOXBLOX_RRT_PLANNER_H
+#endif  //VOXBLOX_RRT_PLANNER_RRT_PLANNER_VOXBLOX_H

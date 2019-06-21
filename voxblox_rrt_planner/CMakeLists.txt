@@ -11,10 +11,10 @@ add_definitions(-std=c++11)
 # LIBRARIES #
 #############
 cs_add_library(${PROJECT_NAME}
-  src/voxblox_ompl_rrt.cpp
-  src/voxblox_rrt_planner.cpp
+    src/ompl_rrt_voxblox.cpp
+    src/rrt_planner_voxblox.cpp
   src/rrt_planner.cpp
-  src/blox_ompl_rrt.cpp
+    src/ompl_rrt.cpp
 )
 target_link_libraries(${PROJECT_NAME} ${OMPL_LIBRARIES})
 

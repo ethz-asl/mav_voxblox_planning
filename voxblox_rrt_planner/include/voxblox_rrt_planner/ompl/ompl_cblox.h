@@ -68,11 +68,12 @@ class CbloxValidityChecker : public base::StateValidityChecker {
 class CbloxMotionValidator : public base::MotionValidator {
  public:
   CbloxMotionValidator(const base::SpaceInformationPtr& space_info,
-      typename std::shared_ptr<CbloxValidityChecker> validity_checker,
-      float voxel_size)
+      const typename std::shared_ptr<CbloxValidityChecker>& validity_checker,
+      float voxel_size, float truncation_distance)
       : base::MotionValidator(space_info),
         validity_checker_(validity_checker),
-        voxel_size_(voxel_size) {
+        voxel_size_(voxel_size),
+        truncation_distance_(truncation_distance) {
     CHECK(validity_checker);
 //    ROS_INFO("[CbloxMotionValidator] initializing");
   }
@@ -129,7 +130,8 @@ class CbloxMotionValidator : public base::MotionValidator {
       }
 
       // update position with dynamic step size
-      step_size_temp = std::max(std::min(step_size, remaining_distance), 1e-2);
+      step_size_temp = std::max(std::min(
+          static_cast<double>(truncation_distance_), remaining_distance), 1e-2);
       position = position + step_size_temp*ray_direction;
     }
 
@@ -157,6 +159,7 @@ class CbloxMotionValidator : public base::MotionValidator {
  protected:
   std::shared_ptr<CbloxValidityChecker> validity_checker_;
   float voxel_size_;
+  float truncation_distance_;
 };
 
 }  // namespace mav

@@ -93,18 +93,18 @@ class MavSetup : public geometric::SimpleSetup {
   }
 
   void setCbloxCollisionChecking(double robot_radius,
-      voxblox::FloatingPoint voxel_size,
-      std::function<double(const Eigen::Vector3d& position)> function) {
+      voxblox::FloatingPoint voxel_size, float truncation_distance,
+      std::function<double(const Eigen::Vector3d& position)> map_function) {
 
     // state validity checker
     std::shared_ptr<CbloxValidityChecker> validity_checker(
-        new CbloxValidityChecker(getSpaceInformation(), robot_radius, function));
+        new CbloxValidityChecker(getSpaceInformation(), robot_radius, map_function));
     setStateValidityChecker(base::StateValidityCheckerPtr(validity_checker));
 
     // motion validator
     si_->setMotionValidator(
-        base::MotionValidatorPtr(new CbloxMotionValidator(
-            getSpaceInformation(), validity_checker, voxel_size)));
+        base::MotionValidatorPtr(new CbloxMotionValidator(getSpaceInformation(),
+            validity_checker, voxel_size, truncation_distance)));
   }
 
   void constructPrmRoadmap(double num_seconds_to_construct) {

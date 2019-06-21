@@ -21,7 +21,7 @@
 #include <voxblox_ros/esdf_server.h>
 
 #include <cblox_planning/map_interface.h>
-#include "voxblox_rrt_planner/voxblox_ompl_rrt.h"
+#include "voxblox_rrt_planner/ompl_rrt_voxblox.h"
 
 namespace mav_planning {
 
