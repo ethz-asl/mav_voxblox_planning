@@ -117,23 +117,81 @@ class MavSetup : public geometric::SimpleSetup {
 
   void getPrmRoadmap() {
     ROS_INFO_STREAM("[MavSetup] getting roadmap");
-    const ompl::geometric::PRM::Graph& roadmap_graph =
+    ompl::geometric::PRM::Graph roadmap_graph =
         std::dynamic_pointer_cast<ompl::geometric::PRM>(getPlanner())
             ->getRoadmap();
-//    bool prm_edges = roadmap_graph.m_edges;
-//    bool prm_vertices = roadmap_graph.m_vertices;
-    auto it_pair = boost::vertices(roadmap_graph);
+
+    ROS_INFO_STREAM("[MavSetup] got roadmap");
+    std::shared_ptr<ompl::geometric::PRM> planner =
+        std::dynamic_pointer_cast<ompl::geometric::PRM>(getPlanner());
+    ROS_INFO_STREAM("[MavSetup] got planner");
+    ompl::base::PlannerData planner_data(si_);
+    ROS_INFO_STREAM("[MavSetup] dummy planner data");
+    planner_->getPlannerData(planner_data);
+    ROS_INFO_STREAM("[MavSetup] got planner data");
+    for (uint vertex_id = 0; vertex_id < planner_data.numVertices(); vertex_id++) {
+      ROS_INFO_STREAM("[MavSetup] vertex " << vertex_id << "/" << planner_data.numVertices());
+      ompl::base::PlannerDataVertex vertex = planner_data.getVertex(vertex_id);
+      ROS_INFO_STREAM("[MavSetup] got vertex");
+      const ompl::base::State *state = vertex.getState();
+      ROS_INFO_STREAM("[MavSetup] got state");
+      const auto* state_new =
+          static_cast<const ompl::base::RealVectorStateSpace::StateType*>(state);
+      ROS_INFO_STREAM("[MavSetup] got new state");
+      Eigen::Vector3d state_eigen = omplToEigen(state);
+      ROS_INFO_STREAM("[MavSetup] eigen: " << state_eigen.transpose());
+
+      std::vector<uint> neighbor_vertex_ids;
+      ROS_INFO_STREAM("[MavSetup] init neighbors");
+      planner_data.getIncomingEdges(vertex_id, neighbor_vertex_ids);
+      std::string neighbor_str;
+      for (uint nv : neighbor_vertex_ids) {
+        neighbor_str += std::to_string(nv) + std::string(" ");
+      }
+      ROS_INFO_STREAM("[MavSetup] neighbors " << neighbor_str);
+    }
+
+    /*
+    boost::adjacency_list< boost::vecS,
+        boost::vecS,
+        boost::undirectedS,
+        boost::property< vertex_state_t,
+            base::State *,
+            boost::property< vertex_total_connection_attempts_t,
+                unsigned long int,
+                boost::property< vertex_successful_connection_attempts_t,
+                        unsigned long int,
+                        boost::property< boost::vertex_predecessor_t,
+                                unsigned long int,
+                                boost::property< boost::vertex_rank_t,
+                                        unsigned long int > > > > >,
+        boost::property< boost::edge_weight_t,
+            base::Cost > >
+    adjacency_list< OutEdgeList,
+        VertexList,
+        Directed,
+        VertexProperties,
+
+        EdgeProperties, GraphProperties, EdgeList>
+    */
+
+    /*
     ROS_INFO_STREAM("[MavSetup] 1");
-    auto it = it_pair.first;
+    boost::property_map<ompl::geometric::PRM::Graph, ompl::geometric::PRM::vertex_state_t>*
+        vertex_properties;
+    boost::get(vertex_properties, roadmap_graph);
     ROS_INFO_STREAM("[MavSetup] 2");
+
+    auto it_pair = boost::vertices(roadmap_graph);
+    auto it = it_pair.first;
     const auto it_end = it_pair.second;
-    ROS_INFO_STREAM("[MavSetup] 3");
     int count = 0;
     while (it != it_end) {
-//      bool test = state(it);
+      ompl::geometric::PRM::Vertex vertex = *it;
+
       ompl::base::State* state;
       ROS_INFO_STREAM("[MavSetup] 4");
-      boost::get(state, *it);
+      boost::get(state, vertex);
       ROS_INFO_STREAM("[MavSetup] 5");
       if(state == nullptr) {
         ROS_INFO_STREAM("[MavSetup] empty state");
@@ -159,6 +217,7 @@ class MavSetup : public geometric::SimpleSetup {
       it++;
       count++;
     }
+    */
   }
 
   // Uses the path simplifier WITHOUT using B-spline smoothing which leads to
