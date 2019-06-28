@@ -18,7 +18,7 @@ void SparseGraphPlanner::setup() {
   const int kMaxLeaf = 10;
 
   kd_tree_adapter_.reset(
-      new DirectSkeletonVertexMapAdapter(graph_->getVertexMap()));
+      new DirectGraphVertexMapAdapter(graph_->getVertexMap()));
 
   kd_tree_.reset(new VertexGraphKdTree(
       kDim, *kd_tree_adapter_,
@@ -65,8 +65,8 @@ bool SparseGraphPlanner::getPathBetweenVertices(
 
   int64_t current_vertex_id = start_vertex_id;
 
-  const SkeletonVertex& end_vertex = graph_->getVertex(end_vertex_id);
-  const SkeletonVertex& this_vertex = graph_->getVertex(current_vertex_id);
+  const GraphVertex& end_vertex = graph_->getVertex(end_vertex_id);
+  const GraphVertex& this_vertex = graph_->getVertex(current_vertex_id);
 
   f_score_map[current_vertex_id] =
       (end_vertex.point - this_vertex.point).norm();
@@ -78,7 +78,7 @@ bool SparseGraphPlanner::getPathBetweenVertices(
     // Find the smallest f-value in the open set.
     current_vertex_id = popSmallestFromOpen(f_score_map, &open_set);
 
-    const SkeletonVertex& vertex = graph_->getVertex(current_vertex_id);
+    const GraphVertex& vertex = graph_->getVertex(current_vertex_id);
     // Check if this is already the goal...
     if (current_vertex_id == end_vertex_id) {
       getSolutionPath(end_vertex_id, parent_map, vertex_path);
@@ -88,7 +88,7 @@ bool SparseGraphPlanner::getPathBetweenVertices(
     closed_set.insert(current_vertex_id);
 
     for (int64_t edge_id : vertex.edge_list) {
-      const SkeletonEdge& edge = graph_->getEdge(edge_id);
+      const GraphEdge& edge = graph_->getEdge(edge_id);
       int64_t neighbor_vertex_id = -1;
       if (edge.start_vertex == current_vertex_id) {
         neighbor_vertex_id = edge.end_vertex;
@@ -104,7 +104,7 @@ bool SparseGraphPlanner::getPathBetweenVertices(
         open_set.insert(neighbor_vertex_id);
       }
 
-      const SkeletonVertex& neighbor_vertex =
+      const GraphVertex& neighbor_vertex =
           graph_->getVertex(neighbor_vertex_id);
 
       FloatingPoint tentative_g_score =

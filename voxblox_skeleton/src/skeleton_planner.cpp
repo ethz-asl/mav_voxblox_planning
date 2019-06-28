@@ -2,10 +2,11 @@
 
 namespace voxblox {
 
-SkeletonAStar::SkeletonAStar() : max_iterations_(0), skeleton_layer_(nullptr) {}
+SkeletonAStar::SkeletonAStar()
+    : max_iterations_(0), skeleton_layer_(nullptr), verbose_(false) {}
 
 SkeletonAStar::SkeletonAStar(const Layer<SkeletonVoxel>* skeleton_layer)
-    : max_iterations_(0), skeleton_layer_(skeleton_layer) {
+    : max_iterations_(0), skeleton_layer_(skeleton_layer), verbose_(false) {
   CHECK_NOTNULL(skeleton_layer_);
 }
 

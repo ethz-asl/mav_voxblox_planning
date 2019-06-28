@@ -17,6 +17,7 @@
 #include "voxblox_skeleton/skeleton.h"
 #include "voxblox_skeleton/skeleton_planner.h"
 #include "voxblox_skeleton/voxel_template_matcher.h"
+#include <voxblox_skeleton/sparse_graph_planner.h>
 
 namespace voxblox {
 
@@ -65,8 +66,8 @@ class SkeletonGenerator {
   Skeleton& getSkeleton() { return skeleton_; }
 
   // Sparse graph access.
-  const SparseSkeletonGraph& getSparseGraph() const { return graph_; }
-  SparseSkeletonGraph& getSparseGraph() { return graph_; }
+  const SparseGraph& getSparseGraph() const { return graph_; }
+  SparseGraph& getSparseGraph() { return graph_; }
 
   float getMinSeparationAngle() const { return min_separation_angle_; }
   void setMinSeparationAngle(float min_separation_angle) {
@@ -144,12 +145,14 @@ class SkeletonGenerator {
   void mergeSubgraphs(int subgraph_1, int subgraph_2,
                       std::map<int, int>* subgraph_map) const;
 
+  void setVerbose(bool verbose) {verbose_ = verbose;};
+
  private:
   // KD tree adapters.
   typedef nanoflann::KDTreeSingleIndexAdaptor<
       nanoflann::L2_Simple_Adaptor<FloatingPoint,
-                                   DirectSkeletonVertexMapAdapter>,
-      DirectSkeletonVertexMapAdapter, 3>
+                                   DirectGraphVertexMapAdapter>,
+      DirectGraphVertexMapAdapter, 3>
       VertexGraphKdTree;
   typedef nanoflann::KDTreeSingleIndexAdaptor<
       nanoflann::L2_Simple_Adaptor<FloatingPoint, SkeletonPointVectorAdapter>,
@@ -157,8 +160,8 @@ class SkeletonGenerator {
       SkeletonPointKdTree;
   typedef nanoflann::KDTreeSingleIndexDynamicAdaptor<
       nanoflann::L2_Simple_Adaptor<FloatingPoint,
-                                   DirectSkeletonVertexMapAdapter>,
-      DirectSkeletonVertexMapAdapter, 3>
+                                   DirectGraphVertexMapAdapter>,
+      DirectGraphVertexMapAdapter, 3>
       DynamicVertexGraphKdTree;
 
   float min_separation_angle_;
@@ -200,7 +203,9 @@ class SkeletonGenerator {
   float voxel_size_;
   size_t voxels_per_side_;
 
-  SparseSkeletonGraph graph_;
+  SparseGraph graph_;
+
+  bool verbose_;
 };
 
 }  // namespace voxblox

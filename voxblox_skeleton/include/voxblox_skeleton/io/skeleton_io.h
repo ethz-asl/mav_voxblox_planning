@@ -4,23 +4,24 @@
 #include "./skeleton.pb.h"
 
 #include "voxblox_skeleton/skeleton.h"
+#include <voxblox_skeleton/sparse_graph_planner.h>
 
 namespace voxblox {
 namespace io {
 
-bool saveSparseSkeletonGraphToFile(const std::string& filename,
-                                   const SparseSkeletonGraph& graph);
+bool saveSparseGraphToFile(const std::string& filename,
+                                   const SparseGraph& graph);
 
-bool loadSparseSkeletonGraphFromFile(const std::string& filename,
-                                     SparseSkeletonGraph* graph);
+bool loadSparseGraphFromFile(const std::string& filename,
+                                     SparseGraph* graph);
 
-void convertVertexToProto(const SkeletonVertex& vertex,
-                          SkeletonVertexProto* proto);
-void convertEdgeToProto(const SkeletonEdge& edge, SkeletonEdgeProto* proto);
+void convertVertexToProto(const GraphVertex& vertex,
+                          GraphVertexProto* proto);
+void convertEdgeToProto(const GraphEdge& edge, GraphEdgeProto* proto);
 
-void convertProtoToVertex(const SkeletonVertexProto& proto,
-                          SkeletonVertex* vertex);
-void convertProtoToEdge(const SkeletonEdgeProto& proto, SkeletonEdge* edge);
+void convertProtoToVertex(const GraphVertexProto& proto,
+                          GraphVertex* vertex);
+void convertProtoToEdge(const GraphEdgeProto& proto, GraphEdge* edge);
 
 }  // namespace io
 }  // namespace voxblox

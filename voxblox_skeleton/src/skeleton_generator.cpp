@@ -11,7 +11,8 @@ SkeletonGenerator::SkeletonGenerator()
       check_edges_on_construction_(false),
       vertex_pruning_radius_(0.35),
       min_gvd_distance_(0.4),
-      cleanup_style_(kSimplify) {
+      cleanup_style_(kSimplify),
+      verbose_(false) {
   // Initialize the template matchers.
   pruning_template_matcher_.setDeletionTemplates();
   corner_template_matcher_.setCornerTemplates();
@@ -223,10 +224,12 @@ void SkeletonGenerator::generateSkeleton() {
     }
   }
 
-  LOG(INFO)
-      << "[GVD] Finished finding GVD candidates. Number of skeleton points: "
-      << skeleton_.getSkeletonPoints().size()
-      << " edges: " << skeleton_.getEdgePoints().size();
+  if (verbose_) {
+    LOG(INFO)
+        << "[GVD] Finished finding GVD candidates. Number of skeleton points: "
+        << skeleton_.getSkeletonPoints().size()
+        << " edges: " << skeleton_.getEdgePoints().size();
+  }
   if (generate_by_layer_neighbors_) {
     generateEdgesByLayerNeighbors();
   }
@@ -522,7 +525,7 @@ void SkeletonGenerator::generateSparseGraph() {
 //    if (!skeleton_layer_->getBlockPtrByCoordinates(point.point)) {
 //      continue;
 //    }
-    SkeletonVertex vertex;
+    GraphVertex vertex;
     vertex.point = point.point;
     vertex.distance = point.distance;
     int64_t vertex_id = graph_.addVertex(vertex);
@@ -542,7 +545,7 @@ void SkeletonGenerator::generateSparseGraph() {
   Neighborhood<>::IndexMatrix neighbors;
   const FloatingPoint grid_size_inv = 1.0 / voxel_size_;
   for (const int64_t vertex_id : vertex_ids) {
-    SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+    GraphVertex& vertex = graph_.getVertex(vertex_id);
 
     // Get the global index of this voxel.
     GlobalIndex global_index =
@@ -601,14 +604,14 @@ void SkeletonGenerator::generateSparseGraph() {
     }
 
     if (connected_vertex_id >= 0) {
-      SkeletonVertex& connected_vertex = graph_.getVertex(connected_vertex_id);
+      GraphVertex& connected_vertex = graph_.getVertex(connected_vertex_id);
 
       // TODO(helenol): some more checks, for instance merge directly adjacent
       // vertices.
       // Before adding an edge, make sure it's not already in there...
       bool already_exists = false;
       for (int64_t edge_id : connected_vertex.edge_list) {
-        SkeletonEdge& edge = graph_.getEdge(edge_id);
+        GraphEdge& edge = graph_.getEdge(edge_id);
         if (edge.start_vertex == kv.second || edge.end_vertex == kv.second) {
           already_exists = true;
           break;
@@ -619,7 +622,7 @@ void SkeletonGenerator::generateSparseGraph() {
       }
 
       // Ok it's new, let's add this little guy.
-      SkeletonEdge edge;
+      GraphEdge edge;
       edge.start_vertex = kv.second;
       edge.end_vertex = connected_vertex_id;
       edge.start_distance = 0.0;
@@ -638,8 +641,10 @@ void SkeletonGenerator::generateSparseGraph() {
     simplifyGraph();
   }
 
-  LOG(INFO) << "[Sparse Graph] Vertices: " << graph_.getVertexMap().size()
-            << " Edges: " << graph_.getEdgeMap().size();
+  if (verbose_) {
+    LOG(INFO) << "[Sparse Graph] Vertices: " << graph_.getVertexMap().size()
+              << " Edges: " << graph_.getEdgeMap().size();
+  }
 }
 
 // Checks whether a point is simple, i.e., if its removal would not affect
@@ -1098,8 +1103,10 @@ void SkeletonGenerator::pruneDiagramVertices() {
     }
   }
 
-  LOG(INFO) << "[Prune] Number of vertices before prune: " << num_vertices
-            << " Number of deleted vertices: " << deletion_index.size();
+  if (verbose_) {
+    LOG(INFO) << "[Prune] Number of vertices before prune: " << num_vertices
+              << " Number of deleted vertices: " << deletion_index.size();
+  }
 
   // Go through everything in the deletion index and remove it from the list.
   // As always, have to go backwards to preserve voxel indices.
@@ -1153,7 +1160,7 @@ void SkeletonGenerator::splitSpecificEdges(
   timing::Timer kdtree_timer("skeleton/split_edges/kdtree");
   // Build the kD Tree of the vertices at the current moment.
   // Create the adapter.
-  DirectSkeletonVertexMapAdapter adapter(graph_.getVertexMap());
+  DirectGraphVertexMapAdapter adapter(graph_.getVertexMap());
 
   // construct a kd-tree index:
   const int kDim = 3;
@@ -1176,7 +1183,7 @@ void SkeletonGenerator::splitSpecificEdges(
       continue;
     }
     // Get the start and end points.
-    SkeletonEdge& edge = graph_.getEdge(edge_id);
+    GraphEdge& edge = graph_.getEdge(edge_id);
     const Point& start = edge.start_point;
     const Point& end = edge.end_point;
 
@@ -1193,7 +1200,7 @@ void SkeletonGenerator::splitSpecificEdges(
     // Impose some minimum distance...
     if (max_d > kMaxThreshold) {
       // Pick the point with the max deviation to insert a new voxel there.
-      SkeletonVertex new_vertex;
+      GraphVertex new_vertex;
       new_vertex.point = coordinate_path[max_d_ind];
 
       // Ok, let's check if there's something already close enough...
@@ -1214,7 +1221,7 @@ void SkeletonGenerator::splitSpecificEdges(
       if (squared_distance < kVertexSearchRadus) {
         auto iter = graph_.getVertexMap().find(ret_index);
         if (iter != graph_.getVertexMap().end()) {
-          const SkeletonVertex& vertex_candidate = iter->second;
+          const GraphVertex& vertex_candidate = iter->second;
 
           if (vertex_candidate.vertex_id != edge.start_vertex &&
               vertex_candidate.vertex_id != edge.end_vertex) {
@@ -1246,7 +1253,7 @@ void SkeletonGenerator::splitSpecificEdges(
                   // Only connect to this if it ACTUALLY lowers the costs!
 
                   // Remove the existing edge, add two new edges.
-                  SkeletonEdge new_edge_1, new_edge_2;
+                  GraphEdge new_edge_1, new_edge_2;
                   new_edge_1.start_vertex = edge.start_vertex;
                   new_edge_1.end_vertex = vertex_candidate.vertex_id;
                   new_edge_2.start_vertex = vertex_candidate.vertex_id;
@@ -1287,7 +1294,7 @@ void SkeletonGenerator::splitSpecificEdges(
       voxel->vertex_id = vertex_id;
 
       // Remove the existing edge, add two new edges.
-      SkeletonEdge new_edge_1, new_edge_2;
+      GraphEdge new_edge_1, new_edge_2;
       new_edge_1.start_vertex = edge.start_vertex;
       new_edge_1.end_vertex = vertex_id;
       new_edge_2.start_vertex = vertex_id;
@@ -1311,7 +1318,9 @@ void SkeletonGenerator::splitSpecificEdges(
   }
 
   skeleton_planner_.setMaxIterations(0);
-  LOG(INFO) << "[Split Edges] Num vertices added: " << num_vertices_added;
+  if (verbose_) {
+    LOG(INFO) << "[Split Edges] Num vertices added: " << num_vertices_added;
+  }
 }
 
 FloatingPoint SkeletonGenerator::getMaxEdgeDistanceFromStraightLine(
@@ -1326,7 +1335,9 @@ FloatingPoint SkeletonGenerator::getMaxEdgeDistanceFromStraightLine(
       skeleton_planner_.getPathOnDiagram(start, end, coordinate_path);
 
   if (!success) {
-    LOG(INFO) << "Something is wrong!";
+    if (verbose_) {
+      LOG(INFO) << "Something is wrong!";
+    }
     return -1.0;
   }
 
@@ -1373,7 +1384,7 @@ void SkeletonGenerator::repairGraph() {
 
   int last_subgraph = 0;
   for (const int64_t vertex_id : vertex_ids) {
-    SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+    GraphVertex& vertex = graph_.getVertex(vertex_id);
     if (vertex.subgraph_id > 0) {
       // This vertex is already labelled.
       continue;
@@ -1394,12 +1405,14 @@ void SkeletonGenerator::repairGraph() {
     return;
   }
 
-  LOG(INFO) << "[Subgraph] Number of disconnected subgraphs: "
-            << subgraph_vertex_examples.size();
+  if (verbose_) {
+    LOG(INFO) << "[Subgraph] Number of disconnected subgraphs: "
+              << subgraph_vertex_examples.size();
+  }
 
   // Go through all combinations of subgraphs until we're connected.
   for (const std::pair<int, int64_t>& subgraph1 : subgraph_vertex_examples) {
-    const SkeletonVertex& vertex1 = graph_.getVertex(subgraph1.second);
+    const GraphVertex& vertex1 = graph_.getVertex(subgraph1.second);
     if (vertex1.subgraph_id != subgraph1.first) {
       // This already got absorbed into another subgraph.
       continue;
@@ -1409,7 +1422,7 @@ void SkeletonGenerator::repairGraph() {
       if (subgraph1.first == subgraph2.first) {
         continue;
       }
-      const SkeletonVertex& vertex2 = graph_.getVertex(subgraph2.second);
+      const GraphVertex& vertex2 = graph_.getVertex(subgraph2.second);
       if (vertex2.subgraph_id != subgraph2.first) {
         // This already got absorbed into another subgraph.
         continue;
@@ -1426,8 +1439,10 @@ void SkeletonGenerator::repairGraph() {
       }
     }
   }
-  LOG(INFO) << "[Subgraph] Trying to check if we need to split "
-            << new_edge_ids.size() << " new edges.";
+  if (verbose_) {
+    LOG(INFO) << "[Subgraph] Trying to check if we need to split "
+              << new_edge_ids.size() << " new edges.";
+  }
 
   timing::Timer split_timer("skeleton/repair_graph/split");
   splitSpecificEdges(new_edge_ids);
@@ -1439,25 +1454,27 @@ void SkeletonGenerator::repairGraph() {
   std::set<int> unique_subgraphs;
 
   for (const int64_t vertex_id : vertex_ids) {
-    SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+    GraphVertex& vertex = graph_.getVertex(vertex_id);
     if (vertex.subgraph_id > 0) {
       unique_subgraphs.insert(vertex.subgraph_id);
     }
   }
 
-  LOG(INFO) << "[Subgraph] Final number of disconnected subgraphs: "
-            << unique_subgraphs.size();
+  if (verbose_) {
+    LOG(INFO) << "[Subgraph] Final number of disconnected subgraphs: "
+              << unique_subgraphs.size();
+  }
 }
 
 int SkeletonGenerator::recursivelyLabel(int64_t vertex_id, int subgraph_id) {
   int num_labelled = 1;
-  SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+  GraphVertex& vertex = graph_.getVertex(vertex_id);
   if (vertex.subgraph_id == subgraph_id) {
     return 0;
   }
   vertex.subgraph_id = subgraph_id;
   for (int64_t edge_id : vertex.edge_list) {
-    const SkeletonEdge& edge = graph_.getEdge(edge_id);
+    const GraphEdge& edge = graph_.getEdge(edge_id);
     int64_t neighbor_vertex_id = -1;
     if (edge.start_vertex == vertex_id) {
       neighbor_vertex_id = edge.end_vertex;
@@ -1495,7 +1512,7 @@ void SkeletonGenerator::tryToFindEdgesInCoordinatePath(
       int64_t vertex_id = voxel->vertex_id;
       // Look up this vertex.
       if (graph_.hasVertex(vertex_id)) {
-        SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+        GraphVertex& vertex = graph_.getVertex(vertex_id);
         if (vertex.subgraph_id > 0) {
           // If this is the same subgraph ID as the previous one, then just
           // store it as the latest.
@@ -1503,7 +1520,7 @@ void SkeletonGenerator::tryToFindEdgesInCoordinatePath(
             last_vertex_id = vertex_id;
           } else if (last_vertex_id != -1) {
             // Ok this is a different subgraph! Let's put in an edge.
-            SkeletonEdge new_edge;
+            GraphEdge new_edge;
             new_edge.start_vertex = last_vertex_id;
             new_edge.end_vertex = vertex_id;
             int64_t edge_id = graph_.addEdge(new_edge);
@@ -1551,7 +1568,7 @@ void SkeletonGenerator::simplifyVertices() {
 
   // Build a kd tree again.
   constexpr int kMaxLeaf = 10;
-  DirectSkeletonVertexMapAdapter adapter(graph_.getVertexMap());
+  DirectGraphVertexMapAdapter adapter(graph_.getVertexMap());
   // construct a kd-tree index:
   VertexGraphKdTree kd_tree(
       3, adapter, nanoflann::KDTreeSingleIndexAdaptorParams(kMaxLeaf));
@@ -1573,14 +1590,14 @@ void SkeletonGenerator::simplifyVertices() {
   const FloatingPoint kMaxThreshold = 2 * voxel_size_;
 
   for (const int64_t vertex_id : vertex_ids) {
-    SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+    GraphVertex& vertex = graph_.getVertex(vertex_id);
     if (vertex.edge_list.size() == 1) {
       // Find it a friend! Find only friends with only 1 neighbor.
       // kD tree lookup here.
       size_t num_results = kd_tree.knnSearch(vertex.point.data(), kNumNeighbors,
                                              &ret_index[0], &out_dist_sqr[0]);
       for (size_t i = 0; i < num_results; i++) {
-        const SkeletonVertex& neighbor_vertex = graph_.getVertex(ret_index[i]);
+        const GraphVertex& neighbor_vertex = graph_.getVertex(ret_index[i]);
         if (neighbor_vertex.edge_list.size() == 1) {
           timing::Timer path_timer("skeleton/simplify_vertices/path_finding");
 
@@ -1606,7 +1623,7 @@ void SkeletonGenerator::simplifyVertices() {
               continue;
             }
 
-            SkeletonEdge new_edge;
+            GraphEdge new_edge;
             new_edge.start_vertex = vertex_id;
             new_edge.end_vertex = neighbor_vertex.vertex_id;
             int64_t edge_id = graph_.addEdge(new_edge);
@@ -1620,13 +1637,13 @@ void SkeletonGenerator::simplifyVertices() {
   }
 
   for (const int64_t vertex_id : vertex_ids) {
-    const SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+    const GraphVertex& vertex = graph_.getVertex(vertex_id);
     if (vertex.edge_list.size() == 2) {
       vertex_removal_candidates++;
 
       // Try to see if we can cut this!
-      const SkeletonEdge& edge1 = graph_.getEdge(vertex.edge_list[0]);
-      const SkeletonEdge& edge2 = graph_.getEdge(vertex.edge_list[1]);
+      const GraphEdge& edge1 = graph_.getEdge(vertex.edge_list[0]);
+      const GraphEdge& edge2 = graph_.getEdge(vertex.edge_list[1]);
 
       int64_t vertex_id1 = edge1.start_vertex;
       if (vertex_id1 == vertex_id) {
@@ -1637,8 +1654,8 @@ void SkeletonGenerator::simplifyVertices() {
         vertex_id2 = edge2.end_vertex;
       }
 
-      const SkeletonVertex& vertex1 = graph_.getVertex(vertex_id1);
-      const SkeletonVertex& vertex2 = graph_.getVertex(vertex_id2);
+      const GraphVertex& vertex1 = graph_.getVertex(vertex_id1);
+      const GraphVertex& vertex2 = graph_.getVertex(vertex_id2);
 
       AlignedVector<Point> coordinate_path;
       bool success = skeleton_planner_.getPathInEsdf(
@@ -1651,7 +1668,7 @@ void SkeletonGenerator::simplifyVertices() {
           vertex1.point, vertex2.point, coordinate_path, &max_index);
 
       if (max_d <= kMaxThreshold) {
-        SkeletonEdge new_edge;
+        GraphEdge new_edge;
         new_edge.start_vertex = vertex_id1;
         new_edge.end_vertex = vertex_id2;
         int64_t edge_id = graph_.addEdge(new_edge);
@@ -1660,9 +1677,11 @@ void SkeletonGenerator::simplifyVertices() {
       }
     }
   }
-  LOG(INFO) << "[Simplify Vertices] Vertex removals: " << vertices_removed
-            << " / " << vertex_removal_candidates
-            << ", Edges added: " << edges_added;
+  if (verbose_) {
+    LOG(INFO) << "[Simplify Vertices] Vertex removals: " << vertices_removed
+              << " / " << vertex_removal_candidates
+              << ", Edges added: " << edges_added;
+  }
 }
 
 void SkeletonGenerator::reconnectSubgraphsAlongEsdf() {
@@ -1680,7 +1699,7 @@ void SkeletonGenerator::reconnectSubgraphsAlongEsdf() {
 
   int last_subgraph = 0;
   for (const int64_t vertex_id : vertex_ids) {
-    SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+    GraphVertex& vertex = graph_.getVertex(vertex_id);
     if (vertex.subgraph_id > 0) {
       // This vertex is already labelled.
       continue;
@@ -1702,8 +1721,10 @@ void SkeletonGenerator::reconnectSubgraphsAlongEsdf() {
     return;
   }
 
-  LOG(INFO) << "[Subgraph] Number of disconnected subgraphs: "
-            << subgraph_vertex_examples.size();
+  if (verbose_) {
+    LOG(INFO) << "[Subgraph] Number of disconnected subgraphs: "
+              << subgraph_vertex_examples.size();
+  }
 
   size_t potential_edge_candidates = 0;
   size_t diagram_candidates = 0;
@@ -1711,7 +1732,7 @@ void SkeletonGenerator::reconnectSubgraphsAlongEsdf() {
   // Next, build a KD Tree of all the vertices.
   // Create the adapter.
   constexpr int kMaxLeaf = 10;
-  DirectSkeletonVertexMapAdapter adapter(graph_.getVertexMap());
+  DirectGraphVertexMapAdapter adapter(graph_.getVertexMap());
   // construct a kd-tree index:
   VertexGraphKdTree kd_tree(
       3, adapter, nanoflann::KDTreeSingleIndexAdaptorParams(kMaxLeaf));
@@ -1727,14 +1748,14 @@ void SkeletonGenerator::reconnectSubgraphsAlongEsdf() {
     if (!graph_.hasVertex(vertex_id)) {
       continue;
     }
-    const SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+    const GraphVertex& vertex = graph_.getVertex(vertex_id);
 
     // kD tree lookup here.
     size_t num_results = kd_tree.knnSearch(vertex.point.data(), kNumNeighbors,
                                            &ret_index[0], &out_dist_sqr[0]);
     for (size_t i = 0; i < num_results; i++) {
       CHECK(graph_.hasVertex(ret_index[i]));
-      const SkeletonVertex& neighbor_vertex = graph_.getVertex(ret_index[i]);
+      const GraphVertex& neighbor_vertex = graph_.getVertex(ret_index[i]);
       if (subgraph_map[neighbor_vertex.subgraph_id] ==
           subgraph_map[vertex.subgraph_id]) {
         continue;
@@ -1750,7 +1771,7 @@ void SkeletonGenerator::reconnectSubgraphsAlongEsdf() {
           vertex.point, neighbor_vertex.point, &coordinate_path);
       if (success) {
         diagram_candidates++;
-        SkeletonEdge new_edge;
+        GraphEdge new_edge;
         new_edge.start_vertex = vertex_id;
         new_edge.end_vertex = neighbor_vertex.vertex_id;
         int64_t edge_id = graph_.addEdge(new_edge);
@@ -1761,23 +1782,27 @@ void SkeletonGenerator::reconnectSubgraphsAlongEsdf() {
       path_timer.Stop();
     }
   }
-  LOG(INFO) << "[Subgraph] Potential edge candidates: "
-            << potential_edge_candidates
-            << " diagram candidates: " << diagram_candidates;
+  if (verbose_) {
+    LOG(INFO) << "[Subgraph] Potential edge candidates: "
+              << potential_edge_candidates
+              << " diagram candidates: " << diagram_candidates;
+  }
 
   // Recolor!
   timing::Timer recolor_timer("skeleton/reconnect/recolor");
   std::set<int> unique_subgraphs;
 
   for (const int64_t vertex_id : vertex_ids) {
-    SkeletonVertex& vertex = graph_.getVertex(vertex_id);
+    GraphVertex& vertex = graph_.getVertex(vertex_id);
     vertex.subgraph_id = subgraph_map[vertex.subgraph_id];
     unique_subgraphs.insert(vertex.subgraph_id);
   }
   recolor_timer.Stop();
 
-  LOG(INFO) << "[Subgraph] Final number of disconnected subgraphs: "
-            << unique_subgraphs.size();
+  if (verbose_) {
+    LOG(INFO) << "[Subgraph] Final number of disconnected subgraphs: "
+              << unique_subgraphs.size();
+  }
 }
 
 void SkeletonGenerator::mergeSubgraphs(int subgraph_1, int subgraph_2,
@@ -1797,11 +1822,11 @@ void SkeletonGenerator::mergeSubgraphs(int subgraph_1, int subgraph_2,
 }
 
 bool SkeletonGenerator::loadSparseGraphFromFile(const std::string& filename) {
-  return io::loadSparseSkeletonGraphFromFile(filename, &graph_);
+  return io::loadSparseGraphFromFile(filename, &graph_);
 }
 
 bool SkeletonGenerator::saveSparseGraphToFile(const std::string& filename) {
-  return io::saveSparseSkeletonGraphToFile(filename, graph_);
+  return io::saveSparseGraphToFile(filename, graph_);
 }
 
 }  // namespace voxblox

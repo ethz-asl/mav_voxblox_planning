@@ -285,7 +285,7 @@ void SkeletonEvalNode::generateSkeleton() {
   ROS_INFO_STREAM("Total Timings: " << std::endl << timing::Timing::Print());
 
   // Now visualize the graph.
-  const SparseSkeletonGraph& graph = skeleton_generator.getSparseGraph();
+  const SparseGraph& graph = skeleton_generator.getSparseGraph();
   visualization_msgs::MarkerArray marker_array;
   visualizeSkeletonGraph(graph, frame_id_, &marker_array);
   sparse_graph_pub_.publish(marker_array);

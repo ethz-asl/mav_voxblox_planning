@@ -138,7 +138,7 @@ void SkeletonGlobalPlanner::generateSparseGraph() {
     skeleton_pub_.publish(ptcloud_pcl);
 
     // Now visualize the graph.
-    const voxblox::SparseSkeletonGraph& graph =
+    const voxblox::SparseGraph& graph =
         skeleton_generator_.getSparseGraph();
     visualization_msgs::MarkerArray marker_array;
     voxblox::visualizeSkeletonGraph(graph, frame_id_, &marker_array);
