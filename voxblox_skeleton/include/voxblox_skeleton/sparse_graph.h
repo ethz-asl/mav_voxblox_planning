@@ -27,6 +27,8 @@ namespace voxblox {
     float start_distance = 0.0f;
     float end_distance = 0.0f;
 
+    int subgraph_id = 0;
+
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
 
