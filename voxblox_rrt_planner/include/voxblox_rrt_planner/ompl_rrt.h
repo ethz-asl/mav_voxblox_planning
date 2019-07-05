@@ -60,6 +60,7 @@ class BloxOmplRrt {
                              mav_msgs::EigenTrajectoryPoint::Vector* solution);
 
   void constructPrmRoadmap(double roadmap_construction_sec) {
+    problem_setup_.clear();
     problem_setup_.setup();
     problem_setup_.constructPrmRoadmap(roadmap_construction_sec);
   }

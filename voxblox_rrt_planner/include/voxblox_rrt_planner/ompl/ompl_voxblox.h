@@ -172,7 +172,7 @@ class TsdfVoxbloxValidityChecker
     // No collision if nothing in the sphere had a negative or 0 distance.
     // Unknown space is unoccupied, since this is a very optimistic global
     // planner.
-    return remaining_distance;
+    return remaining_distance - robot_radius_;
   }
 
  protected:

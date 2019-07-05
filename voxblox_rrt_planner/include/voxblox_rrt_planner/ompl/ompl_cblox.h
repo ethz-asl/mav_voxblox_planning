@@ -97,8 +97,7 @@ class CbloxMotionValidator : public base::MotionValidator {
     // cast ray from start to finish
     Eigen::Vector3d ray_direction = (goal - start).normalized();
     double ray_length = (goal-start).norm();
-    double step_size = voxel_size_ / 2;
-    double step_size_temp = 0;
+    double step_size = 0;
 
     // iterate along ray
     Eigen::Vector3d position = start;
@@ -112,7 +111,7 @@ class CbloxMotionValidator : public base::MotionValidator {
       // find last valid and copy to si_
       if (collision) {
         Eigen::Vector3d last_position =
-            position - step_size_temp*ray_direction;
+            position - step_size*ray_direction;
 
         if (last_valid.first != nullptr) {
           ompl::base::ScopedState<ompl::mav::StateSpace> last_valid_state(
@@ -130,9 +129,9 @@ class CbloxMotionValidator : public base::MotionValidator {
       }
 
       // update position with dynamic step size
-      step_size_temp = std::max(std::min(
+      step_size = std::max(std::min(
           static_cast<double>(truncation_distance_), remaining_distance), 1e-2);
-      position = position + step_size_temp*ray_direction;
+      position = position + step_size*ray_direction;
     }
 
     // additionally check goal position
