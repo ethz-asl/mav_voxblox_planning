@@ -86,7 +86,7 @@ namespace voxblox {
     void addSerializedEdge(const GraphEdge& edge);
 
     // transforms vertex locations into different frame
-    void transformFrame(Transformation T_G_S);
+    void transformFrame(const Transformation& T_G_S);
 
   private:
     // Vertex and edge IDs are separate.

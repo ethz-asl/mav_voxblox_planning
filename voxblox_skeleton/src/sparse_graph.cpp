@@ -153,10 +153,12 @@ void SparseGraph::addSerializedEdge(const GraphEdge& edge) {
   edge_map_[edge.edge_id] = edge;
 }
 
-void SparseGraph::transformFrame(Transformation T_G_S) {
+void SparseGraph::transformFrame(const Transformation& T_G_S) {
+  // transform vertices
   for (std::pair<const int64_t, GraphVertex>& kv : vertex_map_) {
     kv.second.point = T_G_S * kv.second.point;
   }
+  // transform edges
   for (std::pair<const int64_t, GraphEdge>& kv : edge_map_) {
     kv.second.start_point = T_G_S * kv.second.start_point;
     kv.second.end_point = T_G_S * kv.second.end_point;
