@@ -4,6 +4,10 @@ project(voxblox_rrt_planner)
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
+# Hack to force OMPL to find the right headers and src files ########
+find_package(ompl REQUIRED)
+include_directories(${OMPL_INCLUDE_DIRS})
+
 add_definitions(-std=c++11)
 
 #############
