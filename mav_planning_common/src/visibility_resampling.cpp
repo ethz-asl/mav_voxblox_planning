@@ -1,3 +1,5 @@
+#include <numeric>
+
 #include <mav_trajectory_generation/vertex.h>
 
 #include "mav_planning_common/visibility_resampling.h"
