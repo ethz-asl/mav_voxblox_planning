@@ -28,4 +28,4 @@ target_link_libraries(voxblox_rrt_planner_node ${PROJECT_NAME})
 # EXPORT #
 ##########
 cs_install()
-cs_export()
+cs_export(LIBRARIES ${OMPL_LIBRARIES})
