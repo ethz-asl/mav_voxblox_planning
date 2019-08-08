@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>voxblox_rrt_planner</name>
+  <name>mav_planning_voxblox</name>
   <version>0.0.0</version>
   <description>
-    Global planning with voxblox.
+    Common planning utilities.
   </description>
 
   <author email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</author>
@@ -15,16 +15,6 @@
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>catkin_simple</buildtool_depend>
 
-  <depend>mav_msgs</depend>
-  <depend>mav_path_smoothing</depend>
-  <depend>mav_planning_common</depend>
-  <depend>mav_trajectory_generation_ros</depend>
-  <depend>ompl</depend>
-  <depend>roscpp</depend>
-  <depend>std_msgs</depend>
-  <depend>tf</depend>
-  <depend>visualization_msgs</depend>
-  <depend>mav_planning_voxblox</depend>
+  <depend>voxblox</depend>
   <depend>voxblox_ros</depend>
-  <depend>cblox</depend>
 </package>
