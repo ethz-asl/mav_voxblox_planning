@@ -20,7 +20,7 @@
 #include <minkindr_conversions/kindr_msg.h>
 #include <voxblox_ros/esdf_server.h>
 
-#include <cblox_planning/map_interface.h>
+#include <mav_planning_voxblox/map_interface.h>
 #include "voxblox_rrt_planner/ompl_rrt_voxblox.h"
 
 namespace mav_planning {
@@ -87,6 +87,7 @@ class RrtPlanner {
   std::string frame_id_;
   bool visualize_;
   bool do_smoothing_;
+  bool path_shortening_;
 
   // Robot parameters -- v max, a max, radius, etc.
   PhysicalConstraints constraints_;
