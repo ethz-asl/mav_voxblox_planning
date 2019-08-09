@@ -9,6 +9,7 @@ VoxbloxPlanner::VoxbloxPlanner(const ros::NodeHandle &nh,
     : voxblox_server_(nh, nh_private),
       visualize_(false) {
 //  nh_private.param("visualize", visualize_, visualize_);
+  nh_private.param("voxblox_path", input_filepath_, input_filepath_);
 }
 
 void VoxbloxPlanner::initializeMap() {
