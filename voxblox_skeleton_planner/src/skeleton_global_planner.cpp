@@ -123,21 +123,28 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
     voxblox_server_.generateMesh();
     voxblox_server_.publishSlices();
     voxblox_server_.publishPointclouds();
+    voxblox_server_.publishMap();
+
+    ROS_INFO("published maps");
   }
+
+  generateSparseGraph();
 }
 
 void SkeletonGlobalPlanner::generateSparseGraph() {
   ROS_INFO("About to generate skeleton graph.");
-  skeleton_generator_.updateSkeletonFromLayer();
-  ROS_INFO("Re-populated from layer.");
 
   if (!sparse_graph_path_.empty() &&
       skeleton_generator_.loadSparseGraphFromFile(sparse_graph_path_)) {
     ROS_INFO_STREAM("Loaded sparse graph from file: " << sparse_graph_path_);
   } else {
+    skeleton_generator_.updateSkeletonFromLayer();
+    ROS_INFO("Re-populated from layer.");
     skeleton_generator_.generateSparseGraph();
     ROS_INFO("Generated skeleton graph.");
   }
+  ROS_INFO("Sparse graph with %lu edges", skeleton_generator_.getSparseGraph().getVertexMap().size());
+
   if (visualize_) {
     voxblox::Pointcloud pointcloud;
     std::vector<float> distances;
@@ -194,11 +201,11 @@ bool SkeletonGlobalPlanner::plannerServiceCallback(
   visualization_msgs::MarkerArray marker_array;
 
   bool run_astar_esdf = false;
-  bool run_astar_diagram = true;
+  bool run_astar_diagram = false;
   bool run_astar_graph = true;
   bool shorten_graph = true;
   bool exact_start_and_goal = true;
-  bool smooth_path = true;
+  bool smooth_path = false;
 
   if (run_astar_esdf) {
     // First, run just the ESDF A*...
@@ -368,6 +375,120 @@ bool SkeletonGlobalPlanner::publishPathCallback(
   pose_array.header.frame_id = frame_id_;
   waypoint_list_pub_.publish(pose_array);
   return true;
+}
+
+void SkeletonGlobalPlanner::explore() {
+  ROS_INFO("[PrmPlanner] flying trajectory");
+  std::vector<Eigen::Vector3d> waypoints;
+  Eigen::Vector3d point;
+  point = Eigen::Vector3d(0, 0, 1);
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(38, 69, 2);
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(32, 73, 2);
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(66,217,2);
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(104,242,2);
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(188,163,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(417,253,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(447,193,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(340,54,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(398,71,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(271,134,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(233,172,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(223,126,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(186,167,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(193,58,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(252,68,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(238,24,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(214,1,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(152,25,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(204,104,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(180,108,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(152,25,2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(0, 0, 1);
+  waypoints.emplace_back(point);
+  ROS_INFO("[PrmPlanner] got waypoints");
+
+  for (int i = 0; i < waypoints.size() - 1; i++) {
+    // getting plan
+    mav_planning_msgs::PlannerServiceRequest plan_request;
+    geometry_msgs::PoseStamped pose;
+    pose.header.frame_id = frame_id_;
+    pose.pose.position.x = waypoints[i].x();
+    pose.pose.position.y = waypoints[i].y();
+    pose.pose.position.z = waypoints[i].z();
+    plan_request.start_pose = pose;
+    pose.pose.position.x = waypoints[i+1].x();
+    pose.pose.position.y = waypoints[i+1].y();
+    pose.pose.position.z = waypoints[i+1].z();
+    plan_request.goal_pose = pose;
+    mav_planning_msgs::PlannerServiceResponse plan_response;
+    ROS_INFO("[PrmPlanner] prep %d", i);
+    plannerServiceCallback(plan_request, plan_response);
+    ROS_INFO("[PrmPlanner] planned");
+
+    if (!plan_response.success) {
+      bool success = false;
+      double diff = 2;
+      for (double diff_x = -diff; diff_x <= diff; diff_x++) {
+        break;
+        for (double diff_y = -diff; diff_y <= diff; diff_y++) {
+          plan_request.goal_pose.pose.position.x += diff_x;
+          plan_request.goal_pose.pose.position.y += diff_y;
+          ROS_WARN("[PrmPlanner] attempting (%.0f, %.0f)",
+                   plan_request.goal_pose.pose.position.x, plan_request.goal_pose.pose.position.y);
+          plannerServiceCallback(plan_request, plan_response);
+          success = plan_response.success;
+          if (success) {break;}
+        }
+        if (success) {break;}
+      }
+      if (!success) {
+        ROS_ERROR("[PrmPlanner] aborting %d", i);
+        waypoints[i+1] = waypoints[i];
+        continue;
+      }
+    }
+
+    // publishing plan
+    std_srvs::EmptyRequest publish_request;
+    std_srvs::EmptyResponse publish_response;
+    publishPathCallback(publish_request, publish_response);
+    ROS_INFO("[PrmPlanner] published\n");
+
+    int count = 0;
+    while ((odometry_.position_W - waypoints[i+1]).norm() > 1) {
+      if (count == 0) {
+        ROS_INFO("[PrmPlanner] flying...");
+        count++;
+      }
+    }
+    ROS_INFO("[PrmPlanner] arrived!");
+  }
+}
+
+void SkeletonGlobalPlanner::odometryCallback(const nav_msgs::Odometry& msg) {
+  mav_msgs::eigenOdometryFromMsg(msg, &odometry_);
 }
 
 }  // namespace mav_planning

@@ -1,8 +1,8 @@
 <launch>
-  <arg name="base_path" default="/home/laura/Documents/maps/mav_voxblox_planning_maps/shed/voxblox/" />
-  <arg name="input_map_name" default="rs_esdf_0.10.voxblox" />
-  <arg name="output_map_name" default="rs_skeleton_0.10.voxblox" />
-  <arg name="sparse_graph_name" default="rs_sparse_graph_0.10.voxblox" />
+  <arg name="base_path" default="/home/darpa/maps/" />
+  <arg name="input_map_name" default="darpa_edgar_gt_02.voxblox" />
+  <arg name="output_map_name" default="darpa_edgar_gt_02_skeleton.voxblox" />
+  <arg name="sparse_graph_name" default="darpa_edgar_gt_02_sparse_graph.voxblox" />
 
   <arg name="voxblox_path" default="$(arg base_path)/$(arg input_map_name)" />
   <arg name="submap_path" default="/home/laura/Documents/maps/Alex.voxblox" />
@@ -23,7 +23,7 @@
     <param name="min_separation_angle" value="0.78" />
     <param name="update_esdf" value="false" />
     <param name="min_gvd_distance" value="0.5" />
-    <param name="tsdf_voxel_size" value="0.1" />
+    <param name="tsdf_voxel_size" value="0.2" />
     <param name="esdf_max_distance_m" value="5.0" />
     <param name="esdf_min_diff_m" value="0.0" />
     <param name="esdf_add_occupied_crust" value="true" />

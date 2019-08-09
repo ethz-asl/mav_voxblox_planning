@@ -371,4 +371,118 @@ bool RrtPlanner::checkPhysicalConstraints(
   return true;
 }
 
+void RrtPlanner::explore() {
+  ROS_INFO_STREAM("[CbloxRrt] position: " << odometry_.position_W);
+  ROS_INFO("[CbloxRrt] flying trajectory");
+  std::vector<Eigen::Vector3d> waypoints;
+  Eigen::Vector3d point;
+  point = Eigen::Vector3d(0, 0, 1);
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(38, 69, 2);
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(32, 73, 2);
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(66, 217, 2);
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(104, 242, 2);
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(188, 163, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(417, 253, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(447, 193, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(340, 54, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(398, 71, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(271, 134, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(233, 172, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(223, 126, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(186, 167, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(193, 58, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(252, 68, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(238, 24, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(214, 1, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(152, 25, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(204, 104, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(180, 108, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(152, 25, 2); // gut
+  waypoints.emplace_back(point);
+  point = Eigen::Vector3d(0, 0, 1);
+  waypoints.emplace_back(point);
+  ROS_INFO("[CbloxRrt] got waypoints");
+
+  for (int i = 0; i < waypoints.size() - 1; i++) {
+    // getting plan
+    mav_planning_msgs::PlannerServiceRequest plan_request;
+    geometry_msgs::PoseStamped pose;
+    pose.header.frame_id = frame_id_;
+    pose.pose.position.x = waypoints[i].x();
+    pose.pose.position.y = waypoints[i].y();
+    pose.pose.position.z = waypoints[i].z();
+    plan_request.start_pose = pose;
+    pose.pose.position.x = waypoints[i + 1].x();
+    pose.pose.position.y = waypoints[i + 1].y();
+    pose.pose.position.z = waypoints[i + 1].z();
+    plan_request.goal_pose = pose;
+    mav_planning_msgs::PlannerServiceResponse plan_response;
+    ROS_INFO("[CbloxRrt] prep %d", i);
+    plannerServiceCallback(plan_request, plan_response);
+    ROS_INFO("[CbloxRrt] planned");
+
+    if (!plan_response.success) {
+      bool success = false;
+      double diff = 0;
+      for (double diff_x = -diff; diff_x <= diff; diff_x++) {
+        break;
+        for (double diff_y = -diff; diff_y <= diff; diff_y++) {
+          plan_request.goal_pose.pose.position.x += diff_x;
+          plan_request.goal_pose.pose.position.y += diff_y;
+          ROS_WARN("[CbloxRrt] attempting (%.0f, %.0f)",
+                   plan_request.goal_pose.pose.position.x, plan_request.goal_pose.pose.position.y);
+          plannerServiceCallback(plan_request, plan_response);
+          success = plan_response.success;
+          if (success) { break; }
+        }
+        if (success) { break; }
+      }
+      if (!success) {
+        ROS_ERROR("[CbloxRrt] aborting %d", i);
+//        waypoints[i + 1] = waypoints[i];
+        continue;
+      }
+    }
+
+    // publishing plan
+    std_srvs::EmptyRequest publish_request;
+    std_srvs::EmptyResponse publish_response;
+    publishPathCallback(publish_request, publish_response);
+    ROS_INFO("[CbloxRrt] published\n");
+
+    int count = 0;
+    while ((odometry_.position_W - waypoints[i + 1]).norm() > 1) {
+      ros::Duration sleepy(1.0);
+      sleepy.sleep();
+      ROS_INFO("[CbloxRrt] flying...");
+    }
+    ROS_INFO("[CbloxRrt] arrived!");
+  }
+}
+
+void RrtPlanner::odometryCallback(const nav_msgs::Odometry &msg) {
+  mav_msgs::eigenOdometryFromMsg(msg, &odometry_);
+}
+
 }  // namespace mav_planning

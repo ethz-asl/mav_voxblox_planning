@@ -47,6 +47,8 @@ class SkeletonGlobalPlanner {
 
   double getMapDistance(const Eigen::Vector3d& position) const;
 
+  void explore();
+
  private:
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;

@@ -28,6 +28,7 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
   // TODO(helenol): figure out what to do with optimistic/pessimistic here.
   rrt_.setRobotRadius(constraints_.robot_radius);
   rrt_.setOptimistic(false);
+  rrt_.setPlanner(VoxbloxOmplRrt::kRrtConnect);
 
   // Set up the path smoother as well.
   smoother_.setParametersFromRos(nh_private_);
@@ -40,6 +41,8 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
   setupPlannerAndSmootherMap();
 
   visualizeMap();
+
+  explore();
 }
 
 void VoxbloxRrtPlanner::setupPlannerAndSmootherMap() {

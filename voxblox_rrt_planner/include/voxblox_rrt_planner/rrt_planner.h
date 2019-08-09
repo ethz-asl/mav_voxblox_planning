@@ -63,6 +63,8 @@ class RrtPlanner {
   bool checkPhysicalConstraints(
       const mav_trajectory_generation::Trajectory& trajectory);
 
+  void explore();
+
  protected:
   virtual void setupRrtPlanner() = 0;
   virtual bool planRrt(mav_msgs::EigenTrajectoryPoint& start_pose,
