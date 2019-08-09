@@ -2,6 +2,8 @@
 #include <mav_planning_common/path_visualization.h>
 #include <mav_planning_common/utils.h>
 
+#include <mav_msgs/default_topics.h>
+
 #include "voxblox_skeleton_planner/skeleton_global_planner.h"
 
 namespace mav_planning {
@@ -15,13 +17,19 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
       voxblox_server_(nh_, nh_private_),
       skeleton_graph_planner_(nh_, nh_private_),
       skeleton_generator_() {
+  ROS_INFO("SkeletonGlobalPlanner");
   constraints_.setParametersFromRos(nh_private_);
 
-  std::string voxblox_path;
+  std::string voxblox_path, skeleton_path;
   nh_private_.param("voxblox_path", voxblox_path, voxblox_path);
   nh_private_.param("sparse_graph_path", sparse_graph_path_,
                     sparse_graph_path_);
+  nh_private_.param("skeleton_path", skeleton_path, skeleton_path);
   nh_private_.param("visualize", visualize_, visualize_);
+
+  // odometry addition
+  odometry_sub_ = nh_.subscribe(mav_msgs::default_topics::ODOMETRY, 1,
+                                &SkeletonGlobalPlanner::odometryCallback, this);
 
   path_marker_pub_ =
       nh_private_.advertise<visualization_msgs::MarkerArray>("path", 1, true);
@@ -66,8 +74,13 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
               ->getEsdfLayerPtr()
               ->voxels_per_side());
 
+  ROS_INFO("Loading Skeleton Layer");
+  if (skeleton_path.empty()) {
+    ROS_ERROR("Couldn't load skeleton, empty filename.");
+    return;
+  }
   if (!voxblox::io::LoadBlocksFromFile<voxblox::SkeletonVoxel>(
-          voxblox_path,
+          skeleton_path,
           voxblox::Layer<
               voxblox::SkeletonVoxel>::BlockMergingStrategy::kReplace,
           true, skeleton_layer)) {

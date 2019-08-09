@@ -6,6 +6,8 @@
 #include <mav_trajectory_generation_ros/feasibility_analytic.h>
 #include <voxblox/utils/planning_utils.h>
 
+#include <mav_msgs/default_topics.h>
+
 #include "voxblox_rrt_planner/rrt_planner.h"
 
 namespace mav_planning {
@@ -17,6 +19,7 @@ RrtPlanner::RrtPlanner(const ros::NodeHandle& nh,
       frame_id_("odom"),
       visualize_(true),
       do_smoothing_(true),
+      random_start_goal_(false),
       last_trajectory_valid_(false) {
   ROS_INFO("[RrtPlanner] initialized.");
 }
@@ -26,6 +29,7 @@ void RrtPlanner::getParametersFromRos() {
   nh_private_.param("visualize", visualize_, visualize_);
   nh_private_.param("frame_id", frame_id_, frame_id_);
   nh_private_.param("do_smoothing", do_smoothing_, do_smoothing_);
+  nh_private_.param("random_start_goal", random_start_goal_, random_start_goal_);
 }
 void RrtPlanner::advertiseTopics() {
   path_marker_pub_ =
@@ -43,7 +47,10 @@ void RrtPlanner::advertiseTopics() {
       "publish_path", &RrtPlanner::publishPathCallback, this);
   ROS_INFO("[RrtPlanner] advertized topics.");
 }
-void RrtPlanner::subscribeToTopics() {}
+void RrtPlanner::subscribeToTopics() {
+  odometry_sub_ = nh_.subscribe(mav_msgs::default_topics::ODOMETRY, 1,
+                                &RrtPlanner::odometryCallback, this);
+}
 
 bool RrtPlanner::publishPathCallback(std_srvs::EmptyRequest& request,
                                             std_srvs::EmptyResponse& response) {
@@ -117,7 +124,7 @@ bool RrtPlanner::plannerServiceCallback(
     random_goal = true;
   }
 
-  if (random_start) {
+  if (random_start and random_start_goal_) {
     srand(time(nullptr));
     double distance = 0;
     int counter = 0;
@@ -133,7 +140,7 @@ bool RrtPlanner::plannerServiceCallback(
     }
     ROS_WARN_STREAM("Start set to [" << start_pose.position_W.transpose() << "]");
   }
-  if (random_goal) {
+  if (random_goal and random_start_goal_) {
     srand(time(nullptr));
     double distance = 0;
     int counter = 0;

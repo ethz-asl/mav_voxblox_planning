@@ -88,6 +88,7 @@ class RrtPlanner {
   bool visualize_;
   bool do_smoothing_;
   bool path_shortening_;
+  bool random_start_goal_;
 
   // Robot parameters -- v max, a max, radius, etc.
   PhysicalConstraints constraints_;
@@ -113,6 +114,12 @@ class RrtPlanner {
                                  const Eigen::Vector3d& bounding_box) const;
   bool checkStartAndGoalFree(const Eigen::Vector3d& start_pos,
                              const Eigen::Vector3d& goal_pos) const;
+
+  // Current state of the MAV.
+  ros::Subscriber odometry_sub_;
+  void odometryCallback(const nav_msgs::Odometry& msg);
+  // State -- robot state.
+  mav_msgs::EigenOdometry odometry_;
 };
 
 }  // namespace mav_planning
