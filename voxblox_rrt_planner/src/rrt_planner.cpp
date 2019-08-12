@@ -124,6 +124,12 @@ bool RrtPlanner::plannerServiceCallback(
     random_goal = true;
   }
 
+  if (!random_start_goal_ and (random_start or random_goal)) {
+    ROS_WARN("[RrtPlanner] start %.2f, goal %.2f",
+        map_->getMapDistance(start_pose.position_W), map_->getMapDistance(goal_pose.position_W));
+    response.success = false;
+    return false;
+  }
   if (random_start and random_start_goal_) {
     srand(time(nullptr));
     double distance = 0;
@@ -372,59 +378,178 @@ bool RrtPlanner::checkPhysicalConstraints(
 }
 
 void RrtPlanner::explore() {
-  ROS_INFO_STREAM("[CbloxRrt] position: " << odometry_.position_W);
-  ROS_INFO("[CbloxRrt] flying trajectory");
+  ROS_INFO_STREAM("[RrtPlanner] position: " << odometry_.position_W);
+  ROS_INFO("[RrtPlanner] flying trajectory");
   std::vector<Eigen::Vector3d> waypoints;
   Eigen::Vector3d point;
-  point = Eigen::Vector3d(0, 0, 1);
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(38, 69, 2);
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(32, 73, 2);
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(66, 217, 2);
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(104, 242, 2);
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(188, 163, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(417, 253, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(447, 193, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(340, 54, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(398, 71, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(271, 134, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(233, 172, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(223, 126, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(186, 167, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(193, 58, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(252, 68, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(238, 24, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(214, 1, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(152, 25, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(204, 104, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(180, 108, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(152, 25, 2); // gut
-  waypoints.emplace_back(point);
-  point = Eigen::Vector3d(0, 0, 1);
-  waypoints.emplace_back(point);
-  ROS_INFO("[CbloxRrt] got waypoints");
 
+  if (false) {
+    point = Eigen::Vector3d(0, 0, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(38, 69, 2);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(32, 73, 2);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(66, 217, 2);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(104, 242, 2);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(188, 163, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(417, 253, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(447, 193, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(340, 54, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(398, 71, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(271, 134, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(233, 172, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(223, 126, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(186, 167, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(193, 58, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(252, 68, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(238, 24, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(214, 1, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(152, 25, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(204, 104, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(180, 108, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(152, 25, 2); // gut
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(0, 0, 1);
+    waypoints.emplace_back(point);
+    ROS_INFO("[RrtPlanner] got waypoints");
+  } else {
+    point = Eigen::Vector3d(0, 0, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-2.5, 0, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(3, 4, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-1, 4, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-2.5, 6, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-4.5, 6, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(3, -2, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-2.5, -2, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-2.5, -3.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-4.5, -5.75, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-4.5, -11.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(5, -9.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(5, -13.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(12.5, -15, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-2.5, -15, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-4.5, -15, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-14.5, -12, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-10, -13, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-6.5, -11.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-10, -10, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-2.5, -9.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-10, -5.75, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-10, -4, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-4.5, 0, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-12.5, -5.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-12.5, 8, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-8.5, 2, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-8.5, 4, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-14.75, 12, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-9, 12, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-6.5, 12, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-3, 10, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-5, 6, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-2.5, 12, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(1.5, 6, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(5, 4, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(7, 12, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(9, 8, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(11, 8, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-8.5, -7.75, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-15, 10, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(13, 8, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(9, -9.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(9, -7.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(9, -5.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(3.5, 0, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(3.5, 2, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(7.5, 0, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(7.5, 2.25, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(11, 2.25, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(11.25, -7.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(13, -6, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(13.5, 12, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(11.5, 12, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(11.5, 4, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(0, 0, 1);
+    waypoints.emplace_back(point);
+    ROS_INFO("[RrtPlanner] got waypoints");
+  }
+
+  waypoints[0].z() += 1;
   for (int i = 0; i < waypoints.size() - 1; i++) {
+    waypoints[i+1].z() += 1;
     // getting plan
     mav_planning_msgs::PlannerServiceRequest plan_request;
     geometry_msgs::PoseStamped pose;
@@ -433,14 +558,14 @@ void RrtPlanner::explore() {
     pose.pose.position.y = waypoints[i].y();
     pose.pose.position.z = waypoints[i].z();
     plan_request.start_pose = pose;
-    pose.pose.position.x = waypoints[i + 1].x();
-    pose.pose.position.y = waypoints[i + 1].y();
-    pose.pose.position.z = waypoints[i + 1].z();
+    pose.pose.position.x = waypoints[i+1].x();
+    pose.pose.position.y = waypoints[i+1].y();
+    pose.pose.position.z = waypoints[i+1].z();
     plan_request.goal_pose = pose;
     mav_planning_msgs::PlannerServiceResponse plan_response;
-    ROS_INFO("[CbloxRrt] prep %d", i);
+    ROS_INFO("[RrtPlanner] prep %d", i);
     plannerServiceCallback(plan_request, plan_response);
-    ROS_INFO("[CbloxRrt] planned");
+    ROS_INFO("[RrtPlanner] planned");
 
     if (!plan_response.success) {
       bool success = false;
@@ -450,7 +575,7 @@ void RrtPlanner::explore() {
         for (double diff_y = -diff; diff_y <= diff; diff_y++) {
           plan_request.goal_pose.pose.position.x += diff_x;
           plan_request.goal_pose.pose.position.y += diff_y;
-          ROS_WARN("[CbloxRrt] attempting (%.0f, %.0f)",
+          ROS_WARN("[RrtPlanner] attempting (%.0f, %.0f)",
                    plan_request.goal_pose.pose.position.x, plan_request.goal_pose.pose.position.y);
           plannerServiceCallback(plan_request, plan_response);
           success = plan_response.success;
@@ -459,7 +584,7 @@ void RrtPlanner::explore() {
         if (success) { break; }
       }
       if (!success) {
-        ROS_ERROR("[CbloxRrt] aborting %d", i);
+        ROS_ERROR("[RrtPlanner] aborting %d", i);
 //        waypoints[i + 1] = waypoints[i];
         continue;
       }
@@ -469,15 +594,15 @@ void RrtPlanner::explore() {
     std_srvs::EmptyRequest publish_request;
     std_srvs::EmptyResponse publish_response;
     publishPathCallback(publish_request, publish_response);
-    ROS_INFO("[CbloxRrt] published\n");
+    ROS_INFO("[RrtPlanner] published\n");
 
     int count = 0;
     while ((odometry_.position_W - waypoints[i + 1]).norm() > 1) {
       ros::Duration sleepy(1.0);
       sleepy.sleep();
-      ROS_INFO("[CbloxRrt] flying...");
+      ROS_INFO("[RrtPlanner] flying...");
     }
-    ROS_INFO("[CbloxRrt] arrived!");
+    ROS_INFO("[RrtPlanner] arrived!");
   }
 }
 
