@@ -109,6 +109,7 @@ bool RrtPlanner::plannerServiceCallback(
   setupRrtPlanner();
 
   ROS_INFO("Planning path.");
+  ROS_INFO_STREAM(start_pose.position_W.transpose() << " to " << goal_pose.position_W.transpose());
 
   bool random_start = false, random_goal = false;
   if (map_->getMapDistance(start_pose.position_W) < constraints_.robot_radius) {
@@ -125,8 +126,10 @@ bool RrtPlanner::plannerServiceCallback(
   }
 
   if (!random_start_goal_ and (random_start or random_goal)) {
-    ROS_WARN("[RrtPlanner] start %.2f, goal %.2f",
+    ROS_WARN("[RrtPlanner] distances: start %.2f, goal %.2f",
         map_->getMapDistance(start_pose.position_W), map_->getMapDistance(goal_pose.position_W));
+    ROS_WARN("[RrtPlanner] weights: start %.2f, goal %.2f",
+             map_->getMapWeight(start_pose.position_W), map_->getMapWeight(goal_pose.position_W));
     response.success = false;
     return false;
   }
@@ -378,7 +381,7 @@ bool RrtPlanner::checkPhysicalConstraints(
 }
 
 void RrtPlanner::explore() {
-  ROS_INFO_STREAM("[RrtPlanner] position: " << odometry_.position_W);
+  ROS_INFO_STREAM("[RrtPlanner] position: " << odometry_.position_W.transpose());
   ROS_INFO("[RrtPlanner] flying trajectory");
   std::vector<Eigen::Vector3d> waypoints;
   Eigen::Vector3d point;
