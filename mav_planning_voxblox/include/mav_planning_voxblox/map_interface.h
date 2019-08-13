@@ -23,6 +23,7 @@ namespace mav_planning {
 
     // accessors
     virtual double getMapDistance(const Eigen::Vector3d &position) const = 0;
+    virtual double getMapWeight(const Eigen::Vector3d& position) const = 0;
     double getVoxelSize() const {return voxel_size_;};
 
   protected:

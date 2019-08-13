@@ -81,6 +81,17 @@ double VoxbloxPlanner::getMapDistance(const Eigen::Vector3d &position) const {
   return distance;
 }
 
+double VoxbloxPlanner::getMapWeight(const Eigen::Vector3d& position) const {
+  if (!voxblox_server_.getTsdfMapPtr()) {
+    return 0.0;
+  }
+  double weight = 0.0;
+  if (!voxblox_server_.getTsdfMapPtr()->getWeightAtPosition(position, &weight)) {
+    return 0.0;
+  }
+  return weight;
+}
+
 void VoxbloxPlanner::computeMapBounds(Eigen::Vector3d *lower_bound,
                                       Eigen::Vector3d *upper_bound) const {
   if (esdf_map_) {

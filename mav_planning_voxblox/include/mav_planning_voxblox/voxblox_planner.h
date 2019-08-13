@@ -28,6 +28,7 @@ public:
   bool isMapInitialized();
 
   double getMapDistance(const Eigen::Vector3d &position) const;
+  double getMapWeight(const Eigen::Vector3d& position) const;
 
   void computeMapBounds(Eigen::Vector3d *lower_bound,
                         Eigen::Vector3d *upper_bound) const;
