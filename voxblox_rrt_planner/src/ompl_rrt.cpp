@@ -30,18 +30,6 @@ void BloxOmplRrt::setBounds(const Eigen::Vector3d& lower_bound,
   upper_bound_ = upper_bound;
 }
 
-/*
-void VoxbloxOmplRrt::setupProblem() {
-  if (optimistic_) {
-    CHECK_NOTNULL(tsdf_layer_);
-    problem_setup_.setTsdfVoxbloxCollisionChecking(robot_radius_, tsdf_layer_);
-  } else {
-    CHECK_NOTNULL(esdf_layer_);
-    problem_setup_.setEsdfVoxbloxCollisionChecking(robot_radius_, esdf_layer_);
-  }
-  BloxOmplRrt::setupProblem();
-}
-*/
 void BloxOmplRrt::setupProblem() {
   problem_setup_.setDefaultObjective();
   if (planner_type_ == kRrtConnect) {

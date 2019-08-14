@@ -9,6 +9,10 @@
 #include <mav_msgs/default_topics.h>
 
 #include "voxblox_rrt_planner/rrt_planner.h"
+#include <mav_planning_msgs/PlannerServiceResponse.h>
+
+#include <boost/format.hpp>
+#include <istream>
 
 namespace mav_planning {
 
@@ -45,6 +49,9 @@ void RrtPlanner::advertiseTopics() {
       "plan", &RrtPlanner::plannerServiceCallback, this);
   path_pub_srv_ = nh_private_.advertiseService(
       "publish_path", &RrtPlanner::publishPathCallback, this);
+
+  manual_trigger_srv_ = nh_private_.advertiseService(
+      "manual_action", &RrtPlanner::manualTriggerCallback, this);
   ROS_INFO("[RrtPlanner] advertized topics.");
 }
 void RrtPlanner::subscribeToTopics() {
@@ -393,27 +400,27 @@ void RrtPlanner::explore() {
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(38, 69, 2);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(74,47, 1);
+    point = Eigen::Vector3d(74, 47, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(78,66, 1);
+    point = Eigen::Vector3d(78, 66, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(85,53, 1);
+    point = Eigen::Vector3d(85, 53, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(124,80, 1);
+    point = Eigen::Vector3d(124, 80, 1);
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(32, 73, 2); // perf
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(43,139, 1);
+    point = Eigen::Vector3d(43, 139, 1);
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(66, 217, 2);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(145,181,2);
+    point = Eigen::Vector3d(145, 181, 2);
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(104, 242, 2);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(94,210, 1);
+    point = Eigen::Vector3d(94, 210, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(115,178, 1);
+    point = Eigen::Vector3d(115, 178, 1);
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(188, 163, 2); // gut
     waypoints.emplace_back(point);
@@ -429,43 +436,43 @@ void RrtPlanner::explore() {
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(271, 134, 2); // gut
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(286,92, 1);
+    point = Eigen::Vector3d(286, 92, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(345,111, 1);
+    point = Eigen::Vector3d(345, 111, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(369,84, 1);
+    point = Eigen::Vector3d(369, 84, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(390,102, 1);
+    point = Eigen::Vector3d(390, 102, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(380,84, 1);
+    point = Eigen::Vector3d(380, 84, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(448,228, 1);
+    point = Eigen::Vector3d(448, 228, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(448,240, 1);
+    point = Eigen::Vector3d(448, 240, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(484,240, 1);
+    point = Eigen::Vector3d(484, 240, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(484,228, 1);
+    point = Eigen::Vector3d(484, 228, 1);
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(447, 193, 2); // gut
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(467,166, 1);
+    point = Eigen::Vector3d(467, 166, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(467,166, 1);
+    point = Eigen::Vector3d(467, 166, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(440,167, 1);
+    point = Eigen::Vector3d(440, 167, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(385,69, 1);
+    point = Eigen::Vector3d(385, 69, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(357,67, 1);
+    point = Eigen::Vector3d(357, 67, 1);
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(340, 54, 2); // gut
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(298,70, 1);
+    point = Eigen::Vector3d(298, 70, 1);
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(252, 68, 2); // gut
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(258,72, 1);
+    point = Eigen::Vector3d(258, 72, 1);
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(238, 24, 2); // gut
     waypoints.emplace_back(point);
@@ -481,11 +488,15 @@ void RrtPlanner::explore() {
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(193, 58, 2); // gut
     waypoints.emplace_back(point);
+    point = Eigen::Vector3d(258, 72, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(204, 104, 2); // gut
+    waypoints.emplace_back(point);
     point = Eigen::Vector3d(164, 75, 2); // gut
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(152, 25, 2); // gut
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(122,100, 1);
+    point = Eigen::Vector3d(122, 100, 1);
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(0, 0, 1);
     waypoints.emplace_back(point);
@@ -611,6 +622,7 @@ void RrtPlanner::explore() {
     visualization_msgs::Marker vertex_marker;
     vertex_marker.header.frame_id = frame_id_;
     vertex_marker.ns = "waypoints";
+    vertex_marker.id = 0;
     vertex_marker.type = visualization_msgs::Marker::SPHERE_LIST;
     vertex_marker.pose.orientation.w = 1.0;
     vertex_marker.scale.x = 1;
@@ -619,6 +631,7 @@ void RrtPlanner::explore() {
     visualization_msgs::Marker edge_marker;
     edge_marker.header.frame_id = frame_id_;
     edge_marker.ns = "waypoint_edges";
+    edge_marker.id = 0;
     edge_marker.type = visualization_msgs::Marker::LINE_LIST;
     edge_marker.pose.orientation.w = 1.0;
     edge_marker.scale.x = 1;
@@ -626,15 +639,15 @@ void RrtPlanner::explore() {
     edge_marker.scale.z = edge_marker.scale.x;
     std_msgs::ColorRGBA color_msg;
     color_msg.r = 1.0;
-    color_msg.g = 0.0;
-    color_msg.b = 0.0;
-    color_msg.a = 1.0;
+    color_msg.g = 1.0;
+    color_msg.b = 1.0;
+    color_msg.a = 0.5;
     for (ulong i = 0; i < waypoints.size() - 1; i++) {
       geometry_msgs::Point point_msg;
       tf::pointEigenToMsg(waypoints[i], point_msg);
       vertex_marker.points.push_back(point_msg);
       edge_marker.points.push_back(point_msg);
-      tf::pointEigenToMsg(waypoints[i+1], point_msg);
+      tf::pointEigenToMsg(waypoints[i + 1], point_msg);
       edge_marker.points.push_back(point_msg);
 
       vertex_marker.colors.push_back(color_msg);
@@ -648,22 +661,23 @@ void RrtPlanner::explore() {
 
   mav_msgs::EigenTrajectoryPointVector all_waypoints;
   for (ulong i = 0; i < waypoints.size() - 1; i++) {
+    waypoints[i + 1].z() = 2;
 
-//    if (map_->getMapDistance(waypoints[i+1]) < constraints_.robot_radius) {
-//      Eigen::Vector3d diff(0.5, 0, 0);
-//      if (map_->getMapDistance(waypoints[i + 1] + diff) >= constraints_.robot_radius) {
-//        waypoints[i + 1] += diff;
-//      } else if (map_->getMapDistance(waypoints[i + 1] - diff) >= constraints_.robot_radius) {
-//        waypoints[i + 1] -= diff;
-//      } else {
-//        diff = Eigen::Vector3d(0, 0.5, 0);
-//        if (map_->getMapDistance(waypoints[i + 1] + diff) >= constraints_.robot_radius) {
-//          waypoints[i + 1] += diff;
-//        } else if (map_->getMapDistance(waypoints[i + 1] - diff) >= constraints_.robot_radius) {
-//          waypoints[i + 1] -= diff;
-//        }
-//      }
-//    }
+    /*if (map_->getMapDistance(waypoints[i+1]) < constraints_.robot_radius) {
+      Eigen::Vector3d diff(0.5, 0, 0);
+      if (map_->getMapDistance(waypoints[i + 1] + diff) >= constraints_.robot_radius) {
+        waypoints[i + 1] += diff;
+      } else if (map_->getMapDistance(waypoints[i + 1] - diff) >= constraints_.robot_radius) {
+        waypoints[i + 1] -= diff;
+      } else {
+        diff = Eigen::Vector3d(0, 0.5, 0);
+        if (map_->getMapDistance(waypoints[i + 1] + diff) >= constraints_.robot_radius) {
+          waypoints[i + 1] += diff;
+        } else if (map_->getMapDistance(waypoints[i + 1] - diff) >= constraints_.robot_radius) {
+          waypoints[i + 1] -= diff;
+        }
+      }
+    }*/
 
     // getting plan
     mav_planning_msgs::PlannerServiceRequest plan_request;
@@ -680,12 +694,70 @@ void RrtPlanner::explore() {
     mav_planning_msgs::PlannerServiceResponse plan_response;
     ROS_INFO("[RrtPlanner] prep %lu", i);
     plannerServiceCallback(plan_request, plan_response);
-    ROS_INFO("[RrtPlanner] planned");
+//    ROS_INFO("[RrtPlanner] planned");
+
+    if (visualize_) {
+      visualization_msgs::MarkerArray start_goal_msgs;
+
+      visualization_msgs::Marker edge_marker;
+      edge_marker.header.frame_id = frame_id_;
+      edge_marker.ns = "waypoint_edges";
+      edge_marker.id = i + 1;
+      edge_marker.type = visualization_msgs::Marker::LINE_LIST;
+      edge_marker.pose.orientation.w = 1.0;
+      edge_marker.scale.x = 0.5;
+      edge_marker.scale.y = edge_marker.scale.x;
+      edge_marker.scale.z = edge_marker.scale.x;
+
+      visualization_msgs::Marker vertex_marker;
+      vertex_marker.header.frame_id = frame_id_;
+      vertex_marker.ns = "waypoints";
+      vertex_marker.id = i + 1;
+      vertex_marker.type = visualization_msgs::Marker::SPHERE_LIST;
+      vertex_marker.pose.orientation.w = 1.0;
+      vertex_marker.scale.x = 1;
+      vertex_marker.scale.y = vertex_marker.scale.x;
+      vertex_marker.scale.z = vertex_marker.scale.x;
+
+      std_msgs::ColorRGBA color_msg;
+      color_msg.b = 0.0;
+      color_msg.a = 1.0;
+
+      if (plan_response.success) {
+        color_msg.r = 0.0;
+        color_msg.g = 1.0;
+      } else {
+        color_msg.r = 1.0;
+        color_msg.g = 0.0;
+      }
+      edge_marker.colors.push_back(color_msg);
+      edge_marker.colors.push_back(color_msg);
+
+      if (map_->getMapDistance(waypoints[i + 1]) >= constraints_.robot_radius) {
+        color_msg.r = 0.0;
+        color_msg.g = 1.0;
+      } else {
+        color_msg.r = 1.0;
+        color_msg.g = 0.0;
+      }
+      vertex_marker.colors.push_back(color_msg);
+
+      geometry_msgs::Point point_msg;
+      tf::pointEigenToMsg(waypoints[i], point_msg);
+      edge_marker.points.push_back(point_msg);
+      tf::pointEigenToMsg(waypoints[i + 1], point_msg);
+      edge_marker.points.push_back(point_msg);
+      vertex_marker.points.push_back(point_msg);
+
+      start_goal_msgs.markers.push_back(edge_marker);
+      start_goal_msgs.markers.push_back(vertex_marker);
+      path_marker_pub_.publish(start_goal_msgs);
+    }
 
     if (!plan_response.success) {
       int continuation = 0;
 //      if (map_->getMapDistance(waypoints[i + 1]) >= constraints_.robot_radius) {
-        continuation = 1;
+      continuation = 1;
 //      }
       while (continuation != 1) {
         std::cout << "continue (1), abort (2) : ";
@@ -694,14 +766,54 @@ void RrtPlanner::explore() {
           return;
         }
       }
-      waypoints[i+1] = waypoints[i];
+//      waypoints[i+1] = waypoints[i];
     }
 //    continue;
     all_waypoints.insert(all_waypoints.begin(), last_waypoints_.begin(), last_waypoints_.end());
   }
 
+  if (visualize_) {
+    visualization_msgs::MarkerArray explore_path_markers;
+    explore_path_markers.markers.push_back(createMarkerForPath(
+        all_waypoints, frame_id_, mav_visualization::Color::White(), "explore_path",
+        0.3));
+    path_marker_pub_.publish(explore_path_markers);
+  }
+
+  // save to file
+  std::string filename = "/media/darpa/SSD_500GB/gasserl/datas/darpa_edgar_waypoints.txt";
+  std::ofstream outfile;
+  outfile.open(filename);
+  for (const mav_msgs::EigenTrajectoryPoint &waypoint : all_waypoints) {
+    outfile << boost::format("%.2f,%.2f,%.2f\n")
+               % waypoint.position_W.x() % waypoint.position_W.y() % waypoint.position_W.z();
+  }
+  outfile.close();
+}
+
+void RrtPlanner::flyPath() {
+  std::string filename = "/media/darpa/SSD_500GB/gasserl/datas/darpa_edgar_waypoints.txt";
+
+  std::string line;
+  mav_msgs::EigenTrajectoryPointVector point_list_msg;
+  std::ifstream infile(filename);
+  infile.open(filename);
+  while(std::getline(infile, line)) {
+    std::istringstream ss(line);
+    std::string value;
+    int coord = 0;
+    mav_msgs::EigenTrajectoryPoint point_msg;
+    while(std::getline(ss, value, ',')) {
+      point_msg.position_W[coord] = std::stod(value);
+      coord++;
+    }
+    point_list_msg.emplace_back(point_msg);
+    std::cout << line << '\n';
+  }
+  infile.close();
+
   // publishing plan
-  last_waypoints_ = all_waypoints;
+  last_waypoints_ = point_list_msg;
   std_srvs::EmptyRequest publish_request;
   std_srvs::EmptyResponse publish_response;
   publishPathCallback(publish_request, publish_response);

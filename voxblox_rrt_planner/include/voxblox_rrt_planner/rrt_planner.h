@@ -63,8 +63,6 @@ class RrtPlanner {
   bool checkPhysicalConstraints(
       const mav_trajectory_generation::Trajectory& trajectory);
 
-  void explore();
-
  protected:
   virtual void setupRrtPlanner() = 0;
   virtual bool planRrt(mav_msgs::EigenTrajectoryPoint& start_pose,
@@ -81,6 +79,11 @@ class RrtPlanner {
 
   ros::ServiceServer planner_srv_;
   ros::ServiceServer path_pub_srv_;
+
+  ros::ServiceServer manual_trigger_srv_;
+  bool manualTriggerCallback(std_srvs::EmptyRequest& request, std_srvs::EmptyResponse& response);
+  void explore();
+  void flyPath();
 
   // Map object
   MapInterface* map_;
