@@ -10,6 +10,7 @@ VoxbloxPlanner::VoxbloxPlanner(const ros::NodeHandle &nh,
       visualize_(false) {
 //  nh_private.param("visualize", visualize_, visualize_);
   nh_private.param("voxblox_path", input_filepath_, input_filepath_);
+  nh_private.param("visualize", visualize_, visualize_);
 }
 
 void VoxbloxPlanner::initializeMap() {
@@ -90,6 +91,30 @@ double VoxbloxPlanner::getMapWeight(const Eigen::Vector3d& position) const {
     return 0.0;
   }
   return weight;
+}
+
+bool VoxbloxPlanner::checkCollision(const Eigen::Vector3d& start,
+                                    const Eigen::Vector3d& goal, const double& robot_radius) {
+  double max_step_size = 3*voxel_size_;
+  Eigen::Vector3d direction = (goal - start).normalized();
+  double distance = (goal - start).norm();
+  double tot_dist = 0;
+  Eigen::Vector3d position = start;
+  while (tot_dist <= distance) {
+    double local_dist = getMapDistance(position);
+    if (robot_radius > local_dist) {
+      return true;
+    }
+    double step_size =
+        std::min(max_step_size, local_dist - robot_radius);
+    step_size = std::max(0.01, step_size);
+    position += step_size * direction;
+    tot_dist += step_size;
+  }
+  if (robot_radius > getMapDistance(goal)) {
+    return true;
+  }
+  return false;
 }
 
 void VoxbloxPlanner::computeMapBounds(Eigen::Vector3d *lower_bound,
