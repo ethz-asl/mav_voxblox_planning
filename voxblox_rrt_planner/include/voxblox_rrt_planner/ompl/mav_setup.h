@@ -135,8 +135,8 @@ class MavSetup : public geometric::SimpleSetup {
       ROS_INFO_STREAM("[MavSetup] got vertex");
       const ompl::base::State *state = vertex.getState();
       ROS_INFO_STREAM("[MavSetup] got state");
-      const auto* state_new =
-          static_cast<const ompl::base::RealVectorStateSpace::StateType*>(state);
+//      const auto* state_new =
+//          static_cast<const ompl::base::RealVectorStateSpace::StateType*>(state);
       ROS_INFO_STREAM("[MavSetup] got new state");
       Eigen::Vector3d state_eigen = omplToEigen(state);
       ROS_INFO_STREAM("[MavSetup] eigen: " << state_eigen.transpose());

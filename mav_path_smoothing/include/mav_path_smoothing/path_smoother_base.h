@@ -27,9 +27,9 @@ class PathSmootherBase {
       mav_msgs::EigenTrajectoryPoint::Vector* path) const;
 
   virtual bool getPathBetweenTwoPoints(
-      const mav_msgs::EigenTrajectoryPoint& start,
-      const mav_msgs::EigenTrajectoryPoint& goal,
-      mav_msgs::EigenTrajectoryPoint::Vector* path) const {
+      const mav_msgs::EigenTrajectoryPoint& /*start*/,
+      const mav_msgs::EigenTrajectoryPoint& /*goal*/,
+      mav_msgs::EigenTrajectoryPoint::Vector* /*path*/) const {
     return false;
   }
 

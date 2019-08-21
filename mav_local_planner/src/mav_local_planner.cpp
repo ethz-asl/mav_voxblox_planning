@@ -500,6 +500,7 @@ void MavLocalPlanner::commandPublishTimerCallback(
     msg.header.frame_id = local_frame_id_;
     msg.header.stamp = ros::Time::now();
 
+    /*
     ROS_INFO(
         "[Mav Local Planner][Command Publish] Publishing %zu samples of %zu. "
         "Start index: %zu Time: %f Start position: %f Start velocity: %f End "
@@ -510,6 +511,21 @@ void MavLocalPlanner::commandPublishTimerCallback(
         trajectory_to_publish.front().velocity_W.x(),
         trajectory_to_publish.back().time_from_start_ns * 1.0e-9,
         trajectory_to_publish.back().position_W.x());
+    */
+    ROS_INFO(
+        "[Mav Local Planner][Command Publish] \n"
+        "Start Time: %.3f, Position: %.2f %.2f %.2f\n"
+        "End   Time: %.3f, Position: %.2f %.2f %.2f",
+        trajectory_to_publish.front().time_from_start_ns * 1.0e-9,
+        trajectory_to_publish.front().position_W.x(),
+        trajectory_to_publish.front().position_W.y(),
+        trajectory_to_publish.front().position_W.y(),
+        trajectory_to_publish.back().time_from_start_ns * 1.0e-9,
+        trajectory_to_publish.back().position_W.x(),
+        trajectory_to_publish.back().position_W.y(),
+        trajectory_to_publish.back().position_W.y());
+
+        )
     mav_msgs::msgMultiDofJointTrajectoryFromEigen(trajectory_to_publish, &msg);
 
     command_pub_.publish(msg);
