@@ -28,6 +28,9 @@ namespace mav_planning {
     virtual double getMapWeight(const Eigen::Vector3d& position) const = 0;
     double getVoxelSize() const {return voxel_size_;};
 
+    // others
+    virtual void setVerbose(bool verbose) = 0;
+
   protected:
     double voxel_size_;  // Cache the size of the voxels used by the map.
   };

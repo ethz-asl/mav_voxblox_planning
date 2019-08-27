@@ -36,6 +36,8 @@ public:
   void computeMapBounds(Eigen::Vector3d *lower_bound,
                         Eigen::Vector3d *upper_bound) const;
 
+  void setVerbose(bool verbose) {};
+
 protected:
   // Map!
   voxblox::EsdfServer voxblox_server_;
