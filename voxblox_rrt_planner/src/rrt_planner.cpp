@@ -116,7 +116,9 @@ bool RrtPlanner::plannerServiceCallback(
   setupRrtPlanner();
 
   ROS_INFO("Planning path.");
-  ROS_INFO_STREAM(start_pose.position_W.transpose() << " to " << goal_pose.position_W.transpose());
+  ROS_INFO_STREAM("(" << start_pose.position_W.transpose() << ") to ("
+      << goal_pose.position_W.transpose() << ") - "
+      << (start_pose.position_W - goal_pose.position_W).norm());
 
   bool random_start = false, random_goal = false;
   if (map_->getMapDistance(start_pose.position_W) < constraints_.robot_radius) {
@@ -128,7 +130,7 @@ bool RrtPlanner::plannerServiceCallback(
     random_goal = true;
   }
 
-  if ((goal_pose.position_W - start_pose.position_W).norm() < 2) {
+  if (random_start_goal_ and (goal_pose.position_W - start_pose.position_W).norm() < 2) {
     random_goal = true;
   }
 
@@ -388,9 +390,9 @@ bool RrtPlanner::checkPhysicalConstraints(
 }
 
 void RrtPlanner::explore() {
-  ROS_INFO_STREAM("[RrtPlanner] position: " << odometry_.position_W.transpose());
   ROS_INFO("[RrtPlanner] flying trajectory");
   bool darpa_map = false;
+  bool maze = false;
 
   std::vector<Eigen::Vector3d> waypoints;
   Eigen::Vector3d point;
@@ -502,8 +504,9 @@ void RrtPlanner::explore() {
     point = Eigen::Vector3d(0, 0, 1);
     waypoints.emplace_back(point);
     ROS_INFO("[RrtPlanner] got waypoints");
-  } else {
+  } else if (maze) {
     filename = "/media/darpa/SSD_500GB/gasserl/datas/big_maze_waypoints.txt";
+
     point = Eigen::Vector3d(0, 0, 1);
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(-2.5, 0,1);
@@ -542,6 +545,12 @@ void RrtPlanner::explore() {
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(-14.5, -12, 1);
     waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-8.5, -8, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-15, 10, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-12.5, 2, 1);
+    waypoints.emplace_back(point);
     point = Eigen::Vector3d(-10.5, -14, 1);
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(-6.5, -12, 1);
@@ -552,8 +561,6 @@ void RrtPlanner::explore() {
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(-10, -5.75, 1);
     waypoints.emplace_back(point);
-//    point = Eigen::Vector3d(-10, -4, 1);
-//    waypoints.emplace_back(point);
     point = Eigen::Vector3d(-4.75, 0, 1);
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(-12.5, -5.5, 1);
@@ -586,12 +593,6 @@ void RrtPlanner::explore() {
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(11, 8, 1);
     waypoints.emplace_back(point);
-    point = Eigen::Vector3d(-8.5, -7.75, 1);
-    waypoints.emplace_back(point);
-    point = Eigen::Vector3d(-15, 10, 1);
-    waypoints.emplace_back(point);
-    point = Eigen::Vector3d(13, 8, 1);
-    waypoints.emplace_back(point);
     point = Eigen::Vector3d(9.5, -10, 1);
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(13.25, -8, 1);
@@ -623,9 +624,165 @@ void RrtPlanner::explore() {
     point = Eigen::Vector3d(0, 0, 1);
     waypoints.emplace_back(point);
     ROS_INFO("[RrtPlanner] got waypoints");
+  } else {
+    filename = "/media/darpa/SSD_500GB/gasserl/datas/darpa_practice2.txt";
+
+    point = Eigen::Vector3d(0, 0, 1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(15, 0, 1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(40, 0, 1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(62,57, 1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(90,60,1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(110,60,-3.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(140,39,-3.5);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(224,99,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(250,100,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(278,97,-8.5);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(280,40,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(240,-5,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(280,40,-8.5);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(323,2,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(358,-17,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(300,-40,-8.5);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(337,-178,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(170,-160,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(150,-160,-3.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(100,-140,-2.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(80,-100,1.5);
+
+    point = Eigen::Vector3d(90,-120,1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(110,-120,-3.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(150,-120,-3.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(170,-120,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(283, -142, -8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(300,-40,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(280,0,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(280,40,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(250,100,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(140,40,-3.5);
+    waypoints.emplace_back(point);
+
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(150,20,-3.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(170,20,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(180,-60,-7);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(170,20,-8.5);
+    waypoints.emplace_back(point);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(150,20,-3.5);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(110,40,-3.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(90,40,1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(90,20,1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(110,20,-3.5);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(150,-60,-3.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(170,-60,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(180,-60,-11);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(190,-60,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(237,-82,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(260,-140,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(237,-82,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(190,-60,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(180,-60,-11);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(170,-60,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(150,-60,-3.5);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(150,-80,-3.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(170,-80,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(180,-80,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(170,-80,-8.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(150,-80,-3.5);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(110,-60,-3.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(90,-60,1.5);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(80,-60,1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(76,-41,1.5);
+    waypoints.emplace_back(point);
+//    point = Eigen::Vector3d(60,-40,15);
+//    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(20,-30,1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(40, 0, 1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(56,-2,1.5);
+    waypoints.emplace_back(point);
+//    point = Eigen::Vector3d(60,-40,15);
+//    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(63,-57,1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(80, -60, 1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(80, -100, 1.5);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(15, 0, 1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(0, 0, 1.5);
+    waypoints.emplace_back(point);
   }
 
-  if (visualize_ and false) {
+  if (visualize_ and true) {
     visualization_msgs::MarkerArray start_goal_msgs;
     visualization_msgs::Marker vertex_marker;
     vertex_marker.header.frame_id = frame_id_;
@@ -658,9 +815,24 @@ void RrtPlanner::explore() {
       tf::pointEigenToMsg(waypoints[i + 1], point_msg);
       edge_marker.points.push_back(point_msg);
 
+      color_msg.r = 1.0;
+      color_msg.g = 1.0;
+      color_msg.b = 1.0;
+      edge_marker.colors.push_back(color_msg);
+      edge_marker.colors.push_back(color_msg);
+      if (map_->getMapDistance(waypoints[i]) > constraints_.robot_radius) {
+        color_msg.r = 0.0;
+        color_msg.g = 1.0;
+        color_msg.b = 0.0;
+      } else {
+        map_->setVerbose(true);
+        map_->getMapDistance(waypoints[i]);
+        color_msg.r = 1.0;
+        color_msg.g = 0.0;
+        color_msg.b = 0.0;
+        map_->setVerbose(false);
+      }
       vertex_marker.colors.push_back(color_msg);
-      edge_marker.colors.push_back(color_msg);
-      edge_marker.colors.push_back(color_msg);
     }
     start_goal_msgs.markers.push_back(vertex_marker);
     start_goal_msgs.markers.push_back(edge_marker);
@@ -669,9 +841,9 @@ void RrtPlanner::explore() {
 
   mav_msgs::EigenTrajectoryPointVector all_waypoints;
   double height = 1.5;
-  waypoints[0].z() = height;
+//  waypoints[0].z() = height;
   for (ulong i = 0; i < waypoints.size() - 1; i++) {
-    waypoints[i + 1].z() = height;
+//    waypoints[i + 1].z() = height;
 
     // getting plan
     mav_planning_msgs::PlannerServiceRequest plan_request;
@@ -754,13 +926,16 @@ void RrtPlanner::explore() {
       continuation = 1;
 //      }
       while (continuation != 1) {
-        std::cout << "continue (1), abort (2) : ";
+        std::cout << "continue (1), abort (2), redo(3) : ";
         std::cin >> continuation;
         if (continuation == 2) {
           return;
         }
+        if (continuation == 3) {
+          plannerServiceCallback(plan_request, plan_response);
+        }
       }
-      waypoints[i+1] = waypoints[i];
+//      waypoints[i+1] = waypoints[i];
     }
 //    continue;
     if (plan_response.success) {
@@ -841,18 +1016,15 @@ void RrtPlanner::flyPath() {
   mav_msgs::EigenTrajectoryPointVector point_list_msg;
   std::ifstream infile(filename);
   while(std::getline(infile, line)) {
-//    ROS_INFO_STREAM("reading line " << line);
     std::istringstream ss(line);
     std::string value;
     int coord = 0;
     mav_msgs::EigenTrajectoryPoint point_msg;
     while(std::getline(ss, value, ',')) {
-//      ROS_INFO_STREAM("coordinate " << value);
       point_msg.position_W[coord] = std::stod(value);
       coord++;
     }
     point_list_msg.emplace_back(point_msg);
-//    std::cout << line << '\n';
   }
   infile.open(filename);
   if (!infile.is_open()) {
@@ -932,9 +1104,21 @@ void RrtPlanner::odometryCallback(const nav_msgs::Odometry &msg) {
   mav_msgs::eigenOdometryFromMsg(msg, &odometry_);
 }
 
-bool RrtPlanner::manualTriggerCallback(std_srvs::EmptyRequest& request, std_srvs::EmptyResponse& response) {
-//  explore();
-  flyPath();
+bool RrtPlanner::manualTriggerCallback(
+    std_srvs::EmptyRequest& request, std_srvs::EmptyResponse& response) {
+  ROS_INFO("Manual action started.");
+
+  int action = 0;
+  std::cout << "explore (1) or fly (2)? ";
+  std::cin >> action;
+  if (action == 1) {
+    explore();
+  } else if (action == 2) {
+    flyPath();
+  }
+
+  ROS_INFO("Manual action finished.");
+  return true;
 }
 
 }  // namespace mav_planning
