@@ -936,6 +936,12 @@ void RrtPlanner::explore() {
         }
       }
 //      waypoints[i+1] = waypoints[i];
+      // TODO: BUILD AND CHECK ORDER!!
+      mav_msgs::EigenTrajectoryPoint failed_point_msg;
+      failed_point_msg.position_W = waypoints[i+1];
+      all_waypoints.insert(all_waypoints.begin(), failed_point_msg);
+      failed_point_msg.position_W = waypoints[i];
+      all_waypoints.insert(all_waypoints.begin(), failed_point_msg);
     }
 //    continue;
     if (plan_response.success) {
@@ -1042,6 +1048,22 @@ void RrtPlanner::flyPath() {
   for (ulong i = 0; i < point_list_msg.size() - 1; i++) {
     bool collision = map_->checkCollision(point_list_msg[i].position_W, point_list_msg[i+1].position_W,
         constraints_.robot_radius);
+
+    visualization_msgs::Marker edge_marker;
+    edge_marker.header.frame_id = frame_id_;
+    edge_marker.id = i + 1;
+    edge_marker.type = visualization_msgs::Marker::LINE_LIST;
+    edge_marker.pose.orientation.w = 1.0;
+    edge_marker.scale.x = 0.5;
+    edge_marker.scale.y = edge_marker.scale.x;
+    edge_marker.scale.z = edge_marker.scale.x;
+    geometry_msgs::Point point_msg;
+    tf::pointEigenToMsg(point_list_msg[i].position_W, point_msg);
+    edge_marker.points.push_back(point_msg);
+    tf::pointEigenToMsg(point_list_msg[i+1].position_W, point_msg);
+    edge_marker.points.push_back(point_msg);
+    std_msgs::ColorRGBA color_msg;
+
     if (!collision) {
 //      ROS_INFO_STREAM("[RrtPlanner] " << i << " th segment collision free ["
 //          << point_list_msg[i].position_W.transpose() << "] to [" << point_list_msg[i+1].position_W.transpose() << "]");
@@ -1051,23 +1073,8 @@ void RrtPlanner::flyPath() {
       collision_edges.emplace_back(i+1);
 //      return;
 
-      visualization_msgs::Marker edge_marker;
-      edge_marker.header.frame_id = frame_id_;
-      edge_marker.id = i + 1;
-      edge_marker.type = visualization_msgs::Marker::LINE_LIST;
-      edge_marker.pose.orientation.w = 1.0;
-      edge_marker.scale.x = 0.5;
-      edge_marker.scale.y = edge_marker.scale.x;
-      edge_marker.scale.z = edge_marker.scale.x;
-      geometry_msgs::Point point_msg;
-      tf::pointEigenToMsg(point_list_msg[i].position_W, point_msg);
-      edge_marker.points.push_back(point_msg);
-      tf::pointEigenToMsg(point_list_msg[i+1].position_W, point_msg);
-      edge_marker.points.push_back(point_msg);
-
       visualization_msgs::Marker collision_marker = edge_marker;
       collision_marker.ns = "collision";
-      std_msgs::ColorRGBA color_msg;
       color_msg.b = 0.0;
       color_msg.a = 1.0;
       color_msg.r = 1.0;
@@ -1075,17 +1082,17 @@ void RrtPlanner::flyPath() {
       collision_marker.colors.push_back(color_msg);
       collision_marker.colors.push_back(color_msg);
       collision_msgs.markers.push_back(collision_marker);
-
-      visualization_msgs::Marker path_marker = edge_marker;
-      path_marker.ns = "path";
-      color_msg.b = 1.0;
-      color_msg.a = 1.0;
-      color_msg.r = 1.0;
-      color_msg.g = 1.0;
-      path_marker.colors.push_back(color_msg);
-      path_marker.colors.push_back(color_msg);
-      path_msgs.markers.push_back(path_marker);
     }
+
+    visualization_msgs::Marker path_marker = edge_marker;
+    path_marker.ns = "path";
+    color_msg.b = 1.0;
+    color_msg.a = 1.0;
+    color_msg.r = 1.0;
+    color_msg.g = 1.0;
+    path_marker.colors.push_back(color_msg);
+    path_marker.colors.push_back(color_msg);
+    path_msgs.markers.push_back(path_marker);
   }
   path_marker_pub_.publish(path_msgs);
   path_marker_pub_.publish(collision_msgs);

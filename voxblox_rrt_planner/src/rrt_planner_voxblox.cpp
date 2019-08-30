@@ -41,8 +41,6 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
   setupPlannerAndSmootherMap();
 
   visualizeMap();
-
-  explore();
 }
 
 void VoxbloxRrtPlanner::setupPlannerAndSmootherMap() {
