@@ -34,9 +34,9 @@ public:
       const double& robot_radius);
 
   void computeMapBounds(Eigen::Vector3d *lower_bound,
-                        Eigen::Vector3d *upper_bound) const;
+                        Eigen::Vector3d *upper_bound);
 
-  void setVerbose(bool verbose) {};
+  void setVerbose(bool /*verbose*/) {};
 
 protected:
   // Map!

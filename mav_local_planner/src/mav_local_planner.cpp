@@ -519,13 +519,11 @@ void MavLocalPlanner::commandPublishTimerCallback(
         trajectory_to_publish.front().time_from_start_ns * 1.0e-9,
         trajectory_to_publish.front().position_W.x(),
         trajectory_to_publish.front().position_W.y(),
-        trajectory_to_publish.front().position_W.y(),
+        trajectory_to_publish.front().position_W.z(),
         trajectory_to_publish.back().time_from_start_ns * 1.0e-9,
         trajectory_to_publish.back().position_W.x(),
         trajectory_to_publish.back().position_W.y(),
-        trajectory_to_publish.back().position_W.y());
-
-        )
+        trajectory_to_publish.back().position_W.z());
     mav_msgs::msgMultiDofJointTrajectoryFromEigen(trajectory_to_publish, &msg);
 
     command_pub_.publish(msg);

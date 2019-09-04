@@ -19,7 +19,7 @@ namespace mav_planning {
     virtual void visualizeMap() = 0;
     virtual bool isMapInitialized() = 0;
     virtual void computeMapBounds(Eigen::Vector3d* lower_bound,
-                                  Eigen::Vector3d* upper_bound) const = 0;
+                                  Eigen::Vector3d* upper_bound) = 0;
     virtual bool checkCollision(const Eigen::Vector3d& start, const Eigen::Vector3d& goal,
                                 const double& robot_radius) = 0;
 

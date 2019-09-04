@@ -859,8 +859,19 @@ void RrtPlanner::explore() {
     plan_request.goal_pose = pose;
     mav_planning_msgs::PlannerServiceResponse plan_response;
     ROS_INFO("[RrtPlanner] prep %lu", i);
-    plannerServiceCallback(plan_request, plan_response);
+
+    Eigen::Vector3d diff = waypoints[i+1] - waypoints[i];
+    if (abs(diff.x()) == 20 and abs(diff.z()) == 5) {
+      ROS_WARN("[RrtPlanner] Probably ramp, no planning");
+    } else if (abs(diff.x()) == 10 and abs(diff.z()) == 2.5) {
+      ROS_WARN("[RrtPlanner] Probably dip, no planning");
+    } else if ((waypoints[i].x() == 0 and waypoints[i].y() == 0) or
+        (waypoints[i+1].x() == 0 and waypoints[i+1].y() == 0)) {
+      ROS_WARN("[RrtPlanner] Start problem");
+    } else {
+      plannerServiceCallback(plan_request, plan_response);
 //    ROS_INFO("[RrtPlanner] planned");
+    }
 
     if (visualize_) {
       visualization_msgs::MarkerArray start_goal_msgs;
@@ -1038,6 +1049,14 @@ void RrtPlanner::flyPath() {
     return;
   }
   infile.close();
+
+  // invert plan
+  int invert = 1;
+  std::cout << "inverting path? yes (1) or no (0) ";
+  std::cin >> invert;
+  if (invert == 1) {
+    std::reverse(point_list_msg.begin(), point_list_msg.end());
+  }
 
   // check plan
   ROS_INFO("checking path for collision (%lu segments)", point_list_msg.size() - 1);

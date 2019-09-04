@@ -118,7 +118,7 @@ bool VoxbloxPlanner::checkCollision(const Eigen::Vector3d& start,
 }
 
 void VoxbloxPlanner::computeMapBounds(Eigen::Vector3d *lower_bound,
-                                      Eigen::Vector3d *upper_bound) const {
+                                      Eigen::Vector3d *upper_bound) {
   if (esdf_map_) {
     voxblox::utils::computeMapBoundsFromLayer(*esdf_map_->getEsdfLayerPtr(),
                                               lower_bound, upper_bound);
