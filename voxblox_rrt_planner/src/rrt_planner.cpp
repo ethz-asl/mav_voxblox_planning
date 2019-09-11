@@ -391,13 +391,103 @@ bool RrtPlanner::checkPhysicalConstraints(
 
 void RrtPlanner::explore() {
   ROS_INFO("[RrtPlanner] flying trajectory");
-  bool darpa_map = false;
   bool maze = false;
+  bool darpa_map = false;
+  bool loop_closure = true;
+
+  bool fix_height = false;
 
   std::vector<Eigen::Vector3d> waypoints;
   Eigen::Vector3d point;
   std::string filename;
-  if (darpa_map) {
+  if (loop_closure) {
+    filename = "/media/darpa/SSD_500GB/gasserl/datas/darpa_loop_closure.txt";
+    fix_height = true;
+    point = Eigen::Vector3d(0, 0, 1);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(115,178,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(94,210,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(119,217,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(145,181,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(115,178,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(94,210,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(119,217,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(145,181,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(115,178,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(94,210,1);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(115,178,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(145,181,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(119,217,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(94,210,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(115,178,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(145,181,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(119,217,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(94,210,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(115,178,1);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(185,134,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(192,122,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(239,141,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(235,157,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(185,134,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(192,122,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(239,141,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(235,157,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(185,134,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(192,122,1);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(192,122,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(185,134,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(235,157,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(239,141,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(192,122,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(185,134,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(235,157,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(239,141,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(192,122,1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(185,134,1);
+    waypoints.emplace_back(point);
+  } else if (darpa_map) {
     filename = "/media/darpa/SSD_500GB/gasserl/datas/darpa_edgar_waypoints.txt";
     point = Eigen::Vector3d(0, 0, 1);
     waypoints.emplace_back(point);
@@ -841,9 +931,13 @@ void RrtPlanner::explore() {
 
   mav_msgs::EigenTrajectoryPointVector all_waypoints;
   double height = 1.5;
-//  waypoints[0].z() = height;
+  if (fix_height) {
+    waypoints[0].z() = height;
+  }
   for (ulong i = 0; i < waypoints.size() - 1; i++) {
-//    waypoints[i + 1].z() = height;
+    if (fix_height) {
+      waypoints[i + 1].z() = height;
+    }
 
     // getting plan
     mav_planning_msgs::PlannerServiceRequest plan_request;
@@ -865,9 +959,9 @@ void RrtPlanner::explore() {
       ROS_WARN("[RrtPlanner] Probably ramp, no planning");
     } else if (abs(diff.x()) == 10 and abs(diff.z()) == 2.5) {
       ROS_WARN("[RrtPlanner] Probably dip, no planning");
-    } else if ((waypoints[i].x() == 0 and waypoints[i].y() == 0) or
-        (waypoints[i+1].x() == 0 and waypoints[i+1].y() == 0)) {
-      ROS_WARN("[RrtPlanner] Start problem");
+//    } else if ((waypoints[i].x() == 0 and waypoints[i].y() == 0) or
+//        (waypoints[i+1].x() == 0 and waypoints[i+1].y() == 0)) {
+//      ROS_WARN("[RrtPlanner] Start problem");
     } else {
       plannerServiceCallback(plan_request, plan_response);
 //    ROS_INFO("[RrtPlanner] planned");
@@ -960,8 +1054,10 @@ void RrtPlanner::explore() {
     }
   }
   std::reverse(all_waypoints.begin(), all_waypoints.end());
-  for (mav_msgs::EigenTrajectoryPoint& waypoint : all_waypoints) {
-//    waypoint.position_W.z() = 2;
+  if (fix_height) {
+    for (mav_msgs::EigenTrajectoryPoint& waypoint : all_waypoints) {
+      waypoint.position_W.z() = height;
+    }
   }
 
   if (visualize_) {
