@@ -39,7 +39,7 @@ class RrtPlanner {
   void subscribeToTopics();
   virtual void setupPlannerAndSmootherMap() = 0;
 
-  bool plannerServiceCallback(
+  virtual bool plannerServiceCallback(
       mav_planning_msgs::PlannerServiceRequest& request,
       mav_planning_msgs::PlannerServiceResponse& response);
 
