@@ -1,5 +1,6 @@
 #include <mav_msgs/default_topics.h>
 #include <mav_trajectory_generation/trajectory_sampling.h>
+#include <minkindr_conversions/kindr_tf.h>
 
 #include "mav_local_planner/mav_local_planner.h"
 
@@ -27,7 +28,8 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       max_failures_(5),
       num_failures_(0),
       esdf_server_(nh_, nh_private_),
-      loco_planner_(nh_, nh_private_) {
+      loco_planner_(nh_, nh_private_),
+      is_trajectory_in_global_frame_(false) {
   // Set up some settings.
   constraints_.setParametersFromRos(nh_private_);
   esdf_server_.setTraversabilityRadius(constraints_.robot_radius);
@@ -118,6 +120,7 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
   loco_smoother_.setResampleTrajectory(true);
   loco_smoother_.setResampleVisibility(true);
   loco_smoother_.setNumSegments(5);
+
 }
 
 void MavLocalPlanner::odometryCallback(const nav_msgs::Odometry& msg) {
@@ -127,6 +130,24 @@ void MavLocalPlanner::odometryCallback(const nav_msgs::Odometry& msg) {
 void MavLocalPlanner::waypointCallback(const geometry_msgs::PoseStamped& msg) {
   // Plan a path from the current position to the target pose stamped.
   ROS_INFO("[Mav Local Planner] Got a waypoint!");
+
+  // If the waypoint is in the global frame, transform it to the local frame.
+  // NOTE(alexmillane): If we get a trajectory in a frame which is neither
+  // global or local, skip it. Not sure if this is the right thing to do.
+  if (msg.header.frame_id == global_frame_id_) {
+    ROS_INFO_THROTTLE(
+        10, "Waypoints in map frame, will be transformed at publish time.");
+    is_trajectory_in_global_frame_ = true;
+  } else if (msg.header.frame_id == local_frame_id_) {
+    is_trajectory_in_global_frame_ = false;
+  } else {
+    ROS_INFO_STREAM("Waypoints in frame: "
+                    << msg.header.frame_id
+                    << ", which is neither global or local "
+                       "frame. Ignoring trajectory.");
+    return;
+  }
+
   // Cancel any previous trajectory on getting a new one.
   clearTrajectory();
 
@@ -147,6 +168,24 @@ void MavLocalPlanner::waypointListCallback(
   // Plan a path from the current position to the target pose stamped.
   ROS_INFO("[Mav Local Planner] Got a list of waypoints, %zu long!",
            msg.poses.size());
+
+  // If the waypoint is in the global frame, transform it to the local frame.
+  // NOTE(alexmillane): If we get a trajectory in a frame which is neither
+  // global or local, skip it. Not sure if this is the right thing to do.
+  if (msg.header.frame_id == global_frame_id_) {
+    ROS_INFO_THROTTLE(
+        10, "Waypoints in map frame, will be transformed at publish time.");
+    is_trajectory_in_global_frame_ = true;
+  } else if (msg.header.frame_id == local_frame_id_) {
+    is_trajectory_in_global_frame_ = false;
+  } else {
+    ROS_INFO_STREAM("Waypoints in frame: "
+                    << msg.header.frame_id
+                    << ", which is neither global or local "
+                       "frame. Ignoring trajectory.");
+    return;
+  }
+
   // Cancel any previous trajectory on getting a new one.
   clearTrajectory();
 
@@ -536,6 +575,23 @@ void MavLocalPlanner::commandPublishTimerCallback(
     mav_msgs::EigenTrajectoryPointVector trajectory_to_publish(first_sample,
                                                                last_sample);
 
+    // Transforming trajectory if required
+    if (is_trajectory_in_global_frame_) {
+      Transformation T_L_G;
+      if (getGlobalToLocalTransform(&T_L_G)) {
+        // Transforming and replacing
+        mav_msgs::EigenTrajectoryPointVector trajectory_to_publish_local;
+        transformTrajectoryGlobalToLocal(trajectory_to_publish, T_L_G,
+                                         &trajectory_to_publish_local);
+        trajectory_to_publish = std::move(trajectory_to_publish_local);
+      } else {
+        ROS_WARN(
+            "Transformation of global_frame trajectory to local_frame "
+            "trajectory requested, but transform not available. Not publishing.");
+        return;
+      }
+    }
+
     trajectory_msgs::MultiDOFJointTrajectory msg;
     msg.header.frame_id = local_frame_id_;
     msg.header.stamp = ros::Time::now();
@@ -620,7 +676,15 @@ void MavLocalPlanner::visualizePath() {
   {
     std::lock_guard<std::recursive_mutex> guard(path_mutex_);
 
-    path_marker = createMarkerForPath(path_queue_, local_frame_id_,
+    // Frame the path is in
+    std::string frame_id;
+    if (is_trajectory_in_global_frame_) {
+      frame_id = global_frame_id_;
+    } else {
+      frame_id = local_frame_id_;
+    }
+
+    path_marker = createMarkerForPath(path_queue_, frame_id,
                                       mav_visualization::Color::Black(),
                                       "local_path", 0.05);
   }
@@ -716,6 +780,59 @@ bool MavLocalPlanner::dealWithFailure() {
       return true;
     }
   }
+}
+
+bool MavLocalPlanner::getGlobalToLocalTransform(
+    Transformation* T_L_G_ptr) const {
+  // Getting the transform from TF
+  try {
+    tf::StampedTransform T_L_G_tf;
+    tf_listener_.lookupTransform(local_frame_id_, global_frame_id_,
+                                 ros::Time(0), T_L_G_tf);
+    tf::transformTFToKindr(T_L_G_tf, T_L_G_ptr);
+    return true;
+  } catch (tf::TransformException ex) {
+    ROS_ERROR("%s", ex.what());
+    return false;
+  }
+  return true;
+}
+
+void MavLocalPlanner::transformTrajectoryGlobalToLocal(
+    const mav_msgs::EigenTrajectoryPointVector& trajectory_global,
+    const Transformation& T_L_G,
+    mav_msgs::EigenTrajectoryPointVector* trajectory_local) const {
+  trajectory_local->clear();
+  trajectory_local->reserve(trajectory_global.size());
+  for (const mav_msgs::EigenTrajectoryPoint& point_global : trajectory_global) {
+    mav_msgs::EigenTrajectoryPoint point_local;
+    transformTrajectoryPointGlobalToLocal(point_global, T_L_G, &point_local);
+    trajectory_local->push_back(point_local);
+  }
+}
+
+void MavLocalPlanner::transformTrajectoryPointGlobalToLocal(
+    const mav_msgs::EigenTrajectoryPoint& point_global,
+    const Transformation& T_L_G,
+    mav_msgs::EigenTrajectoryPoint* point_local) const {
+  Transformation T_G_B(point_global.position_W, point_global.orientation_W_B);
+
+  // Transform the actual position/orientation of the robot.
+  Transformation T_L_B = T_L_G * T_G_B;
+
+  point_local->position_W = T_L_B.getPosition();
+  point_local->orientation_W_B = T_L_B.getRotation().toImplementation();
+
+  point_local->time_from_start_ns = point_global.time_from_start_ns;
+  // Get some derivatives in there.
+  point_local->velocity_W =
+      T_L_G.getRotation().toImplementation() * point_global.velocity_W;
+  point_local->acceleration_W =
+      T_L_G.getRotation().toImplementation() * point_global.acceleration_W;
+  point_local->jerk_W =
+      T_L_G.getRotation().toImplementation() * point_global.jerk_W;
+  point_local->snap_W =
+      T_L_G.getRotation().toImplementation() * point_global.snap_W;
 }
 
 }  // namespace mav_planning

@@ -25,6 +25,9 @@
 #include <voxblox_loco_planner/goal_point_selector.h>
 #include <voxblox_loco_planner/voxblox_loco_planner.h>
 #include <voxblox_ros/esdf_server.h>
+#include <tf/transform_listener.h>
+
+#include "mav_local_planner/common.h"
 
 namespace mav_planning {
 
@@ -97,6 +100,17 @@ class MavLocalPlanner {
 
   // Other internal stuff.
   void sendCurrentPose();
+
+  // Trajectory Transforming stuff
+  bool getGlobalToLocalTransform(Transformation* T_L_G_ptr) const;
+  void transformTrajectoryGlobalToLocal(
+      const mav_msgs::EigenTrajectoryPointVector& trajectory_global,
+      const Transformation& T_L_G,
+      mav_msgs::EigenTrajectoryPointVector* trajectory_local) const;
+  void transformTrajectoryPointGlobalToLocal(
+      const mav_msgs::EigenTrajectoryPoint& point_global,
+      const Transformation& T_L_G,
+      mav_msgs::EigenTrajectoryPoint* point_local) const;
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
@@ -195,6 +209,10 @@ class MavLocalPlanner {
   // Intermediate goal selection, optionally in case of path-planning failures:
   GoalPointSelector goal_selector_;
   bool temporary_goal_;
+
+  // Stuff for transforming trajectories
+  bool is_trajectory_in_global_frame_;
+  tf::TransformListener tf_listener_;
 };
 
 }  // namespace mav_planning
