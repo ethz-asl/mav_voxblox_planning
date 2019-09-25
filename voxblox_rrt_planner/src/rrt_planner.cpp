@@ -487,6 +487,75 @@ void RrtPlanner::explore() {
     waypoints.emplace_back(point);
     point = Eigen::Vector3d(185,134,1);
     waypoints.emplace_back(point);
+
+    waypoints.clear();
+
+    point = Eigen::Vector3d(0, 0, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(185, 134, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(238, 72, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(253, 91, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(235, 157, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(185, 134, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(238, 72, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(253, 91, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(235, 157, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(185, 134, 1);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(235, 157, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(253, 91, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(238, 72, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(185, 134, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(235, 157, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(253, 91, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(238, 72, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(185, 134, 1);
+    waypoints.emplace_back(point);
+
+    point = Eigen::Vector3d(189, 163, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(0, 0, 1);
+    waypoints.emplace_back(point);
+
+    // darpa practice loop closure
+    filename = "/media/darpa/SSD_500GB/gasserl/datas/darpa_loop_closure.txt";
+    waypoints.clear();
+    fix_height = false;
+
+    point = Eigen::Vector3d(0, 0, 1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(15, 0, 1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(40, 0, 1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(22, -37, 1.5);
+    waypoints.emplace_back(point);
+//    point = Eigen::Vector3d(60, -40, 1.5);
+//    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(77, -42, 1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(80, -60, 1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(62, -57, 1.5);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(56, -1, 1.5);
+    waypoints.emplace_back(point);
   } else if (darpa_map) {
     filename = "/media/darpa/SSD_500GB/gasserl/datas/darpa_edgar_waypoints.txt";
     point = Eigen::Vector3d(0, 0, 1);
@@ -880,7 +949,7 @@ void RrtPlanner::explore() {
     vertex_marker.id = 0;
     vertex_marker.type = visualization_msgs::Marker::SPHERE_LIST;
     vertex_marker.pose.orientation.w = 1.0;
-    vertex_marker.scale.x = 1;
+    vertex_marker.scale.x = constraints_.robot_radius*2;
     vertex_marker.scale.y = vertex_marker.scale.x;
     vertex_marker.scale.z = vertex_marker.scale.x;
     visualization_msgs::Marker edge_marker;
@@ -986,7 +1055,7 @@ void RrtPlanner::explore() {
       vertex_marker.id = i + 1;
       vertex_marker.type = visualization_msgs::Marker::SPHERE_LIST;
       vertex_marker.pose.orientation.w = 1.0;
-      vertex_marker.scale.x = 1;
+      vertex_marker.scale.x = constraints_.robot_radius*2;
       vertex_marker.scale.y = vertex_marker.scale.x;
       vertex_marker.scale.z = vertex_marker.scale.x;
 
@@ -1041,11 +1110,10 @@ void RrtPlanner::explore() {
         }
       }
 //      waypoints[i+1] = waypoints[i];
-      // TODO: BUILD AND CHECK ORDER!!
       mav_msgs::EigenTrajectoryPoint failed_point_msg;
-      failed_point_msg.position_W = waypoints[i+1];
-      all_waypoints.insert(all_waypoints.begin(), failed_point_msg);
       failed_point_msg.position_W = waypoints[i];
+      all_waypoints.insert(all_waypoints.begin(), failed_point_msg);
+      failed_point_msg.position_W = waypoints[i+1];
       all_waypoints.insert(all_waypoints.begin(), failed_point_msg);
     }
 //    continue;
@@ -1075,8 +1143,11 @@ void RrtPlanner::explore() {
 //      ROS_INFO_STREAM("[RrtPlanner] " << i << " th segment collision free ["
 //          << all_waypoints[i].position_W.transpose() << "] to [" << all_waypoints[i+1].position_W.transpose() << "]");
       } else {
-        ROS_ERROR_STREAM("[RrtPlanner] " << i << " th segment in collision ["
-                                         << all_waypoints[i].position_W.transpose() << "] to [" << all_waypoints[i+1].position_W.transpose() << "]");
+        ROS_ERROR("[GlobalGraphPlanner] %ldth segment in collision "
+                  "[%.2f %.2f %.2f] to [%.2f %.2f %.2f]",
+            i, all_waypoints[i].position_W.x(), all_waypoints[i].position_W.y(),
+            all_waypoints[i].position_W.z(), all_waypoints[i+1].position_W.x(),
+            all_waypoints[i+1].position_W.y(), all_waypoints[i+1].position_W.z());
         collision_edges.emplace_back(i+1);
 //      return;
         visualization_msgs::MarkerArray start_goal_msgs;
@@ -1183,9 +1254,11 @@ void RrtPlanner::flyPath() {
 //      ROS_INFO_STREAM("[RrtPlanner] " << i << " th segment collision free ["
 //          << point_list_msg[i].position_W.transpose() << "] to [" << point_list_msg[i+1].position_W.transpose() << "]");
     } else {
-      ROS_ERROR_STREAM("[RrtPlanner] " << i << " th segment in collision ["
-          << point_list_msg[i].position_W.transpose() << "] to [" << point_list_msg[i+1].position_W.transpose() << "]");
-      collision_edges.emplace_back(i+1);
+      ROS_ERROR("[GlobalGraphPlanner] %ldth segment in collision "
+                "[%.2f %.2f %.2f] to [%.2f %.2f %.2f]",
+          i, point_list_msg[i].position_W.x(), point_list_msg[i].position_W.y(),
+          point_list_msg[i].position_W.z(), point_list_msg[i+1].position_W.x(),
+          point_list_msg[i+1].position_W.y(), point_list_msg[i+1].position_W.z());
 //      return;
 
       visualization_msgs::Marker collision_marker = edge_marker;

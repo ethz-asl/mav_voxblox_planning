@@ -31,7 +31,7 @@ public:
   double getMapWeight(const Eigen::Vector3d& position) const;
 
   bool checkCollision(const Eigen::Vector3d& start, const Eigen::Vector3d& goal,
-      const double& robot_radius);
+      const double& robot_radius) const;
 
   void computeMapBounds(Eigen::Vector3d *lower_bound,
                         Eigen::Vector3d *upper_bound);

@@ -514,16 +514,22 @@ void MavLocalPlanner::commandPublishTimerCallback(
     */
     ROS_INFO(
         "[Mav Local Planner][Command Publish] \n"
-        "Start Time: %.3f, Position: %.2f %.2f %.2f\n"
-        "End   Time: %.3f, Position: %.2f %.2f %.2f",
+        "Start Time: %.3f, Position: %.2f %.2f %.2f, Velocity: %.2f %.2f %.2f\n"
+        "End   Time: %.3f, Position: %.2f %.2f %.2f, Velocity: %.2f %.2f %.2f",
         trajectory_to_publish.front().time_from_start_ns * 1.0e-9,
         trajectory_to_publish.front().position_W.x(),
         trajectory_to_publish.front().position_W.y(),
         trajectory_to_publish.front().position_W.z(),
+        trajectory_to_publish.front().velocity_W.x(),
+        trajectory_to_publish.front().velocity_W.y(),
+        trajectory_to_publish.front().velocity_W.z(),
         trajectory_to_publish.back().time_from_start_ns * 1.0e-9,
         trajectory_to_publish.back().position_W.x(),
         trajectory_to_publish.back().position_W.y(),
-        trajectory_to_publish.back().position_W.z());
+        trajectory_to_publish.back().position_W.z(),
+        trajectory_to_publish.back().velocity_W.x(),
+        trajectory_to_publish.back().velocity_W.y(),
+        trajectory_to_publish.back().velocity_W.z());
     mav_msgs::msgMultiDofJointTrajectoryFromEigen(trajectory_to_publish, &msg);
 
     command_pub_.publish(msg);

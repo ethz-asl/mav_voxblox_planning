@@ -94,7 +94,7 @@ double VoxbloxPlanner::getMapWeight(const Eigen::Vector3d& position) const {
 }
 
 bool VoxbloxPlanner::checkCollision(const Eigen::Vector3d& start,
-                                    const Eigen::Vector3d& goal, const double& robot_radius) {
+    const Eigen::Vector3d& goal, const double& robot_radius) const{
   double max_step_size = 3*voxel_size_;
   Eigen::Vector3d direction = (goal - start).normalized();
   double distance = (goal - start).norm();
