@@ -41,7 +41,7 @@ class SparseGraphPlanner {
   bool getPathBetweenVertices(int64_t start_vertex_id, int64_t end_vertex_id,
                               std::vector<int64_t>* vertex_path) const;
 
- private:
+ protected:
   int64_t popSmallestFromOpen(
       const std::map<int64_t, FloatingPoint>& f_score_map,
       std::set<int64_t>* open_set) const;

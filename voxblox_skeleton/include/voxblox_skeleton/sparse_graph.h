@@ -12,6 +12,7 @@ namespace voxblox {
     float distance = 0.0f;
 
     std::vector<int64_t> edge_list;
+    std::vector<int64_t> link_list;
 
     int subgraph_id = 0;
 
@@ -54,6 +55,9 @@ namespace voxblox {
 
     const GraphVertex& getVertex(int64_t id) const;
     const GraphEdge& getEdge(int64_t id) const;
+
+    GraphVertex* getVertexPtr(int64_t id);
+    GraphEdge* getEdgePtr(int64_t id);
 
     GraphVertex& getVertex(int64_t id);
     GraphEdge& getEdge(int64_t id);

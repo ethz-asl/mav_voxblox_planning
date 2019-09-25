@@ -1,5 +1,5 @@
 #include <voxblox_skeleton/sparse_graph.h>
-
+#include <iostream>
 namespace voxblox {
 
 SparseGraph::SparseGraph()
@@ -20,8 +20,8 @@ int64_t SparseGraph::addEdge(const GraphEdge& edge) {
   iter_pair.first->second.edge_id = edge_id;
 
   // Now hook it up to the vertices.
-  GraphVertex& start_vertex = vertex_map_[edge.start_vertex];
-  GraphVertex& end_vertex = vertex_map_[edge.end_vertex];
+  GraphVertex& start_vertex = vertex_map_.at(edge.start_vertex);
+  GraphVertex& end_vertex = vertex_map_.at(edge.end_vertex);
 
   start_vertex.edge_list.push_back(edge_id);
   end_vertex.edge_list.push_back(edge_id);
@@ -60,6 +60,13 @@ GraphVertex& SparseGraph::getVertex(int64_t id) {
 
 GraphEdge& SparseGraph::getEdge(int64_t id) {
   return edge_map_.find(id)->second;
+}
+
+GraphVertex* SparseGraph::getVertexPtr(int64_t id) {
+  return &vertex_map_.at(id);
+}
+GraphEdge* SparseGraph::getEdgePtr(int64_t id) {
+  return &edge_map_.at(id);
 }
 
 void SparseGraph::clear() {
