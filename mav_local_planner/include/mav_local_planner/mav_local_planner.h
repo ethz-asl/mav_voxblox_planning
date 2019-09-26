@@ -102,15 +102,20 @@ class MavLocalPlanner {
   void sendCurrentPose();
 
   // Trajectory Transforming stuff
+  template <typename MsgType>
+  bool checkFrame(const MsgType& msg);
   bool getGlobalToLocalTransform(Transformation* T_L_G_ptr) const;
   void transformTrajectoryGlobalToLocal(
       const mav_msgs::EigenTrajectoryPointVector& trajectory_global,
       const Transformation& T_L_G,
       mav_msgs::EigenTrajectoryPointVector* trajectory_local) const;
-  void transformTrajectoryPointGlobalToLocal(
-      const mav_msgs::EigenTrajectoryPoint& point_global,
-      const Transformation& T_L_G,
-      mav_msgs::EigenTrajectoryPoint* point_local) const;
+  void transformTrajectoryPoint(const mav_msgs::EigenTrajectoryPoint& point_A,
+                                const Transformation& T_B_A,
+                                mav_msgs::EigenTrajectoryPoint* point_B) const;
+
+  // Gets the current odometry as a trajectory point in the relavent frame.
+  bool getCurrentPositionAsTrajectoryPoint(
+      mav_msgs::EigenTrajectoryPoint* current_point_ptr) const;
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
@@ -216,5 +221,7 @@ class MavLocalPlanner {
 };
 
 }  // namespace mav_planning
+
+#include "mav_local_planner/mav_local_planner_inl.h"
 
 #endif  // MAV_LOCAL_PLANNER_MAV_LOCAL_PLANNER_H_
