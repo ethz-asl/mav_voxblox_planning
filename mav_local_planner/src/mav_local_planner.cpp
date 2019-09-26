@@ -810,7 +810,6 @@ void MavLocalPlanner::transformTrajectoryGlobalToLocal(
   trajectory_local->reserve(trajectory_global.size());
   for (const mav_msgs::EigenTrajectoryPoint& point_global : trajectory_global) {
     mav_msgs::EigenTrajectoryPoint point_local;
-    // transformTrajectoryPointGlobalToLocal(point_global, T_L_G, &point_local);
     transformTrajectoryPoint(point_global, T_L_G, &point_local);
     trajectory_local->push_back(point_local);
   }
