@@ -8,7 +8,7 @@ namespace voxblox {
 namespace io {
 
 bool saveSparseSkeletonGraphToFile(const std::string& filename,
-                                   const SparseGraph& graph) {
+                                   const SparseSkeletonGraph& graph) {
   // Then fill in all the edges.
   CHECK(!filename.empty());
   std::fstream outfile;
@@ -51,7 +51,7 @@ bool saveSparseSkeletonGraphToFile(const std::string& filename,
 }
 
 bool loadSparseSkeletonGraphFromFile(const std::string& filename,
-                                     SparseGraph* graph) {
+                                     SparseSkeletonGraph* graph) {
   CHECK(!filename.empty());
   CHECK_NOTNULL(graph);
   graph->clear();

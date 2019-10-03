@@ -314,11 +314,6 @@ size_t SkeletonGenerator::pruneDiagramEdges() {
         skeleton_layer_->computeBlockIndexFromCoordinates(edge.point);
     Block<SkeletonVoxel>::Ptr block_ptr;
     block_ptr = skeleton_layer_->getBlockPtrByIndex(block_index);
-//    if (!block_ptr) {
-//      removal_indices.push_back(j);
-//      j++;
-//      continue;
-//    }
     CHECK(block_ptr);
     VoxelIndex voxel_index =
         block_ptr->computeVoxelIndexFromCoordinates(edge.point);
@@ -522,9 +517,6 @@ void SkeletonGenerator::generateSparseGraph() {
   vertex_ids.reserve(vertex_points.size());
 
   for (const SkeletonPoint& point : vertex_points) {
-//    if (!skeleton_layer_->getBlockPtrByCoordinates(point.point)) {
-//      continue;
-//    }
     SkeletonVertex vertex;
     vertex.point = point.point;
     vertex.distance = point.distance;

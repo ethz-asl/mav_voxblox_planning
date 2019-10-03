@@ -86,7 +86,7 @@ class SparseSkeletonGraph {
   typedef kindr::minimal::QuatTransformationTemplate<FloatingPoint>
       Transformation;
 
-public:
+ public:
   SparseSkeletonGraph();
 
   int64_t addVertex(const SkeletonVertex& vertex);
@@ -120,7 +120,7 @@ public:
   // Returns true if the vertices have a direct (i.e., ONE edge) connection
   // to each other.
   bool areVerticesDirectlyConnected(int64_t vertex_id_1,
-      int64_t vertex_id_2) const;
+                                    int64_t vertex_id_2) const;
 
   // Only const access to the vertex and edge maps, mostly for kD-tree use.
   // To modify the stuff, use add and remove vertex/edge, since this preserves
@@ -141,7 +141,7 @@ public:
   // transforms vertex locations into different frame
   void transformFrame(const Transformation& T_G_S);
 
-private:
+ private:
   // Vertex and edge IDs are separate.
   std::map<int64_t, SkeletonVertex> vertex_map_;
   std::map<int64_t, SkeletonEdge> edge_map_;

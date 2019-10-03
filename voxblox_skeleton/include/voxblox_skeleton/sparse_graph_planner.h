@@ -9,7 +9,7 @@
 
 namespace voxblox {
 
-class SparseSkeletonGraphPlanner {
+class SparseGraphPlanner {
  public:
   typedef nanoflann::KDTreeSingleIndexAdaptor<
       nanoflann::L2_Simple_Adaptor<FloatingPoint,
