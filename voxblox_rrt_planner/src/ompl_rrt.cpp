@@ -31,19 +31,19 @@ void BloxOmplRrt::setBounds(const Eigen::Vector3d& lower_bound,
 }
 
 void BloxOmplRrt::setupProblem() {
-  problem_setup_.setDefaultObjective();
+  problem_setup_->setDefaultObjective();
   if (planner_type_ == kRrtConnect) {
-    problem_setup_.setRrtConnect();
+    problem_setup_->setRrtConnect();
   } else if (planner_type_ == kRrtStar) {
-    problem_setup_.setRrtStar();
+    problem_setup_->setRrtStar();
   } else if (planner_type_ == kInformedRrtStar) {
-    problem_setup_.setInformedRrtStar();
+    problem_setup_->setInformedRrtStar();
   } else if (planner_type_ == kPrm) {
-    problem_setup_.setPrm();
+    problem_setup_->setPrm();
   } else if (planner_type_ == kBitStar) {
-    problem_setup_.setBitStar();
+    problem_setup_->setBitStar();
   } else {
-    problem_setup_.setDefaultPlanner();
+    problem_setup_->setDefaultPlanner();
   }
 
   if (lower_bound_ != upper_bound_) {
@@ -57,7 +57,7 @@ void BloxOmplRrt::setupProblem() {
     bounds.setHigh(2, upper_bound_.z());
 
     // Define start and goal positions.
-    problem_setup_.getGeometricComponentStateSpace()
+    problem_setup_->getGeometricComponentStateSpace()
         ->as<ompl::mav::StateSpace>()
         ->setBounds(bounds);
   } else {
@@ -72,7 +72,7 @@ void BloxOmplRrt::setupProblem() {
     validity_checking_resolution =
         voxel_size_ / (upper_bound_ - lower_bound_).norm() / 2.0;
   }
-  problem_setup_.setStateValidityCheckingResolution(
+  problem_setup_->setStateValidityCheckingResolution(
       validity_checking_resolution);
 }
 
@@ -83,17 +83,17 @@ bool BloxOmplRrt::getPathBetweenWaypoints(
   setupFromStartAndGoal(start, goal);
 
   // Solvin' time!
-  if (problem_setup_.solve(num_seconds_to_plan_)) {
-    if (problem_setup_.haveExactSolutionPath()) {
+  if (problem_setup_->solve(num_seconds_to_plan_)) {
+    if (problem_setup_->haveExactSolutionPath()) {
       // Simplify and print.
       // TODO(helenol): look more into this. Appears to actually prefer more
       // vertices with presumably shorter total path length, which is
       // detrimental to polynomial planning.
       if (simplify_solution_) {
-        problem_setup_.reduceVertices();
+        problem_setup_->reduceVertices();
       }
       if (verbose_) {
-        problem_setup_.getSolutionPath().printAsMatrix(std::cout);
+        problem_setup_->getSolutionPath().printAsMatrix(std::cout);
       }
     } else {
       ROS_WARN("OMPL planning failed.");
@@ -101,8 +101,8 @@ bool BloxOmplRrt::getPathBetweenWaypoints(
     }
   }
 
-  if (problem_setup_.haveSolutionPath()) {
-    solutionPathToTrajectoryPoints(problem_setup_.getSolutionPath(), solution);
+  if (problem_setup_->haveSolutionPath()) {
+    solutionPathToTrajectoryPoints(problem_setup_->getSolutionPath(), solution);
     return true;
   }
   return false;
@@ -112,16 +112,16 @@ void BloxOmplRrt::setupFromStartAndGoal(
     const mav_msgs::EigenTrajectoryPoint& start,
     const mav_msgs::EigenTrajectoryPoint& goal) {
   if (planner_type_ == kPrm) {
-    std::dynamic_pointer_cast<ompl::geometric::PRM>(problem_setup_.getPlanner())
+    std::dynamic_pointer_cast<ompl::geometric::PRM>(problem_setup_->getPlanner())
         ->clearQuery();
   } else {
-    problem_setup_.clear();
+    problem_setup_->clear();
   }
 
   ompl::base::ScopedState<ompl::mav::StateSpace> start_ompl(
-      problem_setup_.getSpaceInformation());
+      problem_setup_->getSpaceInformation());
   ompl::base::ScopedState<ompl::mav::StateSpace> goal_ompl(
-      problem_setup_.getSpaceInformation());
+      problem_setup_->getSpaceInformation());
 
   start_ompl->values[0] = start.position_W.x();
   start_ompl->values[1] = start.position_W.y();
@@ -130,10 +130,10 @@ void BloxOmplRrt::setupFromStartAndGoal(
   goal_ompl->values[0] = goal.position_W.x();
   goal_ompl->values[1] = goal.position_W.y();
   goal_ompl->values[2] = goal.position_W.z();
-  problem_setup_.setStartAndGoalStates(start_ompl, goal_ompl);
-  problem_setup_.setup();
+  problem_setup_->setStartAndGoalStates(start_ompl, goal_ompl);
+  problem_setup_->setup();
   if (verbose_) {
-    problem_setup_.print();
+    problem_setup_->print();
   }
 }
 
@@ -168,25 +168,25 @@ bool BloxOmplRrt::getBestPathTowardGoal(
 
   // Solvin' time!
   bool solution_found = false;
-  solution_found = problem_setup_.solve(num_seconds_to_plan_);
+  solution_found = problem_setup_->solve(num_seconds_to_plan_);
   if (solution_found) {
-    if (problem_setup_.haveSolutionPath()) {
+    if (problem_setup_->haveSolutionPath()) {
       // Simplify and print.
       if (simplify_solution_) {
-        problem_setup_.reduceVertices();
+        problem_setup_->reduceVertices();
       }
       if (verbose_) {
-        problem_setup_.getSolutionPath().printAsMatrix(std::cout);
+        problem_setup_->getSolutionPath().printAsMatrix(std::cout);
       }
-      solutionPathToTrajectoryPoints(problem_setup_.getSolutionPath(),
+      solutionPathToTrajectoryPoints(problem_setup_->getSolutionPath(),
                                      solution);
       return true;
     }
   }
   // The case where you actually have a solution path has returned by now.
   // Otherwise let's just see what the best we can do is.
-  ompl::base::PlannerData planner_data(problem_setup_.getSpaceInformation());
-  problem_setup_.getPlanner()->getPlannerData(planner_data);
+  ompl::base::PlannerData planner_data(problem_setup_->getSpaceInformation());
+  problem_setup_->getPlanner()->getPlannerData(planner_data);
 
   // Start traversing the graph and find the node that gets the closest to the
   // actual goal point.

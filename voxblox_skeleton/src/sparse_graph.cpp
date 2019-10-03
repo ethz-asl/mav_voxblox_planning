@@ -119,19 +119,22 @@ void SparseGraph::removeEdge(int64_t edge_id) {
   const GraphEdge& edge = iter->second;
 
   // Remove this edge from both vertices.
-  GraphVertex& vertex_1 = getVertex(edge.start_vertex);
-  GraphVertex& vertex_2 = getVertex(edge.end_vertex);
-
-  for (size_t i = 0; i < vertex_1.edge_list.size(); i++) {
-    if (vertex_1.edge_list[i] == edge_id) {
-      vertex_1.edge_list.erase(vertex_1.edge_list.begin() + i);
-      break;
+  if (hasVertex(edge.start_vertex)) {
+    GraphVertex& vertex_1 = getVertex(edge.start_vertex);
+    for (size_t i = 0; i < vertex_1.edge_list.size(); i++) {
+      if (vertex_1.edge_list[i] == edge_id) {
+        vertex_1.edge_list.erase(vertex_1.edge_list.begin() + i);
+        break;
+      }
     }
   }
-  for (size_t i = 0; i < vertex_2.edge_list.size(); i++) {
-    if (vertex_2.edge_list[i] == edge_id) {
-      vertex_2.edge_list.erase(vertex_2.edge_list.begin() + i);
-      break;
+  if (hasVertex(edge.end_vertex)) {
+    GraphVertex& vertex_2 = getVertex(edge.end_vertex);
+    for (size_t i = 0; i < vertex_2.edge_list.size(); i++) {
+      if (vertex_2.edge_list[i] == edge_id) {
+        vertex_2.edge_list.erase(vertex_2.edge_list.begin() + i);
+        break;
+      }
     }
   }
 

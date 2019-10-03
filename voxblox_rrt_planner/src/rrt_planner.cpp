@@ -110,6 +110,18 @@ bool RrtPlanner::plannerServiceCallback(
   Eigen::Vector3d lower_bound, upper_bound;
   map_->computeMapBounds(&lower_bound, &upper_bound);
 
+  // darpa hack
+//  lower_bound.z() = 0;
+//  upper_bound.z() = 3;
+
+  /*
+  // ARCHE interior limits
+  lower_bound.x() = -22;
+  lower_bound.y() = -12;
+  lower_bound.z() =   1;
+  upper_bound.x() = -11;
+  */
+
   ROS_INFO_STREAM("Map bounds: " << lower_bound.transpose() << " to "
                                  << upper_bound.transpose() << " size: "
                                  << (upper_bound - lower_bound).transpose());
@@ -134,6 +146,7 @@ bool RrtPlanner::plannerServiceCallback(
     random_goal = true;
   }
 
+  ROS_INFO("[RrtPlanner] set random: %d", random_start_goal_);
   if (!random_start_goal_ and (random_start or random_goal)) {
     ROS_WARN("[RrtPlanner] distances: start %.2f, goal %.2f",
         map_->getMapDistance(start_pose.position_W), map_->getMapDistance(goal_pose.position_W));
@@ -252,6 +265,7 @@ bool RrtPlanner::plannerServiceCallback(
         poly_has_collisions, loco_has_collisions, loco2_has_collisions);
 
     if (!poly_has_collisions) {
+      last_waypoints_ = poly_path;
       last_trajectory_valid_ = true;
     }
 
@@ -401,6 +415,7 @@ void RrtPlanner::explore() {
   Eigen::Vector3d point;
   std::string filename;
   if (loop_closure) {
+    // darpa edgar loop closure
     filename = "/media/darpa/SSD_500GB/gasserl/datas/darpa_loop_closure.txt";
     fix_height = true;
     point = Eigen::Vector3d(0, 0, 1);

@@ -81,7 +81,7 @@ class BloxOmplRrt {
   ros::NodeHandle nh_private_;
 
   // Setup the problem in OMPL.
-  ompl::mav::MavSetup problem_setup_;
+  ompl::mav::MavSetup* problem_setup_;
   RrtPlannerType planner_type_;
   double num_seconds_to_plan_;
   bool simplify_solution_;
