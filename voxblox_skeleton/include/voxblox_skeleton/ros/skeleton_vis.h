@@ -9,12 +9,11 @@
 #include <voxblox_ros/conversions.h>
 
 #include "voxblox_skeleton/skeleton.h"
-#include <voxblox_skeleton/sparse_graph.h>
 
 namespace voxblox {
 
 inline void visualizeSkeletonGraph(
-    const SparseGraph& graph, const std::string& frame_id,
+    const SparseSkeletonGraph& graph, const std::string& frame_id,
     visualization_msgs::MarkerArray* marker_array) {
   bool visualize_subgraphs = true;
   bool visualize_freespace = false;
@@ -52,7 +51,7 @@ inline void visualizeSkeletonGraph(
 
   for (int64_t vertex_id : vertex_ids) {
     geometry_msgs::Point point_msg;
-    const GraphVertex& vertex = graph.getVertex(vertex_id);
+    const SkeletonVertex& vertex = graph.getVertex(vertex_id);
     tf::pointEigenToMsg(vertex.point.cast<double>(), point_msg);
     vertex_marker.points.push_back(point_msg);
 
@@ -98,7 +97,7 @@ inline void visualizeSkeletonGraph(
 
   for (int64_t edge_id : edge_ids) {
     geometry_msgs::Point point_msg;
-    const GraphEdge& edge = graph.getEdge(edge_id);
+    const SkeletonEdge& edge = graph.getEdge(edge_id);
     tf::pointEigenToMsg(edge.start_point.cast<double>(), point_msg);
     edge_marker.points.push_back(point_msg);
     tf::pointEigenToMsg(edge.end_point.cast<double>(), point_msg);

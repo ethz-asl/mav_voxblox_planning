@@ -2,10 +2,10 @@
 #include <iostream>
 namespace voxblox {
 
-SparseGraph::SparseGraph()
+SparseSkeletonGraph::SparseSkeletonGraph()
     : next_vertex_id_(0), next_edge_id_(0) {}
 
-int64_t SparseGraph::addVertex(const GraphVertex& vertex) {
+int64_t SparseSkeletonGraph::addVertex(const GraphVertex& vertex) {
   int64_t vertex_id = next_vertex_id_++;
   // Returns an iterator...
   auto iter_pair = vertex_map_.emplace(std::make_pair(vertex_id, vertex));
@@ -13,7 +13,7 @@ int64_t SparseGraph::addVertex(const GraphVertex& vertex) {
   return vertex_id;
 }
 
-int64_t SparseGraph::addEdge(const GraphEdge& edge) {
+int64_t SparseSkeletonGraph::addEdge(const GraphEdge& edge) {
   int64_t edge_id = next_edge_id_++;
   // Returns an iterator...
   auto iter_pair = edge_map_.emplace(std::make_pair(edge_id, edge));
@@ -32,44 +32,44 @@ int64_t SparseGraph::addEdge(const GraphEdge& edge) {
   return edge_id;
 }
 
-bool SparseGraph::hasVertex(int64_t id) const {
+bool SparseSkeletonGraph::hasVertex(int64_t id) const {
   if (vertex_map_.find(id) != vertex_map_.end()) {
     return true;
   }
   return false;
 }
 
-bool SparseGraph::hasEdge(int64_t id) const {
+bool SparseSkeletonGraph::hasEdge(int64_t id) const {
   if (edge_map_.find(id) != edge_map_.end()) {
     return true;
   }
   return false;
 }
 
-const GraphVertex& SparseGraph::getVertex(int64_t id) const {
+const GraphVertex& SparseSkeletonGraph::getVertex(int64_t id) const {
   return vertex_map_.find(id)->second;
 }
 
-const GraphEdge& SparseGraph::getEdge(int64_t id) const {
+const GraphEdge& SparseSkeletonGraph::getEdge(int64_t id) const {
   return edge_map_.find(id)->second;
 }
 
-GraphVertex& SparseGraph::getVertex(int64_t id) {
+GraphVertex& SparseSkeletonGraph::getVertex(int64_t id) {
   return vertex_map_.find(id)->second;
 }
 
-GraphEdge& SparseGraph::getEdge(int64_t id) {
+GraphEdge& SparseSkeletonGraph::getEdge(int64_t id) {
   return edge_map_.find(id)->second;
 }
 
-GraphVertex* SparseGraph::getVertexPtr(int64_t id) {
+GraphVertex* SparseSkeletonGraph::getVertexPtr(int64_t id) {
   return &vertex_map_.at(id);
 }
-GraphEdge* SparseGraph::getEdgePtr(int64_t id) {
+GraphEdge* SparseSkeletonGraph::getEdgePtr(int64_t id) {
   return &edge_map_.at(id);
 }
 
-void SparseGraph::clear() {
+void SparseSkeletonGraph::clear() {
   next_vertex_id_ = 0;
   next_edge_id_ = 0;
 
@@ -77,7 +77,7 @@ void SparseGraph::clear() {
   edge_map_.clear();
 }
 
-void SparseGraph::getAllVertexIds(
+void SparseSkeletonGraph::getAllVertexIds(
     std::vector<int64_t>* vertex_ids) const {
   vertex_ids->reserve(vertex_map_.size());
   for (const std::pair<int64_t, GraphVertex>& kv : vertex_map_) {
@@ -85,14 +85,14 @@ void SparseGraph::getAllVertexIds(
   }
 }
 
-void SparseGraph::getAllEdgeIds(std::vector<int64_t>* edge_ids) const {
+void SparseSkeletonGraph::getAllEdgeIds(std::vector<int64_t>* edge_ids) const {
   edge_ids->reserve(edge_map_.size());
   for (const std::pair<int64_t, GraphEdge>& kv : edge_map_) {
     edge_ids->push_back(kv.first);
   }
 }
 
-void SparseGraph::removeVertex(int64_t vertex_id) {
+void SparseSkeletonGraph::removeVertex(int64_t vertex_id) {
   // Find the vertex.
   std::map<int64_t, GraphVertex>::iterator iter =
       vertex_map_.find(vertex_id);
@@ -110,7 +110,7 @@ void SparseGraph::removeVertex(int64_t vertex_id) {
   vertex_map_.erase(iter);
 }
 
-void SparseGraph::removeEdge(int64_t edge_id) {
+void SparseSkeletonGraph::removeEdge(int64_t edge_id) {
   // Find the edge.
   std::map<int64_t, GraphEdge>::iterator iter = edge_map_.find(edge_id);
   if (iter == edge_map_.end()) {
@@ -141,7 +141,7 @@ void SparseGraph::removeEdge(int64_t edge_id) {
   edge_map_.erase(iter);
 }
 
-bool SparseGraph::areVerticesDirectlyConnected(
+bool SparseSkeletonGraph::areVerticesDirectlyConnected(
     int64_t vertex_id_1, int64_t vertex_id_2) const {
   const GraphVertex& vertex_1 = getVertex(vertex_id_1);
   // Iterate over all edges of vertex 1.
@@ -156,14 +156,14 @@ bool SparseGraph::areVerticesDirectlyConnected(
   return false;
 }
 
-void SparseGraph::addSerializedVertex(const GraphVertex& vertex) {
+void SparseSkeletonGraph::addSerializedVertex(const GraphVertex& vertex) {
   vertex_map_[vertex.vertex_id] = vertex;
 }
-void SparseGraph::addSerializedEdge(const GraphEdge& edge) {
+void SparseSkeletonGraph::addSerializedEdge(const GraphEdge& edge) {
   edge_map_[edge.edge_id] = edge;
 }
 
-void SparseGraph::transformFrame(const Transformation& T_G_S) {
+void SparseSkeletonGraph::transformFrame(const Transformation& T_G_S) {
   // transform vertices
   for (std::pair<const int64_t, GraphVertex>& kv : vertex_map_) {
     kv.second.point = T_G_S * kv.second.point;

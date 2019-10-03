@@ -66,8 +66,8 @@ class SkeletonGenerator {
   Skeleton& getSkeleton() { return skeleton_; }
 
   // Sparse graph access.
-  const SparseGraph& getSparseGraph() const { return graph_; }
-  SparseGraph& getSparseGraph() { return graph_; }
+  const SparseSkeletonGraph& getSparseGraph() const { return graph_; }
+  SparseSkeletonGraph& getSparseGraph() { return graph_; }
 
   float getMinSeparationAngle() const { return min_separation_angle_; }
   void setMinSeparationAngle(float min_separation_angle) {
@@ -151,8 +151,8 @@ class SkeletonGenerator {
   // KD tree adapters.
   typedef nanoflann::KDTreeSingleIndexAdaptor<
       nanoflann::L2_Simple_Adaptor<FloatingPoint,
-                                   DirectGraphVertexMapAdapter>,
-      DirectGraphVertexMapAdapter, 3>
+                                   DirectSkeletonVertexMapAdapter>,
+      DirectSkeletonVertexMapAdapter, 3>
       VertexGraphKdTree;
   typedef nanoflann::KDTreeSingleIndexAdaptor<
       nanoflann::L2_Simple_Adaptor<FloatingPoint, SkeletonPointVectorAdapter>,
@@ -160,8 +160,8 @@ class SkeletonGenerator {
       SkeletonPointKdTree;
   typedef nanoflann::KDTreeSingleIndexDynamicAdaptor<
       nanoflann::L2_Simple_Adaptor<FloatingPoint,
-                                   DirectGraphVertexMapAdapter>,
-      DirectGraphVertexMapAdapter, 3>
+                                   DirectSkeletonVertexMapAdapter>,
+      DirectSkeletonVertexMapAdapter, 3>
       DynamicVertexGraphKdTree;
 
   float min_separation_angle_;
@@ -203,7 +203,7 @@ class SkeletonGenerator {
   float voxel_size_;
   size_t voxels_per_side_;
 
-  SparseGraph graph_;
+  SparseSkeletonGraph graph_;
 
   bool verbose_;
 };

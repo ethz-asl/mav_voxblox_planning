@@ -9,19 +9,19 @@
 namespace voxblox {
 namespace io {
 
-bool saveSparseGraphToFile(const std::string& filename,
-                                   const SparseGraph& graph);
+bool saveSparseSkeletonGraphToFile(const std::string& filename,
+                                   const SparseSkeletonGraph& graph);
 
-bool loadSparseGraphFromFile(const std::string& filename,
-                                     SparseGraph* graph);
+bool loadSparseSkeletonGraphFromFile(const std::string& filename,
+                                     SparseSkeletonGraph* graph);
 
-void convertVertexToProto(const GraphVertex& vertex,
-                          GraphVertexProto* proto);
-void convertEdgeToProto(const GraphEdge& edge, GraphEdgeProto* proto);
+void convertVertexToProto(const SkeletonVertex& vertex,
+                          SkeletonVertexProto* proto);
+void convertEdgeToProto(const SkeletonEdge& edge, SkeletonEdgeProto* proto);
 
-void convertProtoToVertex(const GraphVertexProto& proto,
-                          GraphVertex* vertex);
-void convertProtoToEdge(const GraphEdgeProto& proto, GraphEdge* edge);
+void convertProtoToVertex(const SkeletonVertexProto& proto,
+                          SkeletonVertex* vertex);
+void convertProtoToEdge(const SkeletonEdgeProto& proto, SkeletonEdge* edge);
 
 }  // namespace io
 }  // namespace voxblox

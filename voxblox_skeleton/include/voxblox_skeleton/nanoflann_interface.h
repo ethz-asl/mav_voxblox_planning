@@ -3,8 +3,6 @@
 
 #include "voxblox_skeleton/nanoflann/nanoflann.h"
 #include "voxblox_skeleton/skeleton.h"
-#include "sparse_graph.h"
-#include <voxblox_skeleton/sparse_graph.h>
 
 namespace voxblox {
 
@@ -35,12 +33,12 @@ class SkeletonPointVectorAdapter {
   const AlignedVector<SkeletonPoint>& points_;
 };
 
-class GraphVertexMapAdapter {
+class SkeletonVertexMapAdapter {
  public:
-  GraphVertexMapAdapter(const std::map<int64_t, GraphVertex>& vertices)
+  SkeletonVertexMapAdapter(const std::map<int64_t, SkeletonVertex>& vertices)
       : vertices_(vertices) {}
 
-  inline const std::map<int64_t, GraphVertex>& derived() const {
+  inline const std::map<int64_t, SkeletonVertex>& derived() const {
     return vertices_;
   }
 
@@ -66,16 +64,16 @@ class GraphVertexMapAdapter {
   }
 
  private:
-  const std::map<int64_t, GraphVertex>& vertices_;
+  const std::map<int64_t, SkeletonVertex>& vertices_;
 };
 
-class DirectGraphVertexMapAdapter {
+class DirectSkeletonVertexMapAdapter {
  public:
-  DirectGraphVertexMapAdapter(
-      const std::map<int64_t, GraphVertex>& vertices)
+  DirectSkeletonVertexMapAdapter(
+      const std::map<int64_t, SkeletonVertex>& vertices)
       : vertices_(vertices) {}
 
-  inline const std::map<int64_t, GraphVertex>& derived() const {
+  inline const std::map<int64_t, SkeletonVertex>& derived() const {
     return vertices_;
   }
 
@@ -105,7 +103,7 @@ class DirectGraphVertexMapAdapter {
   }
 
  private:
-  const std::map<int64_t, GraphVertex>& vertices_;
+  const std::map<int64_t, SkeletonVertex>& vertices_;
 };
 
 }  // namespace voxblox

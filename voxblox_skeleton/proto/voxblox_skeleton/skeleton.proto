@@ -1,6 +1,6 @@
 package voxblox;
 
-message GraphVertexProto {
+message SkeletonVertexProto {
   optional int64 vertex_id = 1;
   optional double point_x = 2;
   optional double point_y = 3;
@@ -11,7 +11,7 @@ message GraphVertexProto {
   optional int32 subgraph_id = 6;
 }
 
-message GraphEdgeProto {
+message SkeletonEdgeProto {
   optional int64 edge_id = 1;
   optional int64 start_vertex = 2;
   optional int64 end_vertex = 3;
@@ -28,7 +28,7 @@ message GraphEdgeProto {
   optional float end_distance = 11;
 }
 
-message SparseGraphProto {
-  repeated GraphVertexProto vertices = 1;
-  repeated GraphEdgeProto edges = 2;
+message SkeletonGraphProto {
+  repeated SkeletonVertexProto vertices = 1;
+  repeated SkeletonEdgeProto edges = 2;
 }
