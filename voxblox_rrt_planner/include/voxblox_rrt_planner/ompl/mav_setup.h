@@ -10,11 +10,7 @@
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
 #include <ompl/geometric/planners/rrt/RRTstar.h>
 
-#include <cblox/core/submap_collection.h>
-
 #include "voxblox_rrt_planner/ompl/ompl_types.h"
-#include "voxblox_rrt_planner/ompl/ompl_voxblox.h"
-#include "voxblox_rrt_planner/ompl/ompl_cblox.h"
 
 namespace ompl {
 namespace mav {

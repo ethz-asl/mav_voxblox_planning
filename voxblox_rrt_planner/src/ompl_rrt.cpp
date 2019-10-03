@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "voxblox_rrt_planner/ompl_rrt.h"
 
 namespace mav_planning {
