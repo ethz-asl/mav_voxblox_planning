@@ -47,8 +47,6 @@ class SkeletonGlobalPlanner {
 
   double getMapDistance(const Eigen::Vector3d& position) const;
 
-  void explore();
-
  private:
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
@@ -81,10 +79,6 @@ class SkeletonGlobalPlanner {
 
   // Waypoints
   mav_msgs::EigenTrajectoryPointVector last_waypoints_;
-
-  ros::Subscriber odometry_sub_;
-  void odometryCallback(const nav_msgs::Odometry& msg);
-  mav_msgs::EigenOdometry odometry_;
 };
 
 }  // namespace mav_planning

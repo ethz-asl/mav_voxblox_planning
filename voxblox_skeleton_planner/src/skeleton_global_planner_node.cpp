@@ -13,7 +13,6 @@ int main(int argc, char** argv) {
   mav_planning::SkeletonGlobalPlanner planner_node(nh, nh_private);
   ROS_INFO("Initialized skeleton global planner node.");
   planner_node.generateSparseGraph();
-  planner_node.explore();
 
   ros::spin();
   return 0;

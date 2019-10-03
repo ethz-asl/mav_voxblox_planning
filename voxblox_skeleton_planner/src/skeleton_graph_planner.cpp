@@ -45,7 +45,7 @@ void SkeletonGraphPlanner::setSkeletonLayer(
 }
 
 void SkeletonGraphPlanner::setSparseGraph(
-    voxblox::SparseGraph* sparse_graph) {
+    voxblox::SparseSkeletonGraph* sparse_graph) {
   sparse_graph_planner_.setGraph(sparse_graph);
   mav_trajectory_generation::timing::Timer kd_tree_init("skeleton_plan/setup");
   sparse_graph_planner_.setup();
