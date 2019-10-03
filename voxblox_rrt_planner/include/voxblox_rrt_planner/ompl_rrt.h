@@ -60,14 +60,9 @@ class BloxOmplRrt {
                              mav_msgs::EigenTrajectoryPoint::Vector* solution);
 
   void constructPrmRoadmap(double roadmap_construction_sec) {
-    problem_setup_.clear();
-    problem_setup_.setup();
-    problem_setup_.constructPrmRoadmap(roadmap_construction_sec);
-  }
-
-  void getPrmRoadmap() {
-    ROS_INFO_STREAM("[BloxOmplRrt] getting roadmap");
-    problem_setup_.getPrmRoadmap();
+    problem_setup_->clear();
+    problem_setup_->setup();
+    problem_setup_->constructPrmRoadmap(roadmap_construction_sec);
   }
 
  protected:
@@ -81,7 +76,7 @@ class BloxOmplRrt {
   ros::NodeHandle nh_private_;
 
   // Setup the problem in OMPL.
-  ompl::mav::MavSetup problem_setup_;
+  ompl::mav::MavSetup* problem_setup_;
   RrtPlannerType planner_type_;
   double num_seconds_to_plan_;
   bool simplify_solution_;

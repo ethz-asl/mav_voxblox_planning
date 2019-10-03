@@ -11,15 +11,9 @@ add_definitions(-std=c++11)
 #############
 cs_add_library(${PROJECT_NAME}
   src/voxblox_loco_planner.cpp
+  src/shotgun_planner.cpp
+  src/goal_point_selector.cpp
 )
-
-############
-# BINARIES #
-############
-#cs_add_executable(global_planning_benchmark_node
-#  src/global_planning_benchmark_node.cpp
-#)
-#target_link_libraries(global_planning_benchmark_node ${PROJECT_NAME})
 
 ##########
 # EXPORT #

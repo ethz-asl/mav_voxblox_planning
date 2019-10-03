@@ -5,7 +5,6 @@
 #include <voxblox/utils/neighbor_tools.h>
 
 #include "voxblox_skeleton/nanoflann_interface.h"
-#include <voxblox_skeleton/sparse_graph.h>
 #include "voxblox_skeleton/skeleton.h"
 
 namespace voxblox {
@@ -14,13 +13,13 @@ class SparseGraphPlanner {
  public:
   typedef nanoflann::KDTreeSingleIndexAdaptor<
       nanoflann::L2_Simple_Adaptor<FloatingPoint,
-                                   DirectGraphVertexMapAdapter>,
-      DirectGraphVertexMapAdapter, 3>
+                                   DirectSkeletonVertexMapAdapter>,
+      DirectSkeletonVertexMapAdapter, 3>
       VertexGraphKdTree;
 
   SparseGraphPlanner();
 
-  void setGraph(SparseGraph* graph) {
+  void setGraph(SparseSkeletonGraph* graph) {
     CHECK_NOTNULL(graph);
     graph_ = graph;
   }
@@ -41,7 +40,7 @@ class SparseGraphPlanner {
   bool getPathBetweenVertices(int64_t start_vertex_id, int64_t end_vertex_id,
                               std::vector<int64_t>* vertex_path) const;
 
- private:
+ protected:
   int64_t popSmallestFromOpen(
       const std::map<int64_t, FloatingPoint>& f_score_map,
       std::set<int64_t>* open_set) const;
@@ -50,10 +49,10 @@ class SparseGraphPlanner {
                        const std::map<int64_t, int64_t>& parent_map,
                        std::vector<int64_t>* vertex_path) const;
 
-  SparseGraph* graph_;
+  SparseSkeletonGraph* graph_;
 
   std::unique_ptr<VertexGraphKdTree> kd_tree_;
-  std::unique_ptr<DirectGraphVertexMapAdapter> kd_tree_adapter_;
+  std::unique_ptr<DirectSkeletonVertexMapAdapter> kd_tree_adapter_;
 };
 
 }  // namespace voxblox

@@ -28,9 +28,15 @@ public:
   bool isMapInitialized();
 
   double getMapDistance(const Eigen::Vector3d &position) const;
+  double getMapWeight(const Eigen::Vector3d& position) const;
+
+  bool checkCollision(const Eigen::Vector3d& start, const Eigen::Vector3d& goal,
+      const double& robot_radius) const;
 
   void computeMapBounds(Eigen::Vector3d *lower_bound,
-                        Eigen::Vector3d *upper_bound) const;
+                        Eigen::Vector3d *upper_bound);
+
+  void setVerbose(bool /*verbose*/) {};
 
 protected:
   // Map!

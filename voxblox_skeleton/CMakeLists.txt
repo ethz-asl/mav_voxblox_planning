@@ -47,8 +47,6 @@ cs_add_library(${PROJECT_NAME}
   src/skeleton_generator.cpp
   src/skeleton_planner.cpp
   src/skeleton_serialization.cpp
-  src/sparse_graph.cpp
-    #src/boost_graph.cpp
   src/sparse_graph_planner.cpp
   src/voxel_template_matcher.cpp
 )

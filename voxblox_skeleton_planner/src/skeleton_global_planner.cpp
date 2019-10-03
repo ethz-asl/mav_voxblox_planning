@@ -17,10 +17,11 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
       skeleton_generator_() {
   constraints_.setParametersFromRos(nh_private_);
 
-  std::string voxblox_path;
+  std::string voxblox_path, skeleton_path;
   nh_private_.param("voxblox_path", voxblox_path, voxblox_path);
   nh_private_.param("sparse_graph_path", sparse_graph_path_,
                     sparse_graph_path_);
+  nh_private_.param("skeleton_path", skeleton_path, skeleton_path);
   nh_private_.param("visualize", visualize_, visualize_);
 
   path_marker_pub_ =
@@ -66,8 +67,13 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
               ->getEsdfLayerPtr()
               ->voxels_per_side());
 
+  ROS_INFO("Loading Skeleton Layer");
+  if (skeleton_path.empty()) {
+    ROS_ERROR("Couldn't load skeleton, empty filename.");
+    return;
+  }
   if (!voxblox::io::LoadBlocksFromFile<voxblox::SkeletonVoxel>(
-          voxblox_path,
+          skeleton_path,
           voxblox::Layer<
               voxblox::SkeletonVoxel>::BlockMergingStrategy::kReplace,
           true, skeleton_layer)) {
@@ -110,18 +116,23 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
     voxblox_server_.generateMesh();
     voxblox_server_.publishSlices();
     voxblox_server_.publishPointclouds();
+    voxblox_server_.publishMap();
+
+    ROS_INFO("published maps");
   }
+
+  generateSparseGraph();
 }
 
 void SkeletonGlobalPlanner::generateSparseGraph() {
   ROS_INFO("About to generate skeleton graph.");
-  skeleton_generator_.updateSkeletonFromLayer();
-  ROS_INFO("Re-populated from layer.");
 
   if (!sparse_graph_path_.empty() &&
       skeleton_generator_.loadSparseGraphFromFile(sparse_graph_path_)) {
     ROS_INFO_STREAM("Loaded sparse graph from file: " << sparse_graph_path_);
   } else {
+    skeleton_generator_.updateSkeletonFromLayer();
+    ROS_INFO("Re-populated from layer.");
     skeleton_generator_.generateSparseGraph();
     ROS_INFO("Generated skeleton graph.");
   }
@@ -138,7 +149,7 @@ void SkeletonGlobalPlanner::generateSparseGraph() {
     skeleton_pub_.publish(ptcloud_pcl);
 
     // Now visualize the graph.
-    const voxblox::SparseGraph& graph =
+    const voxblox::SparseSkeletonGraph& graph =
         skeleton_generator_.getSparseGraph();
     visualization_msgs::MarkerArray marker_array;
     voxblox::visualizeSkeletonGraph(graph, frame_id_, &marker_array);

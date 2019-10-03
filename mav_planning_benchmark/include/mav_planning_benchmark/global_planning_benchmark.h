@@ -6,7 +6,7 @@
 #include <mav_path_smoothing/velocity_ramp_smoother.h>
 #include <mav_planning_common/physical_constraints.h>
 #include <voxblox_ros/esdf_server.h>
-#include <voxblox_rrt_planner/ompl_rrt_voxblox.h>
+#include <voxblox_rrt_planner/voxblox_ompl_rrt.h>
 #include <voxblox_skeleton/io/skeleton_io.h>
 #include <voxblox_skeleton/skeleton_planner.h>
 #include <voxblox_skeleton/sparse_graph_planner.h>
@@ -25,7 +25,7 @@ class GlobalPlanningBenchmark {
     kBitStar
   };
 
-  enum PathSmoothingMethod { kNone = 0, kVelocityRamp, kPolynomial, kLoco };
+  enum PathSmoothingMethod { kNone = 0, kVelocityRamp, kPolynomial, kLoco, kLoco2, kLoco3 };
   struct GlobalBenchmarkResult {
     int trial_number = 0;
     int seed = 0;
@@ -114,6 +114,8 @@ class GlobalPlanningBenchmark {
   VelocityRampSmoother ramp_smoother_;
   PolynomialSmoother poly_smoother_;
   LocoSmoother loco_smoother_;
+  LocoSmoother loco2_smoother_;
+  LocoSmoother loco3_smoother_;
 
   // Which methods to use.
   std::vector<GlobalPlanningMethod> global_planning_methods_;

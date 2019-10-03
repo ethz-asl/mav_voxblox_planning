@@ -20,7 +20,7 @@
 #include <minkindr_conversions/kindr_msg.h>
 #include <voxblox_ros/esdf_server.h>
 
-#include "voxblox_rrt_planner/ompl_rrt_voxblox.h"
+#include "voxblox_rrt_planner/voxblox_ompl_rrt.h"
 #include <mav_planning_voxblox/voxblox_planner.h>
 #include "voxblox_rrt_planner/rrt_planner.h"
 
@@ -46,16 +46,6 @@ class VoxbloxRrtPlanner : public RrtPlanner, public VoxbloxPlanner {
  private:
   // Planners!
   VoxbloxOmplRrt rrt_;
-
-  /*
-  // Map!
-  voxblox::EsdfServer voxblox_server_;
-  // Shortcuts to the maps:
-  voxblox::EsdfMap::Ptr esdf_map_;
-  voxblox::TsdfMap::Ptr tsdf_map_;
-
-  std::string input_filepath_;
-  */
 };
 
 }  // namespace mav_planning

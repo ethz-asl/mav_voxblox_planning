@@ -7,7 +7,7 @@
 #include <voxblox/utils/planning_utils.h>
 
 #include "voxblox_rrt_planner/rrt_planner.h"
-#include "voxblox_rrt_planner/rrt_planner_voxblox.h"
+#include "voxblox_rrt_planner/voxblox_rrt_planner.h"
 
 namespace mav_planning {
 
@@ -28,6 +28,7 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
   // TODO(helenol): figure out what to do with optimistic/pessimistic here.
   rrt_.setRobotRadius(constraints_.robot_radius);
   rrt_.setOptimistic(false);
+  rrt_.setPlanner(VoxbloxOmplRrt::kRrtConnect);
 
   // Set up the path smoother as well.
   smoother_.setParametersFromRos(nh_private_);

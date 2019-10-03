@@ -4,6 +4,7 @@
 #include <mav_msgs/eigen_mav_msgs.h>
 #include <mav_planning_common/physical_constraints.h>
 #include <voxblox/simulation/simulation_world.h>
+#include <voxblox_loco_planner/goal_point_selector.h>
 #include <voxblox_loco_planner/voxblox_loco_planner.h>
 #include <voxblox_ros/esdf_server.h>
 
@@ -126,6 +127,7 @@ class LocalPlanningBenchmark {
 
   // Planners will go here!
   VoxbloxLocoPlanner loco_planner_;
+  GoalPointSelector goal_selector_;
 
   // Which methods to use.
   std::vector<LocalPlanningMethod> local_planning_methods_;

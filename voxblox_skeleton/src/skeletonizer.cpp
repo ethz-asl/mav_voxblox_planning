@@ -151,7 +151,7 @@ void SkeletonizerNode::skeletonize(Layer<EsdfVoxel>* esdf_layer,
   ROS_INFO_STREAM("Total Timings: " << std::endl << timing::Timing::Print());
 
   // Now visualize the graph.
-  const SparseGraph& graph = skeleton_generator_.getSparseGraph();
+  const SparseSkeletonGraph& graph = skeleton_generator_.getSparseGraph();
   visualization_msgs::MarkerArray marker_array;
   visualizeSkeletonGraph(graph, frame_id_, &marker_array);
   sparse_graph_pub_.publish(marker_array);

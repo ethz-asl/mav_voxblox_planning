@@ -1,8 +1,11 @@
 <launch>
-  <arg name="base_path" default="/home/helen/data/jfr_2018/shed/voxblox/" />
-  <arg name="esdf_name" default="stereo_esdf_0.10.voxblox" />
-  <arg name="sparse_graph_name" default="stereo_sparse_graph_0.10.voxblox" />
-  <arg name="results_name" default="stereo_results_12_10_2018c.csv" />
+  <arg name="dataset" default="shed" />
+  <arg name="sensor" default="rs" />
+  <arg name="date" default="06_12_2018b" />
+  <arg name="base_path" default="/home/helen/data/jfr_2018/$(arg dataset)/voxblox/" />
+  <arg name="esdf_name" default="$(arg sensor)_esdf_0.10.voxblox" />
+  <arg name="sparse_graph_name" default="$(arg sensor)_sparse_graph_0.10.voxblox" />
+  <arg name="results_name" default="$(arg sensor)_results_$(arg date).csv" />
 
   <arg name="frame_id" default="map" />
 
@@ -17,7 +20,7 @@
     <param name="tsdf_voxel_size" value="0.10" />
     <param name="tsdf_voxels_per_side" value="16" />
     <param name="update_mesh_every_n_sec" value="0.0" />
-    <param name="num_seconds_to_plan" value="5.0" />
+    <param name="num_seconds_to_plan" value="2.0" />
     <param name="frame_id" value="$(arg frame_id)" />
     <param name="world_frame" value="$(arg frame_id)" />
     <param name="verbose" value="true" />

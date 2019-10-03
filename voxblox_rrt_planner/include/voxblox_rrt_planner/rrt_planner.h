@@ -21,7 +21,7 @@
 #include <voxblox_ros/esdf_server.h>
 
 #include <mav_planning_voxblox/map_interface.h>
-#include "voxblox_rrt_planner/ompl_rrt_voxblox.h"
+#include "voxblox_rrt_planner/voxblox_ompl_rrt.h"
 
 namespace mav_planning {
 
@@ -39,7 +39,7 @@ class RrtPlanner {
   void subscribeToTopics();
   virtual void setupPlannerAndSmootherMap() = 0;
 
-  bool plannerServiceCallback(
+  virtual bool plannerServiceCallback(
       mav_planning_msgs::PlannerServiceRequest& request,
       mav_planning_msgs::PlannerServiceResponse& response);
 
@@ -80,6 +80,11 @@ class RrtPlanner {
   ros::ServiceServer planner_srv_;
   ros::ServiceServer path_pub_srv_;
 
+  ros::ServiceServer manual_trigger_srv_;
+  bool manualTriggerCallback(std_srvs::EmptyRequest& request, std_srvs::EmptyResponse& response);
+  void explore();
+  void flyPath();
+
   // Map object
   MapInterface* map_;
 
@@ -88,6 +93,7 @@ class RrtPlanner {
   bool visualize_;
   bool do_smoothing_;
   bool path_shortening_;
+  bool random_start_goal_;
 
   // Robot parameters -- v max, a max, radius, etc.
   PhysicalConstraints constraints_;
@@ -113,6 +119,12 @@ class RrtPlanner {
                                  const Eigen::Vector3d& bounding_box) const;
   bool checkStartAndGoalFree(const Eigen::Vector3d& start_pos,
                              const Eigen::Vector3d& goal_pos) const;
+
+  // Current state of the MAV.
+  ros::Subscriber odometry_sub_;
+  void odometryCallback(const nav_msgs::Odometry& msg);
+  // State -- robot state.
+  mav_msgs::EigenOdometry odometry_;
 };
 
 }  // namespace mav_planning
