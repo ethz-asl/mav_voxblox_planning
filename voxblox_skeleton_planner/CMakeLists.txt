@@ -10,7 +10,6 @@ add_definitions(-std=c++11)
 # LIBRARIES #
 #############
 cs_add_library(${PROJECT_NAME}
-  src/path_shortening.cpp
   src/skeleton_global_planner.cpp
   src/skeleton_graph_planner.cpp
 )

@@ -15,8 +15,10 @@ int main(int argc, char** argv) {
 
   int num_trials = 100;
   std::string results_path;
+  bool exit_at_end = false;
   nh_private.param("results_path", results_path, results_path);
   nh_private.param("num_trials", num_trials, num_trials);
+  nh_private.param("exit_at_end", exit_at_end, exit_at_end);
 
   const double min_density = 0.05;
   const double max_density = 0.50;
@@ -28,8 +30,8 @@ int main(int argc, char** argv) {
                       1;
 
   int trials_per_density = num_trials / num_densities;
-  std::cout << "Trials per density: " << trials_per_density
-            << " num densities: " << num_densities;
+  ROS_INFO_STREAM("[Local Planning Benchmark]: Trials per density: "
+                  << trials_per_density << " num densities: " << num_densities);
   int trial_number = 0;
 
   for (int i = 0; i < num_densities; ++i) {
@@ -43,6 +45,7 @@ int main(int argc, char** argv) {
       }
       srand(trial_number);
       node.generateWorld(density);
+      srand(trial_number);
       node.runBenchmark(trial_number);
       trial_number++;
     }
@@ -57,6 +60,10 @@ int main(int argc, char** argv) {
                   << voxblox::timing::Timing::Print() << std::endl
                   << mav_trajectory_generation::timing::Timing::Print());
 
-  ros::spin();
+  if (exit_at_end) {
+    ros::shutdown();
+  } else {
+    ros::spin();
+  }
   return 0;
 }
