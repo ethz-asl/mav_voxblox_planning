@@ -141,8 +141,8 @@ void MavLocalPlanner::waypointCallback(const geometry_msgs::PoseStamped& msg) {
   if (!checkFrame(msg)) {
     ROS_INFO_STREAM("Waypoint in frame: "
                     << msg.header.frame_id
-                    << ", which is neither global or local "
-                       "frame. Ignoring trajectory.");
+                    << ", which is neither global: " << global_frame_id_ << ", or local "
+                       "frame:" << local_frame_id_ << ". Ignoring trajectory.");
     return;
   }
 
@@ -170,10 +170,10 @@ void MavLocalPlanner::waypointListCallback(
   // Check the frame_id of the passed waypoints. If we get a trajectory in a
   // frame which is neither global or local, ignore it.
   if (!checkFrame(msg)) {
-    ROS_INFO_STREAM("Waypoints in frame: "
+    ROS_INFO_STREAM("Waypoint in frame: "
                     << msg.header.frame_id
-                    << ", which is neither global or local "
-                       "frame. Ignoring trajectory.");
+                    << ", which is neither global: " << global_frame_id_ << ", or local "
+                       "frame:" << local_frame_id_ << ". Ignoring trajectory.");
     return;
   }
 
