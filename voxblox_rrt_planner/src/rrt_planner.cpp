@@ -405,9 +405,9 @@ bool RrtPlanner::checkPhysicalConstraints(
 
 void RrtPlanner::explore() {
   ROS_INFO("[RrtPlanner] flying trajectory");
-  bool maze = false;
+  bool maze = true;
   bool darpa_map = false;
-  bool loop_closure = true;
+  bool loop_closure = false;
 
   bool fix_height = false;
 
@@ -798,6 +798,48 @@ void RrtPlanner::explore() {
     point = Eigen::Vector3d(0, 0, 1);
     waypoints.emplace_back(point);
     ROS_INFO("[RrtPlanner] got waypoints");
+
+    // exploring small firefly maze
+    filename = "/media/darpa/SSD_500GB/gasserl/datas/firefly_maze_waypoints.txt";
+    waypoints.clear();
+
+    point = Eigen::Vector3d(0, 0, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(3.5, 3.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(7.5, 2.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(4.5, 0, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(3.5, -5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(7.5, -5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(7.5, -12, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-2.5, -8, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(6, -14, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-9, -14, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-9, -10.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-9, -4, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-6.5, 0.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-9.25, 3.5, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-1, 3.675, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-1, 2, 2);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(-5, 2, 1);
+    waypoints.emplace_back(point);
+    point = Eigen::Vector3d(0, 0, 1);
+    waypoints.emplace_back(point);
+    ROS_INFO("[RrtPlanner] got waypoints");
   } else {
     filename = "/media/darpa/SSD_500GB/gasserl/datas/darpa_practice2.txt";
 
@@ -1025,6 +1067,7 @@ void RrtPlanner::explore() {
 
     // getting plan
     mav_planning_msgs::PlannerServiceRequest plan_request;
+    mav_planning_msgs::PlannerServiceResponse plan_response;
     geometry_msgs::PoseStamped pose;
     pose.header.frame_id = frame_id_;
     pose.pose.position.x = waypoints[i].x();
@@ -1035,8 +1078,6 @@ void RrtPlanner::explore() {
     pose.pose.position.y = waypoints[i + 1].y();
     pose.pose.position.z = waypoints[i + 1].z();
     plan_request.goal_pose = pose;
-    mav_planning_msgs::PlannerServiceResponse plan_response;
-    ROS_INFO("[RrtPlanner] prep %lu", i);
 
     Eigen::Vector3d diff = waypoints[i+1] - waypoints[i];
     if (abs(diff.x()) == 20 and abs(diff.z()) == 5) {
@@ -1112,7 +1153,7 @@ void RrtPlanner::explore() {
     if (!plan_response.success) {
       int continuation = 0;
 //      if (map_->getMapDistance(waypoints[i + 1]) >= constraints_.robot_radius) {
-      continuation = 1;
+//      continuation = 1;
 //      }
       while (continuation != 1) {
         std::cout << "continue (1), abort (2), redo(3) : ";
@@ -1152,8 +1193,8 @@ void RrtPlanner::explore() {
 
     std::vector<int> collision_edges;
     for (ulong i = 0; i < all_waypoints.size() - 1; i++) {
-      bool collision = map_->checkCollision(all_waypoints[i].position_W, all_waypoints[i+1].position_W,
-          constraints_.robot_radius);
+      bool collision = map_->checkCollision(all_waypoints[i].position_W,
+          all_waypoints[i+1].position_W, constraints_.robot_radius);
       if (!collision) {
 //      ROS_INFO_STREAM("[RrtPlanner] " << i << " th segment collision free ["
 //          << all_waypoints[i].position_W.transpose() << "] to [" << all_waypoints[i+1].position_W.transpose() << "]");
