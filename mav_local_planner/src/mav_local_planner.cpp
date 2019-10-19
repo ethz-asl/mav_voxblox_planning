@@ -2,6 +2,7 @@
 #include <mav_trajectory_generation/trajectory_sampling.h>
 #include <minkindr_conversions/kindr_tf.h>
 
+#include <std_msgs/Int8.h>
 #include "mav_local_planner/mav_local_planner.h"
 
 namespace mav_planning {
@@ -25,6 +26,7 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       smoother_name_("loco"),
       current_waypoint_(-1),
       path_index_(0),
+      replan_start_index_(0),
       max_failures_(5),
       num_failures_(0),
       esdf_server_(nh_, nh_private_),
@@ -68,6 +70,8 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
   full_trajectory_pub_ =
       nh_private_.advertise<trajectory_msgs::MultiDOFJointTrajectory>(
           "full_trajectory", 1, true);
+
+  progress_pub_ = nh_private_.advertise<std_msgs::Int8>("progress_on_path", 1);
 
   // Services.
   start_srv_ = nh_private_.advertiseService(
@@ -237,29 +241,36 @@ void MavLocalPlanner::planningStep() {
   if (!avoid_collisions_) {
     mav_msgs::EigenTrajectoryPointVector waypoints;
 
-    if (plan_to_start_) {
-      // Getting the current point in the appropriate frame
-      mav_msgs::EigenTrajectoryPoint current_point;
-      if (!getCurrentPositionAsTrajectoryPoint(&current_point)) {
-        ROS_WARN(
-            "Plan to start requested but could not get the current point in "
-            "the appropriate frame. Not planning!");
-        return;
-      }
-      // Adding as the first waypoint
-      waypoints.push_back(current_point);
-    }
-
-    // Adding the other waypoints
-    waypoints.insert(waypoints.end(), waypoints_.begin(), waypoints_.end());
-
-    mav_msgs::EigenTrajectoryPointVector path;
-
-    if (planPathThroughWaypoints(waypoints, &path)) {
-      replacePath(path);
-      current_waypoint_ = waypoints_.size();
+    if (!path_queue_.empty()) {
+      // Implement replanning at some point....
+      // mav_msgs::EigenTrajectoryPointVector path_chunk;
+      // replan_start_index_ = path_index_;
+      // replanExistingPath(path_chunk);
     } else {
-      ROS_ERROR("[Mav Local Planner] Waypoint planning failed!");
+      if (plan_to_start_) {
+        // Getting the current point in the appropriate frame
+        mav_msgs::EigenTrajectoryPoint current_point;
+        if (!getCurrentPositionAsTrajectoryPoint(&current_point)) {
+          ROS_WARN(
+              "Plan to start requested but could not get the current point in "
+              "the appropriate frame. Not planning!");
+          return;
+        }
+        // Adding as the first waypoint
+        waypoints.push_back(current_point);
+      }
+
+      // Adding the other waypoints
+      waypoints.insert(waypoints.end(), waypoints_.begin(), waypoints_.end());
+
+      mav_msgs::EigenTrajectoryPointVector path;
+
+      if (planPathThroughWaypoints(waypoints, &path)) {
+        replacePath(path);
+        current_waypoint_ = waypoints_.size();
+      } else {
+        ROS_ERROR("[Mav Local Planner] Waypoint planning failed!");
+      }
     }
   } else if (path_queue_.empty()) {
     // First check how many waypoints we haven't covered yet are in free space.
@@ -481,6 +492,30 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
   }
 }
 
+void MavLocalPlanner::replanExistingPath(
+    mav_msgs::EigenTrajectoryPointVector* path_chunk) {
+  if (path_queue_.empty()) {
+    ROS_INFO("Queue is empty. No replanning on existing path possible.");
+    return;
+  }
+
+  std::lock_guard<std::recursive_mutex> guard(path_mutex_);
+  ROS_INFO("[Mav Local Planner][Plan Step] Trying to replan on existing path.");
+
+  replan_start_index_ =
+      std::min(path_index_ + static_cast<size_t>((replan_lookahead_sec_) /
+                                                 constraints_.sampling_dt),
+               path_queue_.size());
+  ROS_INFO(
+      "[Mav Local Planner][Plan Step] Current path index: %zu Replan start "
+      "index: %zu",
+      path_index_, replan_start_index_);
+  // Cut out the remaining snippet of the trajectory so we can do
+  // something with it.
+  std::copy(path_queue_.begin() + replan_start_index_, path_queue_.end(),
+            std::back_inserter(*path_chunk));
+}
+
 bool MavLocalPlanner::planPathThroughWaypoints(
     const mav_msgs::EigenTrajectoryPointVector& waypoints,
     mav_msgs::EigenTrajectoryPointVector* path) {
@@ -554,6 +589,10 @@ void MavLocalPlanner::startPublishingCommands() {
 void MavLocalPlanner::commandPublishTimerCallback(
     const ros::TimerEvent& event) {
   constexpr size_t kQueueBuffer = 0;
+
+  // publish current progress in percentage
+  progress_pub_.publish((int)(float(path_index_) / float(path_queue_.size()) * 100));
+
   if (path_index_ < path_queue_.size()) {
     std::lock_guard<std::recursive_mutex> guard(path_mutex_);
     size_t number_to_publish = std::min<size_t>(
@@ -634,6 +673,8 @@ void MavLocalPlanner::clearTrajectory() {
   command_publishing_timer_.stop();
   path_queue_.clear();
   path_index_ = 0;
+  // Set progress back to zero
+  progress_pub_.publish((int)0);
 }
 
 void MavLocalPlanner::sendCurrentPose() {

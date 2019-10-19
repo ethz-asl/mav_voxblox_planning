@@ -22,10 +22,10 @@
 #include <mav_planning_msgs/PolynomialTrajectory4D.h>
 #include <mav_visualization/helpers.h>
 #include <minkindr_conversions/kindr_msg.h>
+#include <tf/transform_listener.h>
 #include <voxblox_loco_planner/goal_point_selector.h>
 #include <voxblox_loco_planner/voxblox_loco_planner.h>
 #include <voxblox_ros/esdf_server.h>
-#include <tf/transform_listener.h>
 
 #include "mav_local_planner/common.h"
 
@@ -83,6 +83,8 @@ class MavLocalPlanner {
   // Functions to help out replanning.
   // Track a single waypoint, planning only in a short known horizon.
   void avoidCollisionsTowardWaypoint();
+  // Replan on already existing path
+  void replanExistingPath(mav_msgs::EigenTrajectoryPointVector* path_chunk);
   // Get a path through a bunch of waypoints.
   bool planPathThroughWaypoints(
       const mav_msgs::EigenTrajectoryPointVector& waypoints,
@@ -129,6 +131,7 @@ class MavLocalPlanner {
   ros::Publisher command_pub_;
   ros::Publisher path_marker_pub_;
   ros::Publisher full_trajectory_pub_;
+  ros::Publisher progress_pub_;
 
   // Service calls for controlling the local planner.
   // Start will start publishing commands, pause will stop temporarily and you
@@ -188,6 +191,7 @@ class MavLocalPlanner {
   // State -- current tracked path.
   mav_msgs::EigenTrajectoryPointVector path_queue_;
   size_t path_index_;
+  size_t replan_start_index_;
   // Super important: mutex for locking the path queues.
   std::recursive_mutex path_mutex_;
   std::recursive_mutex map_mutex_;
