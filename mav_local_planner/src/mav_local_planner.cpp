@@ -592,7 +592,7 @@ void MavLocalPlanner::commandPublishTimerCallback(
 
   // publish current progress in percentage
   std_msgs::Int8 progress_msg;
-  progress_msg.data = (int8_t) (float(path_index_) / float(path_queue_.size()) *100);
+  progress_msg.data = static_cast<int8_t>(static_cast<float>(path_index_) / static_cast<float>(path_queue_.size()) *100);
   progress_pub_.publish(progress_msg);
 
   if (path_index_ < path_queue_.size()) {
