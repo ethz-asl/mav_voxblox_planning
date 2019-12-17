@@ -474,15 +474,16 @@ bool MavLocalPlanner::planPathThroughWaypoints(
   } else if (smoother_name_ == "ramp") {
     success = ramp_smoother_.getPathBetweenWaypoints(waypoints, path);
 
-    for (int i = 0; i < 500; i++) {
-      Eigen::Vector3d s = (*path)[i].position_W;
-      Eigen::Vector3d v = (*path)[i].velocity_W;
-      ROS_INFO("\n%d: %.2f (%.2f, %.2f %.2f) - (%.2f, %.2f, %.2f)",
-          i, (*path)[i].time_from_start_ns/10e6, s.x(), s.y(), s.z(), v.x(), v.y(), v.z());
+    if (verbose_) {
+      for (int i = 0; i < path->size(); i++) {
+        Eigen::Vector3d s = (*path)[i].position_W;
+        Eigen::Vector3d v = (*path)[i].velocity_W;
+            ROS_INFO("\n%d: %.2f (%.2f, %.2f %.2f) - (%.2f, %.2f, %.2f)",
+                     i, (*path)[i].time_from_start_ns / 10e6, s.x(), s.y(), s.z(), v.x(), v.y(), v.z());
+      }
+      ROS_INFO("[Mav Local Planner] ramp smoother: %lu waypoints to %lu path queue",
+               waypoints.size(), path->size());
     }
-
-    ROS_INFO("[Mav Local Planner] ramp smoother: %lu waypoints to %lu path queue",
-        waypoints.size(), path->size());
 
   } else if (smoother_name_ == "none") {
     *path = waypoints;
@@ -580,9 +581,7 @@ void MavLocalPlanner::commandPublishTimerCallback(
     msg.header.frame_id = local_frame_id_;
     msg.header.stamp = ros::Time::now();
 
-    /*
-    */
-    ROS_INFO(
+    /*ROS_INFO(
         "[Mav Local Planner][Command Publish] Publishing %zu samples of %zu. "
         "Start index: %zu Time: %f Start position: %f Start velocity: %f End "
         "time: %f End position: %f",
@@ -591,7 +590,7 @@ void MavLocalPlanner::commandPublishTimerCallback(
         trajectory_to_publish.front().position_W.x(),
         trajectory_to_publish.front().velocity_W.x(),
         trajectory_to_publish.back().time_from_start_ns * 1.0e-9,
-        trajectory_to_publish.back().position_W.x());
+        trajectory_to_publish.back().position_W.x());*/
     ROS_INFO(
         "[Mav Local Planner][Command Publish] \n"
         "Start Time: %.3f, Position: %.2f %.2f %.2f, Velocity: %.2f %.2f %.2f\n"
