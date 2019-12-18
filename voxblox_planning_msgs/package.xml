@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>voxblox_planning_msgs</name>
+  <version>0.0.1</version>
+  <description>
+    Messages for MBZIRC 2020.
+  </description>
+
+  <maintainer email="christian.lanegger@asl-ethz.ch">Christian Lanegger</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>message_generation</depend>
+  <depend>message_runtime</depend>
+  <depend>geometry_msgs</depend>
+  
+</package>

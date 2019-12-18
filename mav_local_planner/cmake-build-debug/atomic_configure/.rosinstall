@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/rsteiner/catkin_ws/src/mav_voxblox_planning/mav_local_planner/cmake-build-debug/devel/setup.sh

@@ -80,6 +80,8 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       "pause", &MavLocalPlanner::pauseCallback, this);
   stop_srv_ = nh_private_.advertiseService(
       "stop", &MavLocalPlanner::stopCallback, this);
+  change_yaw_policy_srv_ = nh_private_.advertiseService(
+      "change_yaw_policy", &MavLocalPlanner::changeYawPolicyCallback, this);
 
   position_hold_client_ =
       nh_.serviceClient<std_srvs::Empty>("back_to_position_hold");
@@ -716,6 +718,36 @@ bool MavLocalPlanner::stopCallback(std_srvs::Empty::Request& request,
   abort();
   return true;
 }
+
+bool MavLocalPlanner::changeYawPolicyCallback(voxblox_planning_msgs::YawPolicyService::Request& request,
+                                   voxblox_planning_msgs::YawPolicyService::Response& response) {
+  std::string requested_policy = request.yaw_policy;
+  if(requested_policy == "kVelocityVector"){
+    yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kVelocityVector);
+  }
+  else if(requested_policy == "kAnticipateVelocityVector"){
+    yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kAnticipateVelocityVector);
+  }
+  else if(requested_policy == "kConstant"){
+    yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kConstant);
+  }
+  else if(requested_policy == "kFromPlan"){
+    yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kFromPlan);
+  }
+  else if(requested_policy == "kPointFacing"){
+    yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kPointFacing);
+  }
+  else{
+    response.success = false;
+    response.message = "Your chosen policy is not implemented. "
+                       "Choose from [kVelocityVector, kAnticipateVelocityVector, kConstant, kFromPlan, kPointFacing]";
+    return false;
+  }
+  response.success = true;
+  response.message = "Successfully changed yaw policy";
+  return true;
+}
+
 
 void MavLocalPlanner::visualizePath() {
   // TODO: Split trajectory into two chunks: before and after.

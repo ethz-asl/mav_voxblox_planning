@@ -1,0 +1,6 @@
+#request fields
+string yaw_policy
+---
+# True on success, false on failure
+bool success
+string message

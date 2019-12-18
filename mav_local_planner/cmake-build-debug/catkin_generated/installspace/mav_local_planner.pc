@@ -1,0 +1,8 @@
+prefix=/usr/local
+
+Name: mav_local_planner
+Description: Description of mav_local_planner
+Version: 0.0.0
+Cflags: -I/usr/local/include
+Libs: -L/usr/local/lib -lmav_local_planner
+Requires: mav_nonlinear_mpc mav_lowlevel_attitude_controller mav_planning_rviz mav_msgs mav_path_smoothing mav_planning_common mav_planning_msgs mav_trajectory_generation_ros roscpp std_msgs tf visualization_msgs voxblox_loco_planner voxblox_ros minkindr minkindr_conversions voxblox_planning_msgs
