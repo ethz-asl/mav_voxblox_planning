@@ -593,8 +593,9 @@ void MavLocalPlanner::commandPublishTimerCallback(
   constexpr size_t kQueueBuffer = 0;
 
   // publish current progress in percentage
-  progress_pub_.publish(
-      (int)(float(path_index_) / float(path_queue_.size()) * 100));
+  std_msgs::Int8 progress_msg;
+  progress_msg.data = static_cast<int8_t>(static_cast<float>(path_index_) / static_cast<float>(path_queue_.size()) *100);
+  progress_pub_.publish(progress_msg);
 
   if (path_index_ < path_queue_.size()) {
     std::lock_guard<std::recursive_mutex> guard(path_mutex_);
@@ -677,7 +678,9 @@ void MavLocalPlanner::clearTrajectory() {
   path_queue_.clear();
   path_index_ = 0;
   // Set progress back to zero
-  progress_pub_.publish((int)0);
+  std_msgs::Int8 msg;
+  msg.data = 0;
+  progress_pub_.publish(msg);
 }
 
 void MavLocalPlanner::sendCurrentPose() {
