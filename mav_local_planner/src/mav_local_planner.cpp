@@ -222,6 +222,10 @@ void MavLocalPlanner::planningStep() {
   // favorite path smoother. We only do this on the first planning call then
   // ignore all the rest.
   if (!avoid_collisions_) {
+    if (static_cast<int>(waypoints_.size()) <= current_waypoint_) {
+      return;
+    }
+
     mav_msgs::EigenTrajectoryPointVector waypoints;
     mav_msgs::EigenTrajectoryPoint current_point;
     current_point.position_W = odometry_.position_W;
