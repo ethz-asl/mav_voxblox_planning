@@ -3,10 +3,10 @@
   <name>voxblox_planning_msgs</name>
   <version>0.0.1</version>
   <description>
-    Messages for MBZIRC 2020.
+    Messages for voxblox planning.
   </description>
 
-  <maintainer email="christian.lanegger@asl-ethz.ch">Christian Lanegger</maintainer>
+  <maintainer email="rsteiner@student.ethz.ch">Remo Steiner</maintainer>
 
   <license>BSD</license>
 
