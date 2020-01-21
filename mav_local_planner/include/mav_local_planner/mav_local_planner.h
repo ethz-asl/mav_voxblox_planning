@@ -27,6 +27,7 @@
 #include <voxblox_loco_planner/voxblox_loco_planner.h>
 #include <voxblox_ros/esdf_server.h>
 #include <voxblox_planning_msgs/YawPolicyService.h>
+#include <voxblox_planning_msgs/SmootherNameService.h>
 #include "mav_local_planner/common.h"
 
 namespace mav_planning {
@@ -55,6 +56,8 @@ class MavLocalPlanner {
                     std_srvs::Empty::Response& response);
   bool changeYawPolicyCallback(voxblox_planning_msgs::YawPolicyService::Request& request,
                     voxblox_planning_msgs::YawPolicyService::Response& response);
+  bool changeSmootherNameCallback(voxblox_planning_msgs::SmootherNameService::Request& request,
+                                  voxblox_planning_msgs::SmootherNameService::Response& response);
 
   // Visualizations.
   void visualizePath();
@@ -143,6 +146,7 @@ class MavLocalPlanner {
   ros::ServiceServer pause_srv_;
   ros::ServiceServer stop_srv_;
   ros::ServiceServer change_yaw_policy_srv_;
+  ros::ServiceServer change_smoother_name_srv_;
 
   // Service client for getting the MAV interface to listen to our sent
   // commands.

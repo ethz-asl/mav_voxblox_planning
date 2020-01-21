@@ -11,7 +11,8 @@ add_definitions(-std=c++11)
 #)
 add_service_files(
 	FILES
-	YawPolicyService.srv)
+	YawPolicyService.srv
+	SmootherNameService.srv)
 
 generate_messages(DEPENDENCIES geometry_msgs)
 
