@@ -82,6 +82,8 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       "stop", &MavLocalPlanner::stopCallback, this);
   change_yaw_policy_srv_ = nh_private_.advertiseService(
       "change_yaw_policy", &MavLocalPlanner::changeYawPolicyCallback, this);
+  change_smoother_name_srv_ = nh_private_.advertiseService(
+      "change_smoother_name", &MavLocalPlanner::changeSmootherNameCallback, this);
 
   position_hold_client_ =
       nh_.serviceClient<std_srvs::Empty>("back_to_position_hold");
@@ -722,9 +724,9 @@ bool MavLocalPlanner::stopCallback(std_srvs::Empty::Request& request,
   return true;
 }
 
-bool MavLocalPlanner::changeYawPolicyCallback(voxblox_planning_msgs::YawPolicyService::Request& request,
-                                   voxblox_planning_msgs::YawPolicyService::Response& response) {
-  std::string requested_policy = request.yaw_policy;
+bool MavLocalPlanner::changeYawPolicyCallback(mav_planning_msgs::ChangeNameService::Request& request,
+                                              mav_planning_msgs::ChangeNameService::Response& response) {
+  std::string requested_policy = request.name;
   if(requested_policy == "kVelocityVector"){
     yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kVelocityVector);
   }
@@ -751,6 +753,28 @@ bool MavLocalPlanner::changeYawPolicyCallback(voxblox_planning_msgs::YawPolicySe
   return true;
 }
 
+bool MavLocalPlanner::changeSmootherNameCallback(mav_planning_msgs::ChangeNameService::Request &request,
+                                                 mav_planning_msgs::ChangeNameService::Response &response){
+  std::string requested_smoother = request.name;
+  if(requested_smoother == "loco"){
+    smoother_name_ = "loco";
+  }
+  else if(requested_smoother == "polynomial"){
+    smoother_name_ = "polynomial";
+  }
+  else if(requested_smoother == "ramp"){
+    smoother_name_ = "ramp";
+  }
+  else{
+    response.success = false;
+    response.message = "Your chosen smoother is not implemented. "
+                       "Choose from [loco, polynomial, ramp]";
+    return false;
+  }
+  response.success = true;
+  response.message = "Successfully changed smoother";
+  return true;
+}
 
 void MavLocalPlanner::visualizePath() {
   // TODO: Split trajectory into two chunks: before and after.
