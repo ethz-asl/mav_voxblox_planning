@@ -56,9 +56,12 @@ bool VelocityRampSmoother::getPathBetweenTwoPoints(
     ROS_INFO(
         "=== Ramp Statistics ==\n"
         "Total length [m]: %f\nTotal time [s]: %f\nNumber of samples: %lu\n"
-        "Min accel dist [m]: %f\nMin accel time [s]: %f",
+        "Min accel dist [m]: %f\nMin accel time [s]: %f\nStart position: [%f, "
+        "%f, %f]\nGoal position: [%f, %f, %f]",
         total_segment_distance, total_segment_time, num_elements,
-        min_acceleration_distance, min_acceleration_time);
+        min_acceleration_distance, min_acceleration_time, start.position_W.x(),
+        start.position_W.y(), start.position_W.z(), goal.position_W.x(),
+        goal.position_W.y(), goal.position_W.z());
   }
 
   // Treat this as a 1D problem since it is. ;)
@@ -73,7 +76,7 @@ bool VelocityRampSmoother::getPathBetweenTwoPoints(
     // Figure out if we're accelerating, deccelerating, or neither.
     // Handle Case 1 first:
     if (total_segment_time < min_acceleration_time * 2) {
-      if (current_time < total_segment_time / 2.0) {
+      if (mav_msgs::nanosecondsToSeconds(current_time) < total_segment_time / 2.0) {
         velocity += constraints_.a_max * constraints_.sampling_dt;
       } else {
         velocity -= constraints_.a_max * constraints_.sampling_dt;

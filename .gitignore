@@ -33,3 +33,9 @@
 
 # I own a mac
 .DS_Store
+
+.vscode/
+
+# JetBrains folders
+cmake-build-*/
+.idea/

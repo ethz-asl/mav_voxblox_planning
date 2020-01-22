@@ -1,6 +1,8 @@
 #include <mav_msgs/default_topics.h>
 #include <mav_trajectory_generation/trajectory_sampling.h>
+#include <minkindr_conversions/kindr_tf.h>
 
+#include <std_msgs/Int8.h>
 #include "mav_local_planner/mav_local_planner.h"
 
 namespace mav_planning {
@@ -24,10 +26,12 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       smoother_name_("loco"),
       current_waypoint_(-1),
       path_index_(0),
+      replan_start_index_(0),
       max_failures_(5),
       num_failures_(0),
       esdf_server_(nh_, nh_private_),
-      loco_planner_(nh_, nh_private_) {
+      loco_planner_(nh_, nh_private_),
+      is_trajectory_in_global_frame_(false) {
   // Set up some settings.
   constraints_.setParametersFromRos(nh_private_);
   esdf_server_.setTraversabilityRadius(constraints_.robot_radius);
@@ -67,6 +71,8 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       nh_private_.advertise<trajectory_msgs::MultiDOFJointTrajectory>(
           "full_trajectory", 1, true);
 
+  progress_pub_ = nh_private_.advertise<std_msgs::Int8>("progress_on_path", 1);
+
   // Services.
   start_srv_ = nh_private_.advertiseService(
       "start", &MavLocalPlanner::startCallback, this);
@@ -74,6 +80,10 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       "pause", &MavLocalPlanner::pauseCallback, this);
   stop_srv_ = nh_private_.advertiseService(
       "stop", &MavLocalPlanner::stopCallback, this);
+  change_yaw_policy_srv_ = nh_private_.advertiseService(
+      "change_yaw_policy", &MavLocalPlanner::changeYawPolicyCallback, this);
+  change_smoother_name_srv_ = nh_private_.advertiseService(
+      "change_smoother_name", &MavLocalPlanner::changeSmootherNameCallback, this);
 
   position_hold_client_ =
       nh_.serviceClient<std_srvs::Empty>("back_to_position_hold");
@@ -122,11 +132,29 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
 
 void MavLocalPlanner::odometryCallback(const nav_msgs::Odometry& msg) {
   mav_msgs::eigenOdometryFromMsg(msg, &odometry_);
+  if (msg.header.frame_id != local_frame_id_) {
+    ROS_WARN_STREAM("Received odometry is not in the local_frame_id: "
+                    << local_frame_id_ << std::endl
+                    << "Allowing things to continue, however this will likely "
+                       "cause unpredictable results, and you might crash!");
+  }
 }
 
 void MavLocalPlanner::waypointCallback(const geometry_msgs::PoseStamped& msg) {
   // Plan a path from the current position to the target pose stamped.
   ROS_INFO("[Mav Local Planner] Got a waypoint!");
+
+  // Check the frame_id of the passed waypoints. If we get a trajectory in a
+  // frame which is neither global or local, ignore it.
+  if (!checkFrame(msg)) {
+    ROS_ERROR_STREAM("Waypoint in frame: "
+                     << msg.header.frame_id
+                     << ", which is neither global frame: " << global_frame_id_
+                     << ", or local frame: " << local_frame_id_
+                     << ". Ignoring trajectory.");
+    return;
+  }
+
   // Cancel any previous trajectory on getting a new one.
   clearTrajectory();
 
@@ -147,6 +175,18 @@ void MavLocalPlanner::waypointListCallback(
   // Plan a path from the current position to the target pose stamped.
   ROS_INFO("[Mav Local Planner] Got a list of waypoints, %zu long!",
            msg.poses.size());
+
+  // Check the frame_id of the passed waypoints. If we get a trajectory in a
+  // frame which is neither global or local, ignore it.
+  if (!checkFrame(msg)) {
+    ROS_ERROR_STREAM("Waypoint in frame: "
+                     << msg.header.frame_id
+                     << ", which is neither global frame: " << global_frame_id_
+                     << ", or local frame: " << local_frame_id_
+                     << ". Ignoring trajectory.");
+    return;
+  }
+
   // Cancel any previous trajectory on getting a new one.
   clearTrajectory();
 
@@ -204,39 +244,58 @@ void MavLocalPlanner::planningStep() {
   // ignore all the rest.
   if (!avoid_collisions_) {
     mav_msgs::EigenTrajectoryPointVector waypoints;
-    mav_msgs::EigenTrajectoryPoint current_point;
-    current_point.position_W = odometry_.position_W;
-    current_point.orientation_W_B = odometry_.orientation_W_B;
 
-    if (plan_to_start_) {
-      waypoints.push_back(current_point);
-    }
-    waypoints.insert(waypoints.end(), waypoints_.begin(), waypoints_.end());
-
-    mav_msgs::EigenTrajectoryPointVector path;
-
-    if (planPathThroughWaypoints(waypoints, &path)) {
-      replacePath(path);
-      current_waypoint_ = waypoints_.size();
+    if (!path_queue_.empty()) {
+      // Implement replanning at some point....
+      // mav_msgs::EigenTrajectoryPointVector path_chunk;
+      // replan_start_index_ = path_index_;
+      // replanExistingPath(path_chunk);
     } else {
-      ROS_ERROR("[Mav Local Planner] Waypoint planning failed!");
+      if (plan_to_start_) {
+        // Getting the current point in the appropriate frame
+        mav_msgs::EigenTrajectoryPoint current_point;
+        if (!getCurrentPositionAsTrajectoryPoint(&current_point)) {
+          ROS_WARN(
+              "Plan to start requested but could not get the current point in "
+              "the appropriate frame. Not planning!");
+          return;
+        }
+        // Adding as the first waypoint
+        waypoints.push_back(current_point);
+      }
+
+      // Adding the other waypoints
+      waypoints.insert(waypoints.end(), waypoints_.begin(), waypoints_.end());
+
+      mav_msgs::EigenTrajectoryPointVector path;
+
+      if (planPathThroughWaypoints(waypoints, &path)) {
+        replacePath(path);
+        current_waypoint_ = waypoints_.size();
+      } else {
+        ROS_ERROR("[Mav Local Planner] Waypoint planning failed!");
+      }
     }
   } else if (path_queue_.empty()) {
     // First check how many waypoints we haven't covered yet are in free space.
     mav_msgs::EigenTrajectoryPointVector free_waypoints;
-    // Do we need the odometry in here? Let's see.
-    mav_msgs::EigenTrajectoryPoint current_point;
-    current_point.position_W = odometry_.position_W;
-    current_point.orientation_W_B = odometry_.orientation_W_B;
 
     // If the path doesn't ALREADY start near the odometry, the first waypoint
     // should be the current pose.
     int waypoints_added = 0;
-    if (plan_to_start_ &&
-        (current_point.position_W - waypoints_.front().position_W).norm() >
-            kCloseToOdometry) {
-      free_waypoints.push_back(current_point);
-      waypoints_added = 1;
+    if (plan_to_start_) {
+      mav_msgs::EigenTrajectoryPoint current_point;
+      if (!getCurrentPositionAsTrajectoryPoint(&current_point)) {
+        ROS_WARN(
+            "Plan to start requested but could not get the current point in "
+            "the appropriate frame. Not planning!");
+        return;
+      }
+      if ((current_point.position_W - waypoints_.front().position_W).norm() >
+          kCloseToOdometry) {
+        free_waypoints.push_back(current_point);
+        waypoints_added = 1;
+      }
     }
 
     for (const mav_msgs::EigenTrajectoryPoint& waypoint : waypoints_) {
@@ -437,6 +496,30 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
   }
 }
 
+void MavLocalPlanner::replanExistingPath(
+    mav_msgs::EigenTrajectoryPointVector* path_chunk) {
+  if (path_queue_.empty()) {
+    ROS_INFO("Queue is empty. No replanning on existing path possible.");
+    return;
+  }
+
+  std::lock_guard<std::recursive_mutex> guard(path_mutex_);
+  ROS_INFO("[Mav Local Planner][Plan Step] Trying to replan on existing path.");
+
+  replan_start_index_ =
+      std::min(path_index_ + static_cast<size_t>((replan_lookahead_sec_) /
+                                                 constraints_.sampling_dt),
+               path_queue_.size());
+  ROS_INFO(
+      "[Mav Local Planner][Plan Step] Current path index: %zu Replan start "
+      "index: %zu",
+      path_index_, replan_start_index_);
+  // Cut out the remaining snippet of the trajectory so we can do
+  // something with it.
+  std::copy(path_queue_.begin() + replan_start_index_, path_queue_.end(),
+            std::back_inserter(*path_chunk));
+}
+
 bool MavLocalPlanner::planPathThroughWaypoints(
     const mav_msgs::EigenTrajectoryPointVector& waypoints,
     mav_msgs::EigenTrajectoryPointVector* path) {
@@ -510,6 +593,12 @@ void MavLocalPlanner::startPublishingCommands() {
 void MavLocalPlanner::commandPublishTimerCallback(
     const ros::TimerEvent& event) {
   constexpr size_t kQueueBuffer = 0;
+
+  // publish current progress in percentage
+  std_msgs::Int8 progress_msg;
+  progress_msg.data = static_cast<int8_t>(static_cast<float>(path_index_) / static_cast<float>(path_queue_.size()) *100);
+  progress_pub_.publish(progress_msg);
+
   if (path_index_ < path_queue_.size()) {
     std::lock_guard<std::recursive_mutex> guard(path_mutex_);
     size_t number_to_publish = std::min<size_t>(
@@ -535,6 +624,24 @@ void MavLocalPlanner::commandPublishTimerCallback(
         first_sample + number_to_publish_with_buffer;
     mav_msgs::EigenTrajectoryPointVector trajectory_to_publish(first_sample,
                                                                last_sample);
+
+    // Transforming trajectory if required
+    if (is_trajectory_in_global_frame_) {
+      Transformation T_L_G;
+      if (getGlobalToLocalTransform(&T_L_G)) {
+        // Transforming and replacing
+        mav_msgs::EigenTrajectoryPointVector trajectory_to_publish_local;
+        transformTrajectoryGlobalToLocal(trajectory_to_publish, T_L_G,
+                                         &trajectory_to_publish_local);
+        trajectory_to_publish = std::move(trajectory_to_publish_local);
+      } else {
+        ROS_WARN(
+            "Transformation of global_frame trajectory to local_frame "
+            "trajectory requested, but transform not available. Not "
+            "publishing.");
+        return;
+      }
+    }
 
     trajectory_msgs::MultiDOFJointTrajectory msg;
     msg.header.frame_id = local_frame_id_;
@@ -572,6 +679,10 @@ void MavLocalPlanner::clearTrajectory() {
   command_publishing_timer_.stop();
   path_queue_.clear();
   path_index_ = 0;
+  // Set progress back to zero
+  std_msgs::Int8 msg;
+  msg.data = 0;
+  progress_pub_.publish(msg);
 }
 
 void MavLocalPlanner::sendCurrentPose() {
@@ -613,6 +724,58 @@ bool MavLocalPlanner::stopCallback(std_srvs::Empty::Request& request,
   return true;
 }
 
+bool MavLocalPlanner::changeYawPolicyCallback(mav_planning_msgs::ChangeNameService::Request& request,
+                                              mav_planning_msgs::ChangeNameService::Response& response) {
+  std::string requested_policy = request.name;
+  if(requested_policy == "kVelocityVector"){
+    yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kVelocityVector);
+  }
+  else if(requested_policy == "kAnticipateVelocityVector"){
+    yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kAnticipateVelocityVector);
+  }
+  else if(requested_policy == "kConstant"){
+    yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kConstant);
+  }
+  else if(requested_policy == "kFromPlan"){
+    yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kFromPlan);
+  }
+  else if(requested_policy == "kPointFacing"){
+    yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kPointFacing);
+  }
+  else{
+    response.success = false;
+    response.message = "Your chosen policy is not implemented. "
+                       "Choose from [kVelocityVector, kAnticipateVelocityVector, kConstant, kFromPlan, kPointFacing]";
+    return false;
+  }
+  response.success = true;
+  response.message = "Successfully changed yaw policy";
+  return true;
+}
+
+bool MavLocalPlanner::changeSmootherNameCallback(mav_planning_msgs::ChangeNameService::Request &request,
+                                                 mav_planning_msgs::ChangeNameService::Response &response){
+  std::string requested_smoother = request.name;
+  if(requested_smoother == "loco"){
+    smoother_name_ = "loco";
+  }
+  else if(requested_smoother == "polynomial"){
+    smoother_name_ = "polynomial";
+  }
+  else if(requested_smoother == "ramp"){
+    smoother_name_ = "ramp";
+  }
+  else{
+    response.success = false;
+    response.message = "Your chosen smoother is not implemented. "
+                       "Choose from [loco, polynomial, ramp]";
+    return false;
+  }
+  response.success = true;
+  response.message = "Successfully changed smoother";
+  return true;
+}
+
 void MavLocalPlanner::visualizePath() {
   // TODO: Split trajectory into two chunks: before and after.
   visualization_msgs::MarkerArray marker_array;
@@ -620,7 +783,15 @@ void MavLocalPlanner::visualizePath() {
   {
     std::lock_guard<std::recursive_mutex> guard(path_mutex_);
 
-    path_marker = createMarkerForPath(path_queue_, local_frame_id_,
+    // Frame the path is in
+    std::string frame_id;
+    if (is_trajectory_in_global_frame_) {
+      frame_id = global_frame_id_;
+    } else {
+      frame_id = local_frame_id_;
+    }
+
+    path_marker = createMarkerForPath(path_queue_, frame_id,
                                       mav_visualization::Color::Black(),
                                       "local_path", 0.05);
   }
@@ -715,6 +886,86 @@ bool MavLocalPlanner::dealWithFailure() {
       waypoints_.insert(waypoints_.begin() + current_waypoint_, current_goal);
       return true;
     }
+  }
+}
+
+bool MavLocalPlanner::getGlobalToLocalTransform(
+    Transformation* T_L_G_ptr) const {
+  // Getting the transform from TF
+  try {
+    tf::StampedTransform T_L_G_tf;
+    tf_listener_.lookupTransform(local_frame_id_, global_frame_id_,
+                                 ros::Time(0), T_L_G_tf);
+    tf::transformTFToKindr(T_L_G_tf, T_L_G_ptr);
+    return true;
+  } catch (tf::TransformException ex) {
+    ROS_ERROR("%s", ex.what());
+    return false;
+  }
+  return true;
+}
+
+void MavLocalPlanner::transformTrajectoryGlobalToLocal(
+    const mav_msgs::EigenTrajectoryPointVector& trajectory_global,
+    const Transformation& T_L_G,
+    mav_msgs::EigenTrajectoryPointVector* trajectory_local) const {
+  trajectory_local->clear();
+  trajectory_local->reserve(trajectory_global.size());
+  for (const mav_msgs::EigenTrajectoryPoint& point_global : trajectory_global) {
+    mav_msgs::EigenTrajectoryPoint point_local;
+    transformTrajectoryPoint(point_global, T_L_G, &point_local);
+    trajectory_local->push_back(point_local);
+  }
+}
+
+void MavLocalPlanner::transformTrajectoryPoint(
+    const mav_msgs::EigenTrajectoryPoint& point_A, const Transformation& T_B_A,
+    mav_msgs::EigenTrajectoryPoint* point_B) const {
+  // NOTE(alexmillane): Transform decribing the Robot frame (R) in the frame (A)
+  Transformation T_A_R(point_A.position_W, point_A.orientation_W_B);
+
+  // Transform the actual position/orientation of the robot.
+  Transformation T_B_R = T_B_A * T_A_R;
+
+  point_B->position_W = T_B_R.getPosition();
+  point_B->orientation_W_B = T_B_R.getRotation().toImplementation();
+
+  point_B->time_from_start_ns = point_A.time_from_start_ns;
+  // Get some derivatives in there.
+  point_B->velocity_W =
+      T_B_A.getRotation().toImplementation() * point_A.velocity_W;
+  point_B->acceleration_W =
+      T_B_A.getRotation().toImplementation() * point_A.acceleration_W;
+  point_B->jerk_W = T_B_A.getRotation().toImplementation() * point_A.jerk_W;
+  point_B->snap_W = T_B_A.getRotation().toImplementation() * point_A.snap_W;
+}
+
+bool MavLocalPlanner::getCurrentPositionAsTrajectoryPoint(
+    mav_msgs::EigenTrajectoryPoint* current_point_ptr) const {
+  // Odometry -> Point
+  // Note(alexmillane): The current point from odometry is in the Local frame
+  // (L);
+  mav_msgs::EigenTrajectoryPoint current_point_L;
+  current_point_L.position_W = odometry_.position_W;
+  current_point_L.orientation_W_B = odometry_.orientation_W_B;
+  // Transforming to the global frame if required
+  if (is_trajectory_in_global_frame_) {
+    Transformation T_L_G;
+    if (getGlobalToLocalTransform(&T_L_G)) {
+      mav_msgs::EigenTrajectoryPoint current_point_G;
+      transformTrajectoryPoint(current_point_L, T_L_G.inverse(),
+                               &current_point_G);
+      *current_point_ptr = current_point_G;
+      return true;
+    } else {
+      ROS_WARN(
+          "Tried to get the current MAV point in global frame but T_L_G is "
+          "unavailable.");
+      return false;
+    }
+  } else {
+    *current_point_ptr = current_point_L;
+    return true;
   }
 }
 

@@ -22,9 +22,12 @@
 #include <mav_planning_msgs/PolynomialTrajectory4D.h>
 #include <mav_visualization/helpers.h>
 #include <minkindr_conversions/kindr_msg.h>
+#include <tf/transform_listener.h>
 #include <voxblox_loco_planner/goal_point_selector.h>
 #include <voxblox_loco_planner/voxblox_loco_planner.h>
 #include <voxblox_ros/esdf_server.h>
+#include <mav_planning_msgs/ChangeNameService.h>
+#include "mav_local_planner/common.h"
 
 namespace mav_planning {
 
@@ -50,6 +53,10 @@ class MavLocalPlanner {
                      std_srvs::Empty::Response& response);
   bool stopCallback(std_srvs::Empty::Request& request,
                     std_srvs::Empty::Response& response);
+  bool changeYawPolicyCallback(mav_planning_msgs::ChangeNameService::Request& request,
+                               mav_planning_msgs::ChangeNameService::Response& response);
+  bool changeSmootherNameCallback(mav_planning_msgs::ChangeNameService::Request& request,
+                                  mav_planning_msgs::ChangeNameService::Response& response);
 
   // Visualizations.
   void visualizePath();
@@ -80,6 +87,8 @@ class MavLocalPlanner {
   // Functions to help out replanning.
   // Track a single waypoint, planning only in a short known horizon.
   void avoidCollisionsTowardWaypoint();
+  // Replan on already existing path
+  void replanExistingPath(mav_msgs::EigenTrajectoryPointVector* path_chunk);
   // Get a path through a bunch of waypoints.
   bool planPathThroughWaypoints(
       const mav_msgs::EigenTrajectoryPointVector& waypoints,
@@ -98,6 +107,22 @@ class MavLocalPlanner {
   // Other internal stuff.
   void sendCurrentPose();
 
+  // Trajectory Transforming stuff
+  template <typename MsgType>
+  bool checkFrame(const MsgType& msg);
+  bool getGlobalToLocalTransform(Transformation* T_L_G_ptr) const;
+  void transformTrajectoryGlobalToLocal(
+      const mav_msgs::EigenTrajectoryPointVector& trajectory_global,
+      const Transformation& T_L_G,
+      mav_msgs::EigenTrajectoryPointVector* trajectory_local) const;
+  void transformTrajectoryPoint(const mav_msgs::EigenTrajectoryPoint& point_A,
+                                const Transformation& T_B_A,
+                                mav_msgs::EigenTrajectoryPoint* point_B) const;
+
+  // Gets the current odometry as a trajectory point in the relavent frame.
+  bool getCurrentPositionAsTrajectoryPoint(
+      mav_msgs::EigenTrajectoryPoint* current_point_ptr) const;
+
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
@@ -110,6 +135,7 @@ class MavLocalPlanner {
   ros::Publisher command_pub_;
   ros::Publisher path_marker_pub_;
   ros::Publisher full_trajectory_pub_;
+  ros::Publisher progress_pub_;
 
   // Service calls for controlling the local planner.
   // Start will start publishing commands, pause will stop temporarily and you
@@ -118,6 +144,8 @@ class MavLocalPlanner {
   ros::ServiceServer start_srv_;
   ros::ServiceServer pause_srv_;
   ros::ServiceServer stop_srv_;
+  ros::ServiceServer change_yaw_policy_srv_;
+  ros::ServiceServer change_smoother_name_srv_;
 
   // Service client for getting the MAV interface to listen to our sent
   // commands.
@@ -169,6 +197,7 @@ class MavLocalPlanner {
   // State -- current tracked path.
   mav_msgs::EigenTrajectoryPointVector path_queue_;
   size_t path_index_;
+  size_t replan_start_index_;
   // Super important: mutex for locking the path queues.
   std::recursive_mutex path_mutex_;
   std::recursive_mutex map_mutex_;
@@ -195,8 +224,14 @@ class MavLocalPlanner {
   // Intermediate goal selection, optionally in case of path-planning failures:
   GoalPointSelector goal_selector_;
   bool temporary_goal_;
+
+  // Stuff for transforming trajectories
+  bool is_trajectory_in_global_frame_;
+  tf::TransformListener tf_listener_;
 };
 
 }  // namespace mav_planning
+
+#include "mav_local_planner/mav_local_planner_inl.h"
 
 #endif  // MAV_LOCAL_PLANNER_MAV_LOCAL_PLANNER_H_
