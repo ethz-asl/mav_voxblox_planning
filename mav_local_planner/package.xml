@@ -26,7 +26,6 @@
   <depend>voxblox_ros</depend>
   <depend>minkindr</depend>
   <depend>minkindr_conversions</depend>
-  <depend>voxblox_planning_msgs</depend>
 
   <exec_depend>mav_nonlinear_mpc</exec_depend>
   <exec_depend>mav_lowlevel_attitude_controller</exec_depend>
