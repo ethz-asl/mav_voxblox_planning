@@ -724,9 +724,9 @@ bool MavLocalPlanner::stopCallback(std_srvs::Empty::Request& request,
   return true;
 }
 
-bool MavLocalPlanner::changeYawPolicyCallback(voxblox_planning_msgs::YawPolicyService::Request& request,
-                                   voxblox_planning_msgs::YawPolicyService::Response& response) {
-  std::string requested_policy = request.yaw_policy;
+bool MavLocalPlanner::changeYawPolicyCallback(mav_planning_msgs::ChangeNameService::Request& request,
+                                              mav_planning_msgs::ChangeNameService::Response& response) {
+  std::string requested_policy = request.name;
   if(requested_policy == "kVelocityVector"){
     yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kVelocityVector);
   }
@@ -753,9 +753,9 @@ bool MavLocalPlanner::changeYawPolicyCallback(voxblox_planning_msgs::YawPolicySe
   return true;
 }
 
-bool MavLocalPlanner::changeSmootherNameCallback(voxblox_planning_msgs::SmootherNameService::Request &request,
-                                                 voxblox_planning_msgs::SmootherNameService::Response &response){
-  std::string requested_smoother = request.smoother_name;
+bool MavLocalPlanner::changeSmootherNameCallback(mav_planning_msgs::ChangeNameService::Request &request,
+                                                 mav_planning_msgs::ChangeNameService::Response &response){
+  std::string requested_smoother = request.name;
   if(requested_smoother == "loco"){
     smoother_name_ = "loco";
   }
