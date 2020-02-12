@@ -1,0 +1,8 @@
+prefix=/usr/local
+
+Name: voxblox_skeleton
+Description: Description of voxblox_skeleton
+Version: 0.0.0
+Cflags: -I${prefix}/include
+Libs: -L${prefix}/lib -lvoxblox_skeleton_proto -lvoxblox_skeleton /usr/lib/x86_64-linux-gnu/libprotobuf-lite.so /usr/lib/x86_64-linux-gnu/libprotoc.so /usr/lib/x86_64-linux-gnu/libprotobuf.so
+Requires: voxblox voxblox_ros

@@ -81,8 +81,8 @@ int64_t SparseSkeletonGraph::addEdge(const SkeletonEdge& edge) {
   iter_pair.first->second.edge_id = edge_id;
 
   // Now hook it up to the vertices.
-  SkeletonVertex& start_vertex = vertex_map_[edge.start_vertex];
-  SkeletonVertex& end_vertex = vertex_map_[edge.end_vertex];
+  SkeletonVertex& start_vertex = vertex_map_.at(edge.start_vertex);
+  SkeletonVertex& end_vertex = vertex_map_.at(edge.end_vertex);
 
   start_vertex.edge_list.push_back(edge_id);
   end_vertex.edge_list.push_back(edge_id);
@@ -121,6 +121,13 @@ SkeletonVertex& SparseSkeletonGraph::getVertex(int64_t id) {
 
 SkeletonEdge& SparseSkeletonGraph::getEdge(int64_t id) {
   return edge_map_.find(id)->second;
+}
+
+SkeletonVertex* SparseSkeletonGraph::getVertexPtr(int64_t id) {
+  return &vertex_map_.at(id);
+}
+SkeletonEdge* SparseSkeletonGraph::getEdgePtr(int64_t id) {
+  return &edge_map_.at(id);
 }
 
 void SparseSkeletonGraph::clear() {
@@ -173,19 +180,22 @@ void SparseSkeletonGraph::removeEdge(int64_t edge_id) {
   const SkeletonEdge& edge = iter->second;
 
   // Remove this edge from both vertices.
-  SkeletonVertex& vertex_1 = getVertex(edge.start_vertex);
-  SkeletonVertex& vertex_2 = getVertex(edge.end_vertex);
-
-  for (size_t i = 0; i < vertex_1.edge_list.size(); i++) {
-    if (vertex_1.edge_list[i] == edge_id) {
-      vertex_1.edge_list.erase(vertex_1.edge_list.begin() + i);
-      break;
+  if (hasVertex(edge.start_vertex)) {
+    SkeletonVertex& vertex_1 = getVertex(edge.start_vertex);
+    for (size_t i = 0; i < vertex_1.edge_list.size(); i++) {
+      if (vertex_1.edge_list[i] == edge_id) {
+        vertex_1.edge_list.erase(vertex_1.edge_list.begin() + i);
+        break;
+      }
     }
   }
-  for (size_t i = 0; i < vertex_2.edge_list.size(); i++) {
-    if (vertex_2.edge_list[i] == edge_id) {
-      vertex_2.edge_list.erase(vertex_2.edge_list.begin() + i);
-      break;
+  if (hasVertex(edge.end_vertex)) {
+    SkeletonVertex& vertex_2 = getVertex(edge.end_vertex);
+    for (size_t i = 0; i < vertex_2.edge_list.size(); i++) {
+      if (vertex_2.edge_list[i] == edge_id) {
+        vertex_2.edge_list.erase(vertex_2.edge_list.begin() + i);
+        break;
+      }
     }
   }
 
@@ -214,4 +224,15 @@ void SparseSkeletonGraph::addSerializedEdge(const SkeletonEdge& edge) {
   edge_map_[edge.edge_id] = edge;
 }
 
+void SparseSkeletonGraph::transformFrame(const Transformation& T_G_S) {
+  // transform vertices
+  for (std::pair<const int64_t, SkeletonVertex>& kv : vertex_map_) {
+    kv.second.point = T_G_S * kv.second.point;
+  }
+  // transform edges
+  for (std::pair<const int64_t, SkeletonEdge>& kv : edge_map_) {
+    kv.second.start_point = T_G_S * kv.second.start_point;
+    kv.second.end_point = T_G_S * kv.second.end_point;
+  }
+}
 }  // namespace voxblox

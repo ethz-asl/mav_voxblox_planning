@@ -1,0 +1,68 @@
+/opt/clion/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton
+-- The C compiler identification is GNU 7.4.0
+-- The CXX compiler identification is GNU 7.4.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Using CATKIN_DEVEL_PREFIX: /home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/devel
+-- Using CMAKE_PREFIX_PATH: /home/davide/catkin_ws/devel;/opt/ros/melodic
+-- This workspace overlays: /home/davide/catkin_ws/devel;/opt/ros/melodic
+-- Found PythonInterp: /usr/bin/python2 (found suitable version "2.7.17", minimum required is "2") 
+-- Using PYTHON_EXECUTABLE: /usr/bin/python2
+-- Using Debian Python package layout
+-- Using empy: /usr/bin/empy
+-- Using CATKIN_ENABLE_TESTING: ON
+-- Call enable_testing()
+-- Using CATKIN_TEST_RESULTS_DIR: /home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/test_results
+-- Found gtest sources under '/usr/src/gmock': gtests will be built
+-- Found gmock sources under '/usr/src/gmock': gmock will be built
+-- Found PythonInterp: /usr/bin/python2 (found version "2.7.17") 
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+-- Looking for pthread_create in pthreads
+-- Looking for pthread_create in pthreads - not found
+-- Looking for pthread_create in pthread
+-- Looking for pthread_create in pthread - found
+-- Found Threads: TRUE  
+-- Using Python nosetests: /usr/bin/nosetests-2.7
+-- catkin 0.7.20
+-- BUILD_SHARED_LIBS is on
+-- Using these message generators: gencpp;geneus;genlisp;gennodejs;genpy
+-- Using protobuf_catkin
+CMake Warning at /home/davide/catkin_ws/devel/share/protobuf_catkin/cmake/protobuf-generate-cpp.cmake:18 (message):
+  PROTOBUF_CATKIN_GENERATE_CPP is deprecated.  Please use
+  PROTOBUF_CATKIN_GENERATE_CPP2 instead.  Check the Readme for details.
+Call Stack (most recent call first):
+  CMakeLists.txt:24 (PROTOBUF_CATKIN_GENERATE_CPP)
+
+
+-- Marking SHARED_LIBRARY "voxblox_skeleton_proto" of package "voxblox_skeleton" for installation
+-- Marking SHARED_LIBRARY "voxblox_skeleton" of package "voxblox_skeleton" for installation
+-- Marking EXECUTABLE "skeletonizer" of package "voxblox_skeleton" for installation
+-- Marking EXECUTABLE "skeleton_eval" of package "voxblox_skeleton" for installation
+-- Marking HEADER FILES in "include" folder of package "voxblox_skeleton" for installation
+-- Marking SHARED CONTENT FOLDER "launch" of package "voxblox_skeleton" for installation
+CMake Warning at /opt/ros/melodic/share/catkin/cmake/catkin_package.cmake:418 (message):
+  catkin_package() include dir
+  '/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug'
+  should be placed in the devel space instead of the build space
+Call Stack (most recent call first):
+  /opt/ros/melodic/share/catkin/cmake/catkin_package.cmake:102 (_catkin_package)
+  /home/davide/catkin_ws/devel/share/catkin_simple/cmake/catkin_simple-extras.cmake:214 (catkin_package)
+  CMakeLists.txt:72 (cs_export)
+
+
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug

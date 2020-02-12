@@ -28,7 +28,9 @@ class SkeletonAStar {
 
   inline void setEsdfLayer(const Layer<EsdfVoxel>* esdf_layer) {
     CHECK_NOTNULL(esdf_layer);
-    LOG(INFO) << "Setting ESDF layer.";
+    if (verbose_) {
+      LOG(INFO) << "Setting ESDF layer.";
+    }
     esdf_layer_ = esdf_layer;
     if (skeleton_layer_ == nullptr) {
       LOG(INFO) << "Setting neighbor tools to not 0! "
@@ -86,6 +88,8 @@ class SkeletonAStar {
       const AlignedVector<Eigen::Vector3i>& voxel_path,
       AlignedVector<Point>* coordinate_path) const;
 
+  void setVerbose(bool verbose) {verbose_ = verbose;};
+
  private:
   bool getPathToNearestDiagramPt(
       const BlockIndex& start_block_index, const VoxelIndex& start_voxel_index,
@@ -119,6 +123,8 @@ class SkeletonAStar {
 
   const Layer<SkeletonVoxel>* skeleton_layer_;
   const Layer<EsdfVoxel>* esdf_layer_;
+
+  bool verbose_;
 };
 
 template <typename VoxelType>
@@ -167,7 +173,9 @@ bool SkeletonAStar::getPathInVoxels(
     // Check if this is already the goal...
     if (current_voxel_offset == goal_voxel_offset) {
       getSolutionPath(goal_voxel_offset, parent_map, voxel_path);
-      LOG(INFO) << "Found solution in: " << num_iterations;
+      if (verbose_) {
+        LOG(INFO) << "Found solution in: " << num_iterations;
+      }
       return true;
     }
 

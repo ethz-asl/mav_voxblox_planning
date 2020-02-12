@@ -1,5 +1,5 @@
 #include "voxblox_skeleton/io/skeleton_io.h"
-
+#include "ros/ros.h"
 #include "voxblox_skeleton/skeleton_generator.h"
 
 namespace voxblox {
@@ -11,10 +11,19 @@ SkeletonGenerator::SkeletonGenerator()
       check_edges_on_construction_(false),
       vertex_pruning_radius_(0.35),
       min_gvd_distance_(0.4),
-      cleanup_style_(kSimplify) {
+      cleanup_style_(kSimplify),
+      verbose_(false) {
   // Initialize the template matchers.
   pruning_template_matcher_.setDeletionTemplates();
   corner_template_matcher_.setCornerTemplates();
+
+  ros::NodeHandle nh_private("~");
+  nh_private.param("/map_bounding_volume/x_min",bounding_box_.x_min_, -INFINITY);
+  nh_private.param("/map_bounding_volume/x_max",bounding_box_.x_max_, INFINITY);
+  nh_private.param("/map_bounding_volume/y_min", bounding_box_.y_min_, -INFINITY);
+  nh_private.param("/map_bounding_volume/y_max", bounding_box_.y_max_, INFINITY);
+  nh_private.param("/map_bounding_volume/z_min", bounding_box_.z_min_, -INFINITY);
+  nh_private.param("/map_bounding_volume/z_max", bounding_box_.z_max_, INFINITY);
 }
 
 SkeletonGenerator::SkeletonGenerator(Layer<EsdfVoxel>* esdf_layer)
@@ -91,7 +100,6 @@ void SkeletonGenerator::updateSkeletonFromLayer() {
 
 void SkeletonGenerator::generateSkeleton() {
   timing::Timer generate_timer("skeleton/gvd");
-
   // Clear the skeleton and start over.
   skeleton_.getSkeletonPoints().clear();
 
@@ -115,6 +123,7 @@ void SkeletonGenerator::generateSkeleton() {
       VoxelIndex voxel_index =
           esdf_block->computeVoxelIndexFromLinearIndex(lin_index);
 
+      if (!bounding_box_.contains(esdf_block->computeCoordinatesFromLinearIndex(lin_index))) continue;
       if (!esdf_voxel.observed || esdf_voxel.distance < min_gvd_distance_ ||
           esdf_voxel.fixed) {
         continue;
@@ -223,10 +232,12 @@ void SkeletonGenerator::generateSkeleton() {
     }
   }
 
-  LOG(INFO)
-      << "[GVD] Finished finding GVD candidates. Number of skeleton points: "
-      << skeleton_.getSkeletonPoints().size()
-      << " edges: " << skeleton_.getEdgePoints().size();
+  if (verbose_) {
+    LOG(INFO)
+        << "[GVD] Finished finding GVD candidates. Number of skeleton points: "
+        << skeleton_.getSkeletonPoints().size()
+        << " edges: " << skeleton_.getEdgePoints().size();
+  }
   if (generate_by_layer_neighbors_) {
     generateEdgesByLayerNeighbors();
   }
@@ -630,8 +641,10 @@ void SkeletonGenerator::generateSparseGraph() {
     simplifyGraph();
   }
 
-  LOG(INFO) << "[Sparse Graph] Vertices: " << graph_.getVertexMap().size()
-            << " Edges: " << graph_.getEdgeMap().size();
+  if (verbose_) {
+    LOG(INFO) << "[Sparse Graph] Vertices: " << graph_.getVertexMap().size()
+              << " Edges: " << graph_.getEdgeMap().size();
+  }
 }
 
 // Checks whether a point is simple, i.e., if its removal would not affect
@@ -1090,8 +1103,10 @@ void SkeletonGenerator::pruneDiagramVertices() {
     }
   }
 
-  LOG(INFO) << "[Prune] Number of vertices before prune: " << num_vertices
-            << " Number of deleted vertices: " << deletion_index.size();
+  if (verbose_) {
+    LOG(INFO) << "[Prune] Number of vertices before prune: " << num_vertices
+              << " Number of deleted vertices: " << deletion_index.size();
+  }
 
   // Go through everything in the deletion index and remove it from the list.
   // As always, have to go backwards to preserve voxel indices.
@@ -1303,7 +1318,9 @@ void SkeletonGenerator::splitSpecificEdges(
   }
 
   skeleton_planner_.setMaxIterations(0);
-  LOG(INFO) << "[Split Edges] Num vertices added: " << num_vertices_added;
+  if (verbose_) {
+    LOG(INFO) << "[Split Edges] Num vertices added: " << num_vertices_added;
+  }
 }
 
 FloatingPoint SkeletonGenerator::getMaxEdgeDistanceFromStraightLine(
@@ -1318,7 +1335,9 @@ FloatingPoint SkeletonGenerator::getMaxEdgeDistanceFromStraightLine(
       skeleton_planner_.getPathOnDiagram(start, end, coordinate_path);
 
   if (!success) {
-    LOG(INFO) << "Something is wrong!";
+    if (verbose_) {
+      LOG(INFO) << "Something is wrong!";
+    }
     return -1.0;
   }
 
@@ -1386,8 +1405,10 @@ void SkeletonGenerator::repairGraph() {
     return;
   }
 
-  LOG(INFO) << "[Subgraph] Number of disconnected subgraphs: "
-            << subgraph_vertex_examples.size();
+  if (verbose_) {
+    LOG(INFO) << "[Subgraph] Number of disconnected subgraphs: "
+              << subgraph_vertex_examples.size();
+  }
 
   // Go through all combinations of subgraphs until we're connected.
   for (const std::pair<int, int64_t>& subgraph1 : subgraph_vertex_examples) {
@@ -1418,8 +1439,10 @@ void SkeletonGenerator::repairGraph() {
       }
     }
   }
-  LOG(INFO) << "[Subgraph] Trying to check if we need to split "
-            << new_edge_ids.size() << " new edges.";
+  if (verbose_) {
+    LOG(INFO) << "[Subgraph] Trying to check if we need to split "
+              << new_edge_ids.size() << " new edges.";
+  }
 
   timing::Timer split_timer("skeleton/repair_graph/split");
   splitSpecificEdges(new_edge_ids);
@@ -1437,8 +1460,10 @@ void SkeletonGenerator::repairGraph() {
     }
   }
 
-  LOG(INFO) << "[Subgraph] Final number of disconnected subgraphs: "
-            << unique_subgraphs.size();
+  if (verbose_) {
+    LOG(INFO) << "[Subgraph] Final number of disconnected subgraphs: "
+              << unique_subgraphs.size();
+  }
 }
 
 int SkeletonGenerator::recursivelyLabel(int64_t vertex_id, int subgraph_id) {
@@ -1652,9 +1677,11 @@ void SkeletonGenerator::simplifyVertices() {
       }
     }
   }
-  LOG(INFO) << "[Simplify Vertices] Vertex removals: " << vertices_removed
-            << " / " << vertex_removal_candidates
-            << ", Edges added: " << edges_added;
+  if (verbose_) {
+    LOG(INFO) << "[Simplify Vertices] Vertex removals: " << vertices_removed
+              << " / " << vertex_removal_candidates
+              << ", Edges added: " << edges_added;
+  }
 }
 
 void SkeletonGenerator::reconnectSubgraphsAlongEsdf() {
@@ -1694,8 +1721,10 @@ void SkeletonGenerator::reconnectSubgraphsAlongEsdf() {
     return;
   }
 
-  LOG(INFO) << "[Subgraph] Number of disconnected subgraphs: "
-            << subgraph_vertex_examples.size();
+  if (verbose_) {
+    LOG(INFO) << "[Subgraph] Number of disconnected subgraphs: "
+              << subgraph_vertex_examples.size();
+  }
 
   size_t potential_edge_candidates = 0;
   size_t diagram_candidates = 0;
@@ -1753,9 +1782,11 @@ void SkeletonGenerator::reconnectSubgraphsAlongEsdf() {
       path_timer.Stop();
     }
   }
-  LOG(INFO) << "[Subgraph] Potential edge candidates: "
-            << potential_edge_candidates
-            << " diagram candidates: " << diagram_candidates;
+  if (verbose_) {
+    LOG(INFO) << "[Subgraph] Potential edge candidates: "
+              << potential_edge_candidates
+              << " diagram candidates: " << diagram_candidates;
+  }
 
   // Recolor!
   timing::Timer recolor_timer("skeleton/reconnect/recolor");
@@ -1768,8 +1799,10 @@ void SkeletonGenerator::reconnectSubgraphsAlongEsdf() {
   }
   recolor_timer.Stop();
 
-  LOG(INFO) << "[Subgraph] Final number of disconnected subgraphs: "
-            << unique_subgraphs.size();
+  if (verbose_) {
+    LOG(INFO) << "[Subgraph] Final number of disconnected subgraphs: "
+              << unique_subgraphs.size();
+  }
 }
 
 void SkeletonGenerator::mergeSubgraphs(int subgraph_1, int subgraph_2,

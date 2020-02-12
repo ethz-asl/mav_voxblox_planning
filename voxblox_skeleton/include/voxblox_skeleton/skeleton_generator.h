@@ -17,8 +17,21 @@
 #include "voxblox_skeleton/skeleton.h"
 #include "voxblox_skeleton/skeleton_planner.h"
 #include "voxblox_skeleton/voxel_template_matcher.h"
+#include <voxblox_skeleton/sparse_graph_planner.h>
 
 namespace voxblox {
+    struct BoundingBox{
+        BoundingBox(){}
+
+        float x_min_, x_max_, y_min_, y_max_, z_min_, z_max_;
+
+        bool contains(Point point) const{
+            if ((point.x() > x_max_) or (point.x() < x_min_)) return false;
+            if ((point.y() > y_max_) or (point.x() < y_min_)) return false;
+            if ((point.z() > z_max_) or (point.x() < z_min_)) return false;
+            return true;
+        }
+    };
 
 // TODO(helenol): move as an integrator?
 class SkeletonGenerator {
@@ -144,6 +157,8 @@ class SkeletonGenerator {
   void mergeSubgraphs(int subgraph_1, int subgraph_2,
                       std::map<int, int>* subgraph_map) const;
 
+  void setVerbose(bool verbose) {verbose_ = verbose;};
+
  private:
   // KD tree adapters.
   typedef nanoflann::KDTreeSingleIndexAdaptor<
@@ -201,6 +216,10 @@ class SkeletonGenerator {
   size_t voxels_per_side_;
 
   SparseSkeletonGraph graph_;
+
+  bool verbose_;
+
+  BoundingBox bounding_box_;
 };
 
 }  // namespace voxblox

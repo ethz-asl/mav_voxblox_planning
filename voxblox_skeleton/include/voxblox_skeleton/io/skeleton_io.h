@@ -4,6 +4,7 @@
 #include "./skeleton.pb.h"
 
 #include "voxblox_skeleton/skeleton.h"
+#include <voxblox_skeleton/sparse_graph_planner.h>
 
 namespace voxblox {
 namespace io {

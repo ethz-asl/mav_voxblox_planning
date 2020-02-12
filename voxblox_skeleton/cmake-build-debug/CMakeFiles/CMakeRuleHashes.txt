@@ -1,0 +1,3 @@
+# Hashes of file build rules.
+e149250a9b07424cd7a9b18e3e2ae566 CMakeFiles/clean_test_results
+2b3e9a37ff7254fbd676a30f5abf033c skeleton.pb.cc
