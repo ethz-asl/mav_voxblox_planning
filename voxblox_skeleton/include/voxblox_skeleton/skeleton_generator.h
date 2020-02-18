@@ -27,8 +27,8 @@ namespace voxblox {
 
         bool contains(Point point) const{
             if ((point.x() > x_max_) or (point.x() < x_min_)) return false;
-            if ((point.y() > y_max_) or (point.x() < y_min_)) return false;
-            if ((point.z() > z_max_) or (point.x() < z_min_)) return false;
+            if ((point.y() > y_max_) or (point.y() < y_min_)) return false;
+            if ((point.z() > z_max_) or (point.z() < z_min_)) return false;
             return true;
         }
     };
