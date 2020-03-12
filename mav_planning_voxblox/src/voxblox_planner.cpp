@@ -1,4 +1,4 @@
-#include <mav_voxel_planning/voxblox_planner.h>
+#include <mav_planning_voxblox/voxblox_planner.h>
 
 #include <voxblox/utils/planning_utils.h>
 
