@@ -43,6 +43,12 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
   visualizeMap();
 }
 
+void VoxbloxRrtPlanner::initializeMap() {
+  VoxbloxPlanner::initializeMap();
+
+  voxblox_server_.setTraversabilityRadius(constraints_.robot_radius);
+}
+
 void VoxbloxRrtPlanner::setupPlannerAndSmootherMap() {
   rrt_.setTsdfLayer(voxblox_server_.getTsdfMapPtr()->getTsdfLayerPtr());
   rrt_.setEsdfLayer(voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr());

@@ -30,12 +30,13 @@ class VoxbloxRrtPlanner : public RrtPlanner, public VoxbloxPlanner {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  virtual VoxbloxRrtPlanner(const ros::NodeHandle& nh,
+  VoxbloxRrtPlanner(const ros::NodeHandle& nh,
                     const ros::NodeHandle& nh_private);
   ~VoxbloxRrtPlanner() {}
 
   // constructor functions
   void setupPlannerAndSmootherMap();
+  void initializeMap();
 
  protected:
   void setupRrtPlanner();
