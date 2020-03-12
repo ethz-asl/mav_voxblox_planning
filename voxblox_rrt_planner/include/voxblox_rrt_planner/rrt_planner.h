@@ -1,5 +1,5 @@
-#ifndef VOXBLOX_RRT_PLANNER_VOXBLOX_RRT_PLANNER_H
-#define VOXBLOX_RRT_PLANNER_VOXBLOX_RRT_PLANNER_H
+#ifndef PARENT_RRT_PLANNER_PARENT_RRT_PLANNER_H
+#define PARENT_RRT_PLANNER_PARENT_RRT_PLANNER_H
 
 #include <ros/package.h>
 #include <ros/ros.h>
@@ -20,34 +20,113 @@
 #include <minkindr_conversions/kindr_msg.h>
 #include <voxblox_ros/esdf_server.h>
 
+#include <mav_planning_voxblox/map_interface.h>
 #include "voxblox_rrt_planner/voxblox_ompl_rrt.h"
-#include <mav_planning_voxblox/voxblox_planner.h>
-#include "voxblox_rrt_planner/rrt_planner.h"
 
 namespace mav_planning {
 
-class VoxbloxRrtPlanner : public RrtPlanner, public VoxbloxPlanner {
+class RrtPlanner {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  virtual VoxbloxRrtPlanner(const ros::NodeHandle& nh,
-                    const ros::NodeHandle& nh_private);
-  ~VoxbloxRrtPlanner() {}
+  RrtPlanner(const ros::NodeHandle& nh,
+             const ros::NodeHandle& nh_private);
+  ~RrtPlanner() {}
 
   // constructor functions
-  void setupPlannerAndSmootherMap();
+  void getParametersFromRos();
+  void advertiseTopics();
+  void subscribeToTopics();
+  virtual void setupPlannerAndSmootherMap() = 0;
+
+  virtual bool plannerServiceCallback(
+      mav_planning_msgs::PlannerServiceRequest& request,
+      mav_planning_msgs::PlannerServiceResponse& response);
+
+  bool publishPathCallback(std_srvs::EmptyRequest& request,
+                           std_srvs::EmptyResponse& response);
+
+  // Tools for trajectory smoothing and checking.
+  bool generateFeasibleTrajectory(
+      const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
+      mav_msgs::EigenTrajectoryPointVector* path);
+  bool generateFeasibleTrajectoryLoco(
+      const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
+      mav_msgs::EigenTrajectoryPointVector* path);
+  bool generateFeasibleTrajectoryLoco2(
+      const mav_msgs::EigenTrajectoryPointVector& coordinate_path,
+      mav_msgs::EigenTrajectoryPointVector* path);
+
+  // map functions
+  bool checkPathForCollisions(const mav_msgs::EigenTrajectoryPointVector& path,
+                              double* t) const;
+  bool checkPhysicalConstraints(
+      const mav_trajectory_generation::Trajectory& trajectory);
 
  protected:
-  void setupRrtPlanner();
-  bool planRrt(mav_msgs::EigenTrajectoryPoint& start_pose,
+  virtual void setupRrtPlanner() = 0;
+  virtual bool planRrt(mav_msgs::EigenTrajectoryPoint& start_pose,
       mav_msgs::EigenTrajectoryPoint& goal_pose,
-      mav_msgs::EigenTrajectoryPoint::Vector* waypoints);
+      mav_msgs::EigenTrajectoryPoint::Vector* waypoints) = 0;
 
- private:
-  // Planners!
-  VoxbloxOmplRrt rrt_;
+  ros::NodeHandle nh_;
+  ros::NodeHandle nh_private_;
+
+  ros::Publisher path_marker_pub_;
+  ros::Publisher polynomial_trajectory_pub_;
+  ros::Publisher path_pub_;
+  ros::Publisher waypoint_list_pub_;
+
+  ros::ServiceServer planner_srv_;
+  ros::ServiceServer path_pub_srv_;
+
+  ros::ServiceServer manual_trigger_srv_;
+  bool manualTriggerCallback(std_srvs::EmptyRequest& request, std_srvs::EmptyResponse& response);
+  void explore();
+  void flyPath();
+
+  // Map object
+  MapInterface* map_;
+
+  // Parameters
+  std::string frame_id_;
+  bool visualize_;
+  bool do_smoothing_;
+  bool path_shortening_;
+  bool random_start_goal_;
+
+  // Robot parameters -- v max, a max, radius, etc.
+  PhysicalConstraints constraints_;
+
+  // Number of meters to inflate the bounding box by for straight-line planning.
+  double bounding_box_inflation_m_;
+  double num_seconds_to_plan_;
+  bool simplify_solution_;
+
+  // Cache the last trajectory for output :)
+  mav_trajectory_generation::Trajectory last_trajectory_;
+  bool last_trajectory_valid_;
+  mav_msgs::EigenTrajectoryPointVector last_waypoints_;
+
+  // Smoothing!
+  PolynomialSmoother smoother_;
+  LocoSmoother loco_smoother_;
+
+  void inferValidityCheckingResolution(const Eigen::Vector3d& bounding_box);
+
+  bool sanityCheckWorldAndInputs(const Eigen::Vector3d& start_pos,
+                                 const Eigen::Vector3d& goal_pos,
+                                 const Eigen::Vector3d& bounding_box) const;
+  bool checkStartAndGoalFree(const Eigen::Vector3d& start_pos,
+                             const Eigen::Vector3d& goal_pos) const;
+
+  // Current state of the MAV.
+  ros::Subscriber odometry_sub_;
+  void odometryCallback(const nav_msgs::Odometry& msg);
+  // State -- robot state.
+  mav_msgs::EigenOdometry odometry_;
 };
 
 }  // namespace mav_planning
 
-#endif  // VOXBLOX_RRT_PLANNER_VOXBLOX_RRT_PLANNER_H
+#endif  // PARENT_RRT_PLANNER_PARENT_RRT_PLANNER_H
