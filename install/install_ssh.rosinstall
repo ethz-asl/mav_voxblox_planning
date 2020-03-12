@@ -8,6 +8,5 @@
 - git: {local-name: minkindr_ros, uri: 'git@github.com:ethz-asl/minkindr_ros.git'}
 - git: {local-name: voxblox, uri: 'git@github.com:ethz-asl/voxblox.git'}
 - git: {local-name: mav_trajectory_generation, uri: 'git@github.com:ethz-asl/mav_trajectory_generation.git'}
-- git: {local-name: yaml_cpp_catkin, uri: 'git@github.com:ethz-asl/yaml_cpp_catkin.git'}
 - git: {local-name: gflags_catkin, uri: 'git@github.com:ethz-asl/gflags_catkin.git'}
 - git: {local-name: catkin_simple, uri: 'https://github.com/catkin/catkin_simple.git'}

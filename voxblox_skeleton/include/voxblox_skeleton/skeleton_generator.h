@@ -17,7 +17,6 @@
 #include "voxblox_skeleton/skeleton.h"
 #include "voxblox_skeleton/skeleton_planner.h"
 #include "voxblox_skeleton/voxel_template_matcher.h"
-#include <voxblox_skeleton/sparse_graph_planner.h>
 
 namespace voxblox {
 

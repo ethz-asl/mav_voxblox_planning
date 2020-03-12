@@ -1,5 +1,5 @@
-#ifndef VOXBLOX_RRT_PLANNER_RRT_PLANNER_VOXBLOX_H
-#define VOXBLOX_RRT_PLANNER_RRT_PLANNER_VOXBLOX_H
+#ifndef VOXBLOX_RRT_PLANNER_VOXBLOX_RRT_PLANNER_H
+#define VOXBLOX_RRT_PLANNER_VOXBLOX_RRT_PLANNER_H
 
 #include <ros/package.h>
 #include <ros/ros.h>
@@ -30,7 +30,7 @@ class VoxbloxRrtPlanner : public RrtPlanner, public VoxbloxPlanner {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  VoxbloxRrtPlanner(const ros::NodeHandle& nh,
+  virtual VoxbloxRrtPlanner(const ros::NodeHandle& nh,
                     const ros::NodeHandle& nh_private);
   ~VoxbloxRrtPlanner() {}
 
@@ -50,4 +50,4 @@ class VoxbloxRrtPlanner : public RrtPlanner, public VoxbloxPlanner {
 
 }  // namespace mav_planning
 
-#endif  //VOXBLOX_RRT_PLANNER_RRT_PLANNER_VOXBLOX_H
+#endif  // VOXBLOX_RRT_PLANNER_VOXBLOX_RRT_PLANNER_H

@@ -190,7 +190,6 @@ class EsdfVoxbloxValidityChecker
 
   virtual bool checkCollisionWithRobot(
       const Eigen::Vector3d& robot_position) const {
-//    voxblox::Point robot_point = robot_position.cast<voxblox::FloatingPoint>();
     constexpr bool interpolate = false;
     voxblox::FloatingPoint distance;
     bool success = interpolator_.getDistance(
@@ -249,7 +248,6 @@ class VoxbloxMotionValidator : public base::MotionValidator {
 
   virtual bool checkMotionSampling(const base::State* s1, const base::State* s2,
       std::pair<base::State*, double>& last_valid) const {
-//    ROS_INFO("[CbloxMotionValidator] checking motion");
     Eigen::Vector3d start = omplToEigen(s1);
     Eigen::Vector3d goal = omplToEigen(s2);
 
@@ -295,7 +293,6 @@ class VoxbloxMotionValidator : public base::MotionValidator {
     // additionally check goal position
     collision = validity_checker_->checkCollisionWithRobot(goal);
     if (collision) {
-//      ROS_INFO("[CbloxMotionValidator] collision at goal point detected");
       if (last_valid.first != nullptr) {
         ompl::base::ScopedState<ompl::mav::StateSpace>
             last_valid_state(si_->getStateSpace());
@@ -319,11 +316,6 @@ class VoxbloxMotionValidator : public base::MotionValidator {
   // a valid state.
   virtual bool checkMotion(const base::State* s1, const base::State* s2,
                            std::pair<base::State*, double>& last_valid) const {
-    bool sampling = false;
-    if (sampling) {
-      return checkMotionSampling(s1, s2, last_valid);
-    }
-
     Eigen::Vector3d start = omplToEigen(s1);
     Eigen::Vector3d goal = omplToEigen(s2);
     double voxel_size = validity_checker_->voxel_size();

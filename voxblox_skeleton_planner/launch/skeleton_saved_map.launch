@@ -1,24 +1,14 @@
 <launch>
-  <arg name="voxblox_path"
-      default="/home/darpa/maps/darpa_edgar_gt_02.voxblox" />
-  <arg name="skeleton_path"
-      default="/home/darpa/maps/darpa_edgar_gt_02_skeleton.voxblox" />
-  <arg name="sparse_graph_path"
-      default="/home/darpa/maps/darpa_edgar_gt_02_sparse_graph.voxblox" />
-  <!--
-  <arg name="sparse_graph_path" default="" />
-  <arg name="skeleton_path" default="" />
-  -->
-  <arg name="frame_id" default="world" />
+  <arg name="voxblox_path" default="/home/helen/data/jfr_2018/machine_hall/voxblox/rs_skeleton_0.10.voxblox" />
+  <arg name="sparse_graph_path" default="/home/helen/data/jfr_2018/machine_hall/voxblox/rs_sparse_graph_0.10.voxblox" />
+  <arg name="frame_id" default="map" />
 
-  <node name="voxblox_skeleton_planner" pkg="voxblox_skeleton_planner"
-      type="skeleton_global_planner_node" output="screen" clear_params="true">
+  <node name="voxblox_skeleton_planner" pkg="voxblox_skeleton_planner" type="skeleton_global_planner_node" output="screen" clear_params="true">
     <param name="voxblox_path" value="$(arg voxblox_path)" />
-    <param name="skeleton_path" value="$(arg skeleton_path)" />
     <param name="sparse_graph_path" value="$(arg sparse_graph_path)" />
     <param name="visualize" value="true" />
     <param name="robot_radius" value="0.5" />
-    <param name="tsdf_voxel_size" value="0.2" />
+    <param name="tsdf_voxel_size" value="0.10" />
     <param name="tsdf_voxels_per_side" value="16" />
     <param name="update_mesh_every_n_sec" value="0.0" />
     <param name="frame_id" value="$(arg frame_id)" />
@@ -29,9 +19,5 @@
     <param name="optimize_time" value="true" />
     <param name="verbose" value="true" />
   </node>
-
-  <!-- Visualization -->
-  <node name="rviz" pkg="rviz" type="rviz" required="false"
-        args="-d $(find cblox_planning_ros)/cfg/cblox_planning.rviz"/>
 
 </launch>

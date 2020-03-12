@@ -1,17 +1,15 @@
 <launch>
-  <arg name="voxblox_path"
-      default="/media/darpa/SSD_500GB/gasserl/maps/big_maze_gt_01.voxblox" />
-  <arg name="frame_id" default="world" />
+  <arg name="voxblox_path" default="/home/helen/data/jfr_2018/machine_hall/voxblox/rs_esdf_0.10.voxblox" />
+  <arg name="frame_id" default="map" />
 
   <node name="voxblox_rrt_planner" pkg="voxblox_rrt_planner" type="voxblox_rrt_planner_node" output="screen">
-    <remap from="odometry" to="ground_truth/odometry"/>
     <param name="voxblox_path" value="$(arg voxblox_path)" />
     <param name="visualize" value="true" />
-    <param name="robot_radius"  value="0.5" />
-    <param name="tsdf_voxel_size" value="0.1" />
+    <param name="robot_radius" value="0.5" />
+    <param name="tsdf_voxel_size" value="0.10" />
     <param name="tsdf_voxels_per_side" value="16" />
     <param name="update_mesh_every_n_sec" value="0.0" />
-    <param name="num_seconds_to_plan" value="30.0" />
+    <param name="num_seconds_to_plan" value="5.0" />
     <param name="frame_id" value="$(arg frame_id)" />
     <param name="world_frame" value="$(arg frame_id)" />
     <param name="trust_approx_solution" value="true" />
@@ -20,9 +18,5 @@
     <param name="optimize_time" value="true" />
     <param name="verbose" value="true" />
   </node>
-
-  <!-- Visualization -->
-  <node name="rviz" pkg="rviz" type="rviz" required="false"
-        args="-d $(find cblox_planning_ros)/cfg/cblox_planning.rviz"/>
 
 </launch>

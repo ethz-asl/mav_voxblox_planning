@@ -4,8 +4,7 @@
   <arg name="voxel_size" default="0.2" />
 
   <group ns="$(arg mav_name)">
-    <node name="voxblox_rrt_planner" pkg="voxblox_rrt_planner"
-          type="voxblox_rrt_planner_node" output="screen" clear_params="true">
+    <node name="voxblox_rrt_planner" pkg="voxblox_rrt_planner" type="voxblox_rrt_planner_node" output="screen" clear_params="true">
       <remap from="voxblox_rrt_planner/esdf_map_in" to="esdf_map" />
       <remap from="voxblox_rrt_planner/tsdf_map_in" to="tsdf_map" />
       <param name="tsdf_voxel_size" value="$(arg voxel_size)" />
