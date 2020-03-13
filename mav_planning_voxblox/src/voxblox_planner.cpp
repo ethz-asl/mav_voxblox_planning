@@ -8,7 +8,6 @@ VoxbloxPlanner::VoxbloxPlanner(const ros::NodeHandle &nh,
                                const ros::NodeHandle &nh_private)
     : voxblox_server_(nh, nh_private),
       visualize_(false) {
-//  nh_private.param("visualize", visualize_, visualize_);
   nh_private.param("voxblox_path", input_filepath_, input_filepath_);
   nh_private.param("visualize", visualize_, visualize_);
 }
@@ -36,8 +35,6 @@ void VoxbloxPlanner::initializeMap() {
   } else {
     ROS_ERROR("TSDF map also empty! Check voxel size!");
   }
-
-//  voxblox_server_.setTraversabilityRadius(constraints_.robot_radius);
 
   voxel_size_ =
       voxblox_server_.getEsdfMapPtr()->getEsdfLayerPtr()->voxel_size();

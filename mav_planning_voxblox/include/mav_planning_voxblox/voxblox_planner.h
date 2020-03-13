@@ -20,7 +20,7 @@ public:
 
   virtual ~VoxbloxPlanner() {};
 
-  void initializeMap();
+  virtual void initializeMap();
 
   void visualizeMap();
 
