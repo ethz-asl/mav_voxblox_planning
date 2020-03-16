@@ -183,6 +183,7 @@ class MavLocalPlanner {
   // State -- planning.
   int max_failures_;
   int num_failures_;
+  int num_tracking_;
 
   // Map!
   voxblox::EsdfServer esdf_server_;
