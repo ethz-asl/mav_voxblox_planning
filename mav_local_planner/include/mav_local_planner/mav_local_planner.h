@@ -68,7 +68,10 @@ class MavLocalPlanner {
   void planningStep();
   bool findPathThroughCurrentWaypointList(
       const mav_msgs::EigenTrajectoryPoint& start,
-      mav_msgs::EigenTrajectoryPointVector* path);
+      const mav_msgs::EigenTrajectoryPointVector& waypoint_list,
+      const size_t& temporary_waypoints,
+      mav_msgs::EigenTrajectoryPointVector* path,
+      size_t* waypoint_index);
 
   // Returns if the next waypoint is a valid waypoint.
   bool nextWaypoint();
