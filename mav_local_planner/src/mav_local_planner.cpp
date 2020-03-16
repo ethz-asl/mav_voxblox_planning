@@ -232,10 +232,10 @@ void MavLocalPlanner::planningStep() {
     }
   } else if (path_queue_.empty()) {
     const double kCloseEnough = 0.05;
-    ROS_INFO_STREAM("[Mav Local Planner][Plan Step] current position: "
-        << odometry_.position_W.transpose() << ", next waypoint ["
-        << current_waypoint_ << "]: "
-        << waypoints_[current_waypoint_].position_W.transpose());
+//    ROS_INFO_STREAM("[Mav Local Planner][Plan Step] current position: "
+//        << odometry_.position_W.transpose() << ", next waypoint ["
+//        << current_waypoint_ << "]: "
+//        << waypoints_[current_waypoint_].position_W.transpose());
     if ((waypoints_[current_waypoint_].position_W - odometry_.position_W).norm() < kCloseEnough) {
       if (!nextWaypoint()) {
         finishWaypoints();
@@ -250,6 +250,10 @@ void MavLocalPlanner::planningStep() {
     size_t waypoint_index;
     const mav_msgs::EigenTrajectoryPointVector waypoint_list(
         waypoints_.begin() + current_waypoint_, waypoints_.end());
+
+    ROS_INFO_STREAM("[Mav Local Planner][Plan Step] Planning at ("
+                        << current_odometry.position_W.transpose() << ") with velocity "
+                        << current_odometry.velocity_W.norm() << " m/s");
     bool success = findPathThroughCurrentWaypointList(
         current_odometry, waypoint_list, 0, &path, &waypoint_index);
     ROS_INFO("[Mav Local Planner][Plan Step] "
@@ -257,8 +261,8 @@ void MavLocalPlanner::planningStep() {
     if (success) {
       current_waypoint_ = std::min(current_waypoint_ + waypoint_index - 1,
                                    waypoints_.size() - 1);
-      ROS_INFO("current waypoint: %zu, index %zu, max %zu",
-               current_waypoint_, waypoint_index, waypoints_.size());
+//      ROS_INFO("current waypoint: %zu, index %zu, max %zu",
+//               current_waypoint_, waypoint_index, waypoints_.size());
       replacePath(path);
       startPublishingCommands();
     } else {
@@ -277,8 +281,6 @@ void MavLocalPlanner::planningStep() {
       replan_start_index = std::max(std::min(path_index_ + static_cast<size_t>((replan_lookahead_sec_) /
                                                                                constraints_.sampling_dt),
           path_queue_.size() - 1), path_index_);
-      ROS_INFO("[Mav Local Planner][Plan Step] Replan start index: %zu",
-          replan_start_index);
 
       std::copy(path_queue_.begin() + replan_start_index, path_queue_.end(),
                 std::back_inserter(path_chunk));
@@ -298,12 +300,14 @@ void MavLocalPlanner::planningStep() {
         return;
       }
     }
-    ROS_INFO_STREAM("[Mav Local Planner][Plan Step] Replanning at ("
+    ROS_INFO_STREAM("[Mav Local Planner][Plan Step] Replanning at "
+        << replan_start_index << " ("
         << position.position_W.transpose() << ") with velocity "
-        << position.velocity_W.norm() << " and next waypoint at ("
-        << waypoints_[current_waypoint_].position_W.transpose() << "), "
-        << (waypoints_[current_waypoint_].position_W - position.position_W).norm()
-        << "/" << kCloseEnough << " m away");
+        << position.velocity_W.norm() << " m/s");
+//        << " and next waypoint at ("
+//        << waypoints_[current_waypoint_].position_W.transpose() << "), "
+//        << (waypoints_[current_waypoint_].position_W - position.position_W).norm()
+//        << "/" << kCloseEnough << " m away");
 
     // replan the remaining list of waypoints
     bool planning_success;
@@ -450,8 +454,8 @@ bool MavLocalPlanner::findPathThroughCurrentWaypointList(
       kCloseToOdometry) {
     free_waypoints.push_back(start);
     waypoints_added = 1;
-    ROS_INFO_STREAM("[Mav Local Planner][Plan List] added a waypoint at ("
-        << start.position_W.transpose() << ")");
+//    ROS_INFO_STREAM("[Mav Local Planner][Plan List] added a waypoint at ("
+//        << start.position_W.transpose() << ")");
   }
 
   // todo(gasserl): start loop at current waypoint
@@ -501,9 +505,9 @@ bool MavLocalPlanner::findPathThroughCurrentWaypointList(
     }
     free_waypoints.push_back(waypoint);
   }
-  ROS_INFO("waypoint %zu/%zu, list of %zu, ignored %d, added %zu, free %zu",
-    current_waypoint_, waypoints_.size() - 1, waypoint_list.size(),
-    ignored_temporary_waypoints, waypoints_added, free_waypoints.size());
+//  ROS_INFO("waypoint %zu/%zu, list of %zu, ignored %d, added %d, free %zu",
+//    current_waypoint_, waypoints_.size() - 1, waypoint_list.size(),
+//    ignored_temporary_waypoints, waypoints_added, free_waypoints.size());
 
   // visualize free waypoints
   visualization_msgs::MarkerArray marker_array;
@@ -549,8 +553,8 @@ bool MavLocalPlanner::findPathThroughCurrentWaypointList(
   }
   path_marker_pub_.publish(marker_array);
 
-  ROS_INFO("[Mav Local Planner][Plan List] Of next %zu waypoints, %zu are free (%d were added).",
-           waypoint_list.size(), free_waypoints.size(), waypoints_added);
+//  ROS_INFO("[Mav Local Planner][Plan List] Of next %zu waypoints, %zu are free (%d were added).",
+//           waypoint_list.size(), free_waypoints.size(), waypoints_added);
   bool success = false;
 //  if (free_waypoints.size() <= static_cast<size_t>(waypoints_added) ||
 //      free_waypoints.size() == 2) {
@@ -566,22 +570,22 @@ bool MavLocalPlanner::findPathThroughCurrentWaypointList(
     if (success) {
       *waypoint_index = std::min(free_waypoints.size() - waypoints_added + ignored_temporary_waypoints,
                                    waypoint_list.size());
-      ROS_INFO("waypoint index: %zu with %zu list, %zu added, %zu ignored, %zu max",
-          *waypoint_index, free_waypoints.size(), waypoints_added,
-               ignored_temporary_waypoints, waypoint_list.size());
-      ROS_INFO(
-          "[Mav Local Planner][Plan List]  Successfully planned path through %zu free "
-          "waypoints.",
-          free_waypoints.size());
+//      ROS_INFO("waypoint index: %zu with %zu list, %d added, %d ignored, %zu max",
+//          *waypoint_index, free_waypoints.size(), waypoints_added,
+//               ignored_temporary_waypoints, waypoint_list.size());
+//      ROS_INFO(
+//          "[Mav Local Planner][Plan List] Successfully planned path through %zu free "
+//          "waypoints.",
+//          free_waypoints.size());
       success = isPathCollisionFree(*path);
       if (success) {
-        ROS_INFO(
-            "[Mav Local Planner][Plan List] Used smoothing through %zu waypoints! Total "
-            "waypoint size: %zu, added? %d",
-            free_waypoints.size(), waypoint_list.size(),
-            waypoints_added);
+//        ROS_INFO(
+//            "[Mav Local Planner][Plan List] Used smoothing through %zu waypoints! Total "
+//            "waypoint size: %zu, added? %d",
+//            free_waypoints.size(), waypoint_list.size(),
+//            waypoints_added);
       } else {
-        ROS_WARN("[Mav Local Planner][Plan List] But path was not collision free. :(");
+        ROS_WARN("[Mav Local Planner][Plan List] Path was not collision free. :(");
       }
     }
   }
@@ -666,14 +670,14 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
       }
     }
     // Otherwise we gotta replan this thing anyway.
+    ROS_INFO_STREAM("[Mav Local Planner][Next Waypoint] Tracking waypoint at ("
+                        << waypoint.position_W.transpose() << ") from position ("
+                        << current_position.position_W.transpose() << ")");
     success = loco_planner_.getTrajectoryTowardGoal(current_position,
                                                     waypoint, &trajectory);
     ROS_INFO(
         "[Mav Local Planner][Next Waypoint] Local path to next waypoint successful? %d",
         success);
-    ROS_INFO_STREAM("[Mav Local Planner][Next Waypoint] planning from "
-        << current_position.position_W.transpose() << " to "
-        << waypoint.position_W.transpose());
     if (!success) {
       if (path_chunk_collision_free and path_index_ < path_queue_.size() - 1) {
         ROS_WARN(
@@ -811,12 +815,14 @@ bool MavLocalPlanner::nextWaypoint() {
   if (current_waypoint_ >= static_cast<int64_t>(waypoints_.size()) - 1) {
     current_waypoint_ = waypoints_.size() - 1;
     Eigen::Vector3d pos = waypoints_[current_waypoint_].position_W;
-    ROS_WARN("[Mav Local Planner] set waypoint index to %zu at (%.2f %.2f %.2f)", current_waypoint_, pos.x(), pos.y(), pos.z());
+//    ROS_WARN("[Mav Local Planner] set waypoint index to %zu at (%.2f %.2f %.2f)", current_waypoint_, pos.x(), pos.y(), pos.z());
     return false;
   } else {
     current_waypoint_++;
     Eigen::Vector3d pos = waypoints_[current_waypoint_].position_W;
-    ROS_WARN("[Mav Local Planner] increasing waypoint index to %zu at (%.2f %.2f %.2f)", current_waypoint_, pos.x(), pos.y(), pos.z());
+//    ROS_INFO("[Mav Local Planner] increasing waypoint index to "
+//             "%zu at (%.2f %.2f %.2f)",
+//             current_waypoint_, pos.x(), pos.y(), pos.z());
     return true;
   }
 }
@@ -940,6 +946,7 @@ bool MavLocalPlanner::startCallback(std_srvs::Empty::Request& request,
     ROS_WARN("Trying to start an empty or finished trajectory queue!");
     return false;
   }
+  ROS_INFO("[Mav Local Planner] Starting to publish commands.");
   startPublishingCommands();
   return true;
 }
@@ -951,12 +958,14 @@ bool MavLocalPlanner::pauseCallback(std_srvs::Empty::Request& request,
     return false;
   }
   command_publishing_timer_.stop();
+  ROS_INFO("[Mav Local Planner] Pausing the publishing of commands.");
   return true;
 }
 
 bool MavLocalPlanner::stopCallback(std_srvs::Empty::Request& request,
                                    std_srvs::Empty::Response& response) {
   abort();
+  ROS_INFO("[Mav Local Planner] Aborting.");
   return true;
 }
 
@@ -1028,9 +1037,10 @@ bool MavLocalPlanner::isPathFeasible(
 }
 
 bool MavLocalPlanner::dealWithFailure() {
-  ROS_INFO("[Mav Local Planning][Failed] %d/%d", num_failures_, max_failures_);
+  ROS_INFO("[Mav Local Planning][Failed] Failure %d/%d",
+      num_failures_, max_failures_);
   if (current_waypoint_ < 0) {
-    ROS_INFO("[Mav Local Planning][Failed] no waypoint list being tracked.");
+    ROS_WARN("[Mav Local Planning][Failed] No waypoint list being tracked.");
     return false;
   }
 
@@ -1051,9 +1061,11 @@ bool MavLocalPlanner::dealWithFailure() {
     num_failures_++;
     if (num_failures_ > max_failures_) {
       current_waypoint_ = -1;
-      ROS_INFO("[Mav Local Planning][Failed] max number of failures reached, waypoint list abandoned.");
+      ROS_WARN("[Mav Local Planning][Failed] Max number of failures reached, "
+               "waypoint list abandoned.");
     }
-    ROS_INFO("[Mav Local Planning][Failed] waypoint %zu/%zu, path queue %zu/%zu",
+    ROS_INFO("[Mav Local Planning][Failed] Waypoint %ld/%zu, "
+             "path queue of size %zu at %ld",
         current_waypoint_, waypoints_.size() -1, path_index_, path_queue_.size() -1);
     return false;
   } else {
