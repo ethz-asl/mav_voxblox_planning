@@ -1,4 +1,4 @@
-#include "voxblox_rrt_planner/voxblox_rrt_planner.h"
+#include "voxblox_rrt_planner/rrt_planner_voxblox.h"
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "voxblox_rrt_planner");

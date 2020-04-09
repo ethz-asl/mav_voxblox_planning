@@ -23,7 +23,6 @@ RrtPlanner::RrtPlanner(const ros::NodeHandle& nh,
       frame_id_("odom"),
       visualize_(true),
       do_smoothing_(true),
-      random_start_goal_(false),
       last_trajectory_valid_(false) {
 }
 
@@ -32,7 +31,6 @@ void RrtPlanner::getParametersFromRos() {
   nh_private_.param("visualize", visualize_, visualize_);
   nh_private_.param("frame_id", frame_id_, frame_id_);
   nh_private_.param("do_smoothing", do_smoothing_, do_smoothing_);
-  nh_private_.param("random_start_goal", random_start_goal_, random_start_goal_);
 }
 void RrtPlanner::advertiseTopics() {
   path_marker_pub_ =
@@ -48,15 +46,9 @@ void RrtPlanner::advertiseTopics() {
       "plan", &RrtPlanner::plannerServiceCallback, this);
   path_pub_srv_ = nh_private_.advertiseService(
       "publish_path", &RrtPlanner::publishPathCallback, this);
-
-  manual_trigger_srv_ = nh_private_.advertiseService(
-      "manual_action", &RrtPlanner::manualTriggerCallback, this);
   ROS_INFO("[RrtPlanner] advertized topics.");
 }
-void RrtPlanner::subscribeToTopics() {
-  odometry_sub_ = nh_.subscribe(mav_msgs::default_topics::ODOMETRY, 1,
-                                &RrtPlanner::odometryCallback, this);
-}
+void RrtPlanner::subscribeToTopics() {}
 
 bool RrtPlanner::publishPathCallback(std_srvs::EmptyRequest& request,
                                      std_srvs::EmptyResponse& response) {
