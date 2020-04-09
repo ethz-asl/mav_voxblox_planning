@@ -34,8 +34,8 @@ class MavLocalPlanner {
 
   // Input data.
   void odometryCallback(const nav_msgs::Odometry& msg);
-  void waypointCallback(const geometry_msgs::PoseStamped& msg);
-  void waypointListCallback(const geometry_msgs::PoseArray& msg);
+  virtual void waypointCallback(const geometry_msgs::PoseStamped& msg);
+  virtual void waypointListCallback(const geometry_msgs::PoseArray& msg);
 
   // Stops path publishing and clears all recent trajectories.
   void clearTrajectory();
@@ -52,34 +52,41 @@ class MavLocalPlanner {
                     std_srvs::Empty::Response& response);
 
   // Visualizations.
-  void visualizePath();
+  virtual void visualizePath();
 
   // TODO -- TO IMPLEMENT:
   void polynomialTrajectoryCallback(
       const mav_planning_msgs::PolynomialTrajectory4D& msg) {}
 
- private:
+ protected:
+  // Initializing functions.
+  void getParamsFromRos();
+  void setupRosCommunication();
+  void startTimers();
+  void setupMap();
+  void setupSmoothers();
+
   // Control for publishing.
   void startPublishingCommands();
   void commandPublishTimerCallback(const ros::TimerEvent& event);
 
   // Control for planning.
   void planningTimerCallback(const ros::TimerEvent& event);
-  void planningStep();
+  virtual void planningStep();
 
   // Returns if the next waypoint is a valid waypoint.
-  bool nextWaypoint();
+  virtual bool nextWaypoint();
   void finishWaypoints();
 
   void replacePath(const mav_msgs::EigenTrajectoryPointVector& path);
 
   // What to do if we fail to find a suitable path, depending on the
   // intermediate goal selection settings.
-  bool dealWithFailure();
+  virtual bool dealWithFailure();
 
   // Functions to help out replanning.
   // Track a single waypoint, planning only in a short known horizon.
-  void avoidCollisionsTowardWaypoint();
+  virtual void avoidCollisionsTowardWaypoint();
   // Get a path through a bunch of waypoints.
   bool planPathThroughWaypoints(
       const mav_msgs::EigenTrajectoryPointVector& waypoints,
@@ -179,7 +186,7 @@ class MavLocalPlanner {
   int num_failures_;
 
   // Map!
-  voxblox::EsdfServer esdf_server_;
+  voxblox::EsdfServer* esdf_server_ptr_;
 
   // Planners -- yaw policy
   YawPolicy yaw_policy_;
@@ -195,6 +202,22 @@ class MavLocalPlanner {
   // Intermediate goal selection, optionally in case of path-planning failures:
   GoalPointSelector goal_selector_;
   bool temporary_goal_;
+};
+
+class MavLocalVoxbloxPlanner : public MavLocalPlanner {
+ public:
+  MavLocalVoxbloxPlanner(const ros::NodeHandle& nh,
+                         const ros::NodeHandle& nh_private)
+      : MavLocalPlanner(nh, nh_private),
+        esdf_server_(nh, nh_private) {
+    esdf_server_ptr_ = &esdf_server_;
+    setupMap();
+    setupSmoothers();
+  };
+
+ protected:
+  // Map!
+  voxblox::EsdfServer esdf_server_;
 };
 
 }  // namespace mav_planning

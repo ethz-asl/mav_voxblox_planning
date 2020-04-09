@@ -26,14 +26,16 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       path_index_(0),
       max_failures_(5),
       num_failures_(0),
-      esdf_server_(nh_, nh_private_),
       loco_planner_(nh_, nh_private_) {
+  getParamsFromRos();
+  setupRosCommunication();
+  startTimers();
+}
+
+void MavLocalPlanner::getParamsFromRos() {
   // Set up some settings.
   constraints_.setParametersFromRos(nh_private_);
-  esdf_server_.setTraversabilityRadius(constraints_.robot_radius);
-  loco_planner_.setEsdfMap(esdf_server_.getEsdfMapPtr());
   goal_selector_.setParametersFromRos(nh_private_);
-  goal_selector_.setTsdfMap(esdf_server_.getTsdfMapPtr());
 
   nh_private_.param("verbose", verbose_, verbose_);
   nh_private_.param("global_frame_id", global_frame_id_, global_frame_id_);
@@ -49,7 +51,9 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
   nh_private_.param("autostart", autostart_, autostart_);
   nh_private_.param("plan_to_start", plan_to_start_, plan_to_start_);
   nh_private_.param("smoother_name", smoother_name_, smoother_name_);
+}
 
+void MavLocalPlanner::setupRosCommunication() {
   // Publishers and subscribers.
   odometry_sub_ = nh_.subscribe(mav_msgs::default_topics::ODOMETRY, 1,
                                 &MavLocalPlanner::odometryCallback, this);
@@ -77,7 +81,9 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
 
   position_hold_client_ =
       nh_.serviceClient<std_srvs::Empty>("back_to_position_hold");
+}
 
+void MavLocalPlanner::startTimers() {
   // Start the planning timer. Will no-op most cycles.
   ros::TimerOptions timer_options(
       ros::Duration(replan_dt_),
@@ -89,13 +95,34 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
   // Start the command publishing spinner.
   command_publishing_spinner_.start();
   planning_spinner_.start();
+}
 
+void MavLocalPlanner::setupMap() {
+  esdf_server_ptr_->setTraversabilityRadius(constraints_.robot_radius);
+  loco_planner_.setEsdfMap(esdf_server_ptr_->getEsdfMapPtr());
+  goal_selector_.setTsdfMap(esdf_server_ptr_->getTsdfMapPtr());
+
+  // load map to esdf_server_
+  std::string map_path;
+  nh_private_.param("map_path", map_path, map_path);
+  if (!map_path.empty()) {
+    ROS_INFO_STREAM("[Mav Local Planner] loading map from " << map_path);
+    bool success = esdf_server_ptr_->loadMap(map_path);
+    if (!success) {
+      ROS_WARN("[Mav Local Planner] could not load map!");
+    } else {
+      ROS_INFO("[Mav Local Planner] loaded map successfully");
+    }
+  }
+}
+
+void MavLocalPlanner::setupSmoothers() {
   // Set up yaw policy.
   yaw_policy_.setPhysicalConstraints(constraints_);
   yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kVelocityVector);
 
   // Set up smoothers.
-  const double voxel_size = esdf_server_.getEsdfMapPtr()->voxel_size();
+  const double voxel_size = esdf_server_ptr_->getEsdfMapPtr()->voxel_size();
 
   // Straight-line smoother.
   ramp_smoother_.setParametersFromRos(nh_private_);
@@ -540,16 +567,25 @@ void MavLocalPlanner::commandPublishTimerCallback(
     msg.header.frame_id = local_frame_id_;
     msg.header.stamp = ros::Time::now();
 
-    ROS_INFO(
-        "[Mav Local Planner][Command Publish] Publishing %zu samples of %zu. "
-        "Start index: %zu Time: %f Start position: %f Start velocity: %f End "
-        "time: %f End position: %f",
-        trajectory_to_publish.size(), path_queue_.size(), starting_index,
-        trajectory_to_publish.front().time_from_start_ns * 1.0e-9,
-        trajectory_to_publish.front().position_W.x(),
-        trajectory_to_publish.front().velocity_W.x(),
-        trajectory_to_publish.back().time_from_start_ns * 1.0e-9,
-        trajectory_to_publish.back().position_W.x());
+    if (verbose_) {
+      ROS_INFO("[Mav Local Planner][Command Publish] \n"
+               "Start Time: %.3f, Position: %.2f %.2f %.2f, Velocity: %.2f %.2f %.2f\n"
+               "End   Time: %.3f, Position: %.2f %.2f %.2f, Velocity: %.2f %.2f %.2f",
+               trajectory_to_publish.front().time_from_start_ns * 1.0e-9,
+               trajectory_to_publish.front().position_W.x(),
+               trajectory_to_publish.front().position_W.y(),
+               trajectory_to_publish.front().position_W.z(),
+               trajectory_to_publish.front().velocity_W.x(),
+               trajectory_to_publish.front().velocity_W.y(),
+               trajectory_to_publish.front().velocity_W.z(),
+               trajectory_to_publish.back().time_from_start_ns * 1.0e-9,
+               trajectory_to_publish.back().position_W.x(),
+               trajectory_to_publish.back().position_W.y(),
+               trajectory_to_publish.back().position_W.z(),
+               trajectory_to_publish.back().velocity_W.x(),
+               trajectory_to_publish.back().velocity_W.y(),
+               trajectory_to_publish.back().velocity_W.z());
+    }
     mav_msgs::msgMultiDofJointTrajectoryFromEigen(trajectory_to_publish, &msg);
 
     command_pub_.publish(msg);
@@ -631,7 +667,7 @@ void MavLocalPlanner::visualizePath() {
 double MavLocalPlanner::getMapDistance(const Eigen::Vector3d& position) const {
   double distance = 0.0;
   const bool kInterpolate = false;
-  if (!esdf_server_.getEsdfMapPtr()->getDistanceAtPosition(
+  if (!esdf_server_ptr_->getEsdfMapPtr()->getDistanceAtPosition(
           position, kInterpolate, &distance)) {
     return 0.0;
   }
@@ -642,7 +678,7 @@ double MavLocalPlanner::getMapDistanceAndGradient(
     const Eigen::Vector3d& position, Eigen::Vector3d* gradient) const {
   double distance = 0.0;
   const bool kInterpolate = false;
-  if (!esdf_server_.getEsdfMapPtr()->getDistanceAndGradientAtPosition(
+  if (!esdf_server_ptr_->getEsdfMapPtr()->getDistanceAndGradientAtPosition(
           position, kInterpolate, &distance, gradient)) {
     return 0.0;
   }
@@ -694,25 +730,31 @@ bool MavLocalPlanner::dealWithFailure() {
   if (!goal_selector_.selectNextGoal(goal, waypoint, current_point,
                                      &current_goal)) {
     num_failures_++;
+    ROS_INFO("[Mav Local Planning][Failed] No next goal selected.");
     if (num_failures_ > max_failures_) {
       current_waypoint_ = -1;
+      ROS_WARN("[Mav Local Planning][Failed] Max number of failures reached, "
+               "waypoint list abandoned.");
     }
     return false;
   } else {
     if ((current_goal.position_W - waypoint.position_W).norm() < kCloseEnough) {
       // Goal is unchanged. :(
       temporary_goal_ = false;
+      ROS_INFO("[Mav Local Planning][Failed] goal is unchanged");
       return false;
     } else if ((current_goal.position_W - goal.position_W).norm() <
                kCloseEnough) {
       // This is just the next waypoint that we're trying to go to.
       current_waypoint_++;
       temporary_goal_ = false;
+      ROS_INFO("[Mav Local Planning][Failed] we've reached a waypoint, all good");
       return true;
     } else {
       // Then this is something different!
       temporary_goal_ = true;
       waypoints_.insert(waypoints_.begin() + current_waypoint_, current_goal);
+      ROS_INFO("[Mav Local Planning][Failed] inserting temporary waypoint");
       return true;
     }
   }
