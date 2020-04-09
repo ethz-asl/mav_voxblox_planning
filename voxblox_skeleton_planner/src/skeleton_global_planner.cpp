@@ -110,7 +110,12 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
     voxblox_server_.generateMesh();
     voxblox_server_.publishSlices();
     voxblox_server_.publishPointclouds();
+    voxblox_server_.publishMap();
+
+    ROS_INFO("published maps");
   }
+
+  generateSparseGraph();
 }
 
 void SkeletonGlobalPlanner::generateSparseGraph() {
