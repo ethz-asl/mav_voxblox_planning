@@ -123,6 +123,13 @@ SkeletonEdge& SparseSkeletonGraph::getEdge(int64_t id) {
   return edge_map_.find(id)->second;
 }
 
+SkeletonVertex* SparseSkeletonGraph::getVertexPtr(int64_t id) {
+  return &vertex_map_.at(id);
+}
+SkeletonEdge* SparseSkeletonGraph::getEdgePtr(int64_t id) {
+  return &edge_map_.at(id);
+}
+
 void SparseSkeletonGraph::clear() {
   next_vertex_id_ = 0;
   next_edge_id_ = 0;
@@ -214,4 +221,15 @@ void SparseSkeletonGraph::addSerializedEdge(const SkeletonEdge& edge) {
   edge_map_[edge.edge_id] = edge;
 }
 
+void SparseSkeletonGraph::transformFrame(const Transformation& T_G_S) {
+  // transform vertices
+  for (std::pair<const int64_t, SkeletonVertex>& kv : vertex_map_) {
+    kv.second.point = T_G_S * kv.second.point;
+  }
+  // transform edges
+  for (std::pair<const int64_t, SkeletonEdge>& kv : edge_map_) {
+    kv.second.start_point = T_G_S * kv.second.start_point;
+    kv.second.end_point = T_G_S * kv.second.end_point;
+  }
+}
 }  // namespace voxblox

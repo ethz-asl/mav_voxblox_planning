@@ -11,7 +11,6 @@
 #include <ompl/geometric/planners/rrt/RRTstar.h>
 
 #include "voxblox_rrt_planner/ompl/ompl_types.h"
-#include "voxblox_rrt_planner/ompl/ompl_voxblox.h"
 
 namespace ompl {
 namespace mav {
@@ -63,30 +62,6 @@ class MavSetup : public geometric::SimpleSetup {
   void setStateValidityCheckingResolution(double resolution) {
     // This is a protected attribute, so need to wrap this function.
     si_->setStateValidityCheckingResolution(resolution);
-  }
-
-  void setTsdfVoxbloxCollisionChecking(
-      double robot_radius, voxblox::Layer<voxblox::TsdfVoxel>* tsdf_layer) {
-    std::shared_ptr<TsdfVoxbloxValidityChecker> validity_checker(
-        new TsdfVoxbloxValidityChecker(getSpaceInformation(), robot_radius,
-                                       tsdf_layer));
-
-    setStateValidityChecker(base::StateValidityCheckerPtr(validity_checker));
-    si_->setMotionValidator(
-        base::MotionValidatorPtr(new VoxbloxMotionValidator<voxblox::TsdfVoxel>(
-            getSpaceInformation(), validity_checker)));
-  }
-
-  void setEsdfVoxbloxCollisionChecking(
-      double robot_radius, voxblox::Layer<voxblox::EsdfVoxel>* esdf_layer) {
-    std::shared_ptr<EsdfVoxbloxValidityChecker> validity_checker(
-        new EsdfVoxbloxValidityChecker(getSpaceInformation(), robot_radius,
-                                       esdf_layer));
-
-    setStateValidityChecker(base::StateValidityCheckerPtr(validity_checker));
-    si_->setMotionValidator(
-        base::MotionValidatorPtr(new VoxbloxMotionValidator<voxblox::EsdfVoxel>(
-            getSpaceInformation(), validity_checker)));
   }
 
   void constructPrmRoadmap(double num_seconds_to_construct) {

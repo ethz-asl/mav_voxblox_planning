@@ -13,6 +13,7 @@
 namespace ompl {
 namespace mav {
 
+// voxblox version
 template <typename VoxelType>
 class VoxbloxValidityChecker : public base::StateValidityChecker {
  public:
@@ -45,6 +46,9 @@ class VoxbloxValidityChecker : public base::StateValidityChecker {
       const voxblox::GlobalIndex& global_index) const {
     return checkCollisionWithRobot(global_index.cast<double>() * voxel_size_);
   }
+
+  virtual double remainingDistanceToCollision(
+      const Eigen::Vector3d& position) const = 0;
 
   float voxel_size() const { return voxel_size_; }
 
@@ -114,6 +118,63 @@ class TsdfVoxbloxValidityChecker
     return false;
   }
 
+  virtual double remainingDistanceToCollision(
+      const Eigen::Vector3d& position) const {
+    double remaining_distance = 0;
+    bool initialized = false;
+    voxblox::Point robot_point = position.cast<voxblox::FloatingPoint>();
+
+    voxblox::HierarchicalIndexMap block_voxel_list;
+    voxblox::utils::getSphereAroundPoint(*layer_, robot_point, robot_radius_,
+                                         &block_voxel_list);
+
+    for (const auto& kv :
+        block_voxel_list) {
+      // Get block -- only already existing blocks are in the list.
+      voxblox::Block<voxblox::TsdfVoxel>::Ptr block_ptr =
+          layer_->getBlockPtrByIndex(kv.first);
+
+      if (!block_ptr) {
+        continue;
+      }
+
+      for (const voxblox::VoxelIndex& voxel_index : kv.second) {
+        if (!block_ptr->isValidVoxelIndex(voxel_index)) {
+          if (treat_unknown_as_occupied_) {
+            return 0.0;
+          }
+          continue;
+        }
+        const voxblox::TsdfVoxel& tsdf_voxel =
+            block_ptr->getVoxelByVoxelIndex(voxel_index);
+        if (tsdf_voxel.weight < voxblox::kEpsilon) {
+          if (treat_unknown_as_occupied_) {
+            return 0.0;
+          }
+          continue;
+        }
+        if (tsdf_voxel.distance <= 0.0f) {
+          return 0.0;
+        }
+
+        if (!initialized) {
+          remaining_distance = tsdf_voxel.distance
+              + static_cast<double>((robot_point -
+              block_ptr->computeCoordinatesFromVoxelIndex(voxel_index)).norm());
+        }
+        remaining_distance =
+            std::min(remaining_distance, tsdf_voxel.distance
+            + static_cast<double>((robot_point -
+            block_ptr->computeCoordinatesFromVoxelIndex(voxel_index)).norm()));
+      }
+    }
+
+    // No collision if nothing in the sphere had a negative or 0 distance.
+    // Unknown space is unoccupied, since this is a very optimistic global
+    // planner.
+    return remaining_distance - robot_radius_;
+  }
+
  protected:
   bool treat_unknown_as_occupied_;
 };
@@ -129,7 +190,6 @@ class EsdfVoxbloxValidityChecker
 
   virtual bool checkCollisionWithRobot(
       const Eigen::Vector3d& robot_position) const {
-    voxblox::Point robot_point = robot_position.cast<voxblox::FloatingPoint>();
     constexpr bool interpolate = false;
     voxblox::FloatingPoint distance;
     bool success = interpolator_.getDistance(
@@ -139,6 +199,18 @@ class EsdfVoxbloxValidityChecker
     }
 
     return robot_radius_ >= distance;
+  }
+
+  virtual double remainingDistanceToCollision(
+      const Eigen::Vector3d& position) const {
+    voxblox::Point robot_point = position.cast<voxblox::FloatingPoint>();
+    constexpr bool interpolate = false;
+    voxblox::FloatingPoint distance;
+    bool success = interpolator_.getDistance(robot_point, &distance, interpolate);
+    if (!success) {
+      return 0.0;
+    }
+    return distance - robot_radius_;
   }
 
   virtual bool checkCollisionWithRobotAtVoxel(
@@ -172,6 +244,70 @@ class VoxbloxMotionValidator : public base::MotionValidator {
   virtual bool checkMotion(const base::State* s1, const base::State* s2) const {
     std::pair<base::State*, double> unused;
     return checkMotion(s1, s2, unused);
+  }
+
+  virtual bool checkMotionSampling(const base::State* s1, const base::State* s2,
+      std::pair<base::State*, double>& last_valid) const {
+    Eigen::Vector3d start = omplToEigen(s1);
+    Eigen::Vector3d goal = omplToEigen(s2);
+
+    // cast ray from start to finish
+    Eigen::Vector3d ray_direction = (goal - start).normalized();
+    double ray_length = (goal-start).norm();
+    double step_size_temp = 0;
+
+    // iterate along ray
+    Eigen::Vector3d position = start;
+    bool collision;
+    while ((position - start).norm() < ray_length) {
+      // check for collision
+      collision = validity_checker_->checkCollisionWithRobot(position);
+      double remaining_distance =
+          validity_checker_->remainingDistanceToCollision(position);
+
+      // find last valid and copy to si_
+      if (collision) {
+        Eigen::Vector3d last_position =
+            position - step_size_temp*ray_direction;
+
+        if (last_valid.first != nullptr) {
+          ompl::base::ScopedState<ompl::mav::StateSpace> last_valid_state(
+              si_->getStateSpace());
+          last_valid_state->values[0] = last_position.x();
+          last_valid_state->values[1] = last_position.y();
+          last_valid_state->values[2] = last_position.z();
+
+          si_->copyState(last_valid.first, last_valid_state.get());
+        }
+
+        last_valid.second = static_cast<double>(
+            (last_position - start).norm()/ray_length);
+        return false;
+      }
+
+      // update position with dynamic step size
+      step_size_temp = std::max(std::min(4.0, remaining_distance), 1e-2);
+      position = position + step_size_temp*ray_direction;
+    }
+
+    // additionally check goal position
+    collision = validity_checker_->checkCollisionWithRobot(goal);
+    if (collision) {
+      if (last_valid.first != nullptr) {
+        ompl::base::ScopedState<ompl::mav::StateSpace>
+            last_valid_state(si_->getStateSpace());
+        last_valid_state->values[0] = position.x();
+        last_valid_state->values[1] = position.y();
+        last_valid_state->values[2] = position.z();
+
+        si_->copyState(last_valid.first, last_valid_state.get());
+      }
+
+      last_valid.second = static_cast<double>(
+          (position - start).norm()/ray_length);
+      return false;
+    }
+    return true;
   }
 
   // Check motion returns *false* if invalid, *true* if valid.
