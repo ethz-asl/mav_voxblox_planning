@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
 
   FLAGS_alsologtostderr = true;
 
-  mav_planning::MavLocalPlanner node(nh, nh_private);
+  mav_planning::MavLocalVoxbloxPlanner node(nh, nh_private);
   ROS_INFO("Initialized Mav Local Planner node.");
 
   ros::spin();
