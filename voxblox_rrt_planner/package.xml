@@ -18,6 +18,7 @@
   <depend>mav_msgs</depend>
   <depend>mav_path_smoothing</depend>
   <depend>mav_planning_common</depend>
+  <depend>mav_planning_voxblox</depend>
   <depend>mav_trajectory_generation_ros</depend>
   <depend>ompl</depend>
   <depend>roscpp</depend>
