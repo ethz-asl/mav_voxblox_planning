@@ -98,6 +98,8 @@ void MavLocalPlanner::startTimers() {
 }
 
 void MavLocalPlanner::setupMap() {
+  CHECK_NOTNULL(esdf_server_ptr_);
+
   esdf_server_ptr_->setTraversabilityRadius(constraints_.robot_radius);
   loco_planner_.setEsdfMap(esdf_server_ptr_->getEsdfMapPtr());
   goal_selector_.setTsdfMap(esdf_server_ptr_->getTsdfMapPtr());
