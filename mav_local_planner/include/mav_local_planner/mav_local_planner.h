@@ -63,6 +63,8 @@ class MavLocalPlanner {
   void getParamsFromRos();
   void setupRosCommunication();
   void startTimers();
+  // Initializing functions, need to be called in inheriting constructor!!
+  virtual void setMapServerPtr() = 0;
   void setupMap();
   void setupSmoothers();
 
@@ -210,10 +212,12 @@ class MavLocalVoxbloxPlanner : public MavLocalPlanner {
                          const ros::NodeHandle& nh_private)
       : MavLocalPlanner(nh, nh_private),
         esdf_server_(nh, nh_private) {
-    esdf_server_ptr_ = &esdf_server_;
+    setMapServerPtr();
     setupMap();
     setupSmoothers();
-  };
+  }
+
+  void setMapServerPtr() { esdf_server_ptr_ = &esdf_server_; }
 
  protected:
   // Map!
