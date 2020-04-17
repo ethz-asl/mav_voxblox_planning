@@ -11,7 +11,8 @@ PolynomialSmoother::PolynomialSmoother()
     : PathSmootherBase(),
       optimize_time_(true),
       split_at_collisions_(false),
-      min_col_check_resolution_(0.1) {}
+      min_col_check_resolution_(0.1),
+      verbose_(false) {}
 
 void PolynomialSmoother::setParametersFromRos(const ros::NodeHandle& nh) {
   PathSmootherBase::setParametersFromRos(nh);
@@ -19,6 +20,7 @@ void PolynomialSmoother::setParametersFromRos(const ros::NodeHandle& nh) {
   nh.param("split_at_collisions", split_at_collisions_, split_at_collisions_);
   nh.param("min_col_check_resolution", min_col_check_resolution_,
            min_col_check_resolution_);
+  nh.param("verbose", verbose_, verbose_);
 }
 
 bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
@@ -88,7 +90,7 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
     nlopt_parameters.algorithm = nlopt::LD_LBFGS;
     nlopt_parameters.time_alloc_method = mav_trajectory_generation::
         NonlinearOptimizationParameters::kMellingerOuterLoop;
-    nlopt_parameters.print_debug_info_time_allocation = true;
+    nlopt_parameters.print_debug_info_time_allocation = verbose_;
     mav_trajectory_generation::PolynomialOptimizationNonLinear<N> nlopt(
         D, nlopt_parameters);
     nlopt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
