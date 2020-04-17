@@ -87,6 +87,8 @@ class PolynomialSmoother : public PathSmootherBase {
   // Functions for collision checking.
   MapDistanceFunctionType map_distance_func_;
   InCollisionFunctionType in_collision_func_;
+
+  bool verbose_;
 };
 
 }  // namespace mav_planning
