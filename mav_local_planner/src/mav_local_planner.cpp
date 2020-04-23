@@ -756,7 +756,7 @@ bool MavLocalPlanner::dealWithFailure() {
     ROS_INFO("[Mav Local Planning][Failed] No next goal selected.");
     if (num_failures_ > max_failures_) {
       current_waypoint_ = -1;
-      ROS_WARN("[Mav Local Planning][Failed] Max number of failures reached, "
+      ROS_ERROR("[Mav Local Planning][Failed] Max number of failures reached, "
                "waypoint list abandoned.");
     }
     return false;
