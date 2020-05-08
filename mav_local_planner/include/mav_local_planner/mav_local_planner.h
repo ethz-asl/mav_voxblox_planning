@@ -33,7 +33,7 @@ class MavLocalPlanner {
   MavLocalPlanner(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
 
   // Input data.
-  void odometryCallback(const nav_msgs::Odometry& msg);
+  virtual void odometryCallback(const nav_msgs::Odometry& msg);
   virtual void waypointCallback(const geometry_msgs::PoseStamped& msg);
   virtual void waypointListCallback(const geometry_msgs::PoseArray& msg);
 

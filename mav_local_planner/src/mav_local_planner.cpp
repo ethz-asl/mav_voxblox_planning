@@ -662,6 +662,8 @@ void MavLocalPlanner::visualizePath() {
                                       mav_visualization::Color::Black(),
                                       "local_path", 0.05);
   }
+  path_marker.header.frame_id = local_frame_id_;
+  path_marker.frame_locked = true;
   marker_array.markers.push_back(path_marker);
   path_marker_pub_.publish(marker_array);
 }
@@ -671,6 +673,9 @@ double MavLocalPlanner::getMapDistance(const Eigen::Vector3d& position) const {
   const bool kInterpolate = false;
   if (!esdf_server_ptr_->getEsdfMapPtr()->getDistanceAtPosition(
           position, kInterpolate, &distance)) {
+    if ((position - odometry_.position_W).norm() < constraints_.robot_radius) {
+      return constraints_.robot_radius + 0.1;
+    }
     return 0.0;
   }
   return distance;
@@ -682,6 +687,12 @@ double MavLocalPlanner::getMapDistanceAndGradient(
   const bool kInterpolate = false;
   if (!esdf_server_ptr_->getEsdfMapPtr()->getDistanceAndGradientAtPosition(
           position, kInterpolate, &distance, gradient)) {
+    if ((position - odometry_.position_W).norm() < constraints_.robot_radius) {
+      *gradient =
+          (constraints_.robot_radius - (position - odometry_.position_W).norm())
+              * (position - odometry_.position_W).normalized();
+      return constraints_.robot_radius + 0.1;
+    }
     return 0.0;
   }
   return distance;
