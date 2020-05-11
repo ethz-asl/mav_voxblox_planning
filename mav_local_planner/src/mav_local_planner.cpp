@@ -108,12 +108,12 @@ void MavLocalPlanner::setupMap() {
   std::string map_path;
   nh_private_.param("map_path", map_path, map_path);
   if (!map_path.empty()) {
-    ROS_INFO_STREAM("[Mav Local Planner] loading map from " << map_path);
+    ROS_INFO_STREAM("[Mav Local Planner] Loading map from " << map_path);
     bool success = esdf_server_ptr_->loadMap(map_path);
     if (!success) {
-      ROS_WARN("[Mav Local Planner] could not load map!");
+      ROS_WARN("[Mav Local Planner] Could not load map!");
     } else {
-      ROS_INFO("[Mav Local Planner] loaded map successfully");
+      ROS_INFO("[Mav Local Planner] Loaded map successfully.");
     }
   }
 }
@@ -570,9 +570,11 @@ void MavLocalPlanner::commandPublishTimerCallback(
     msg.header.stamp = ros::Time::now();
 
     if (verbose_) {
-      ROS_INFO("[Mav Local Planner][Command Publish] \n"
+      ROS_INFO("[Mav Local Planner][Command Publish] Publishing %zu samples of %zu. "
+               "Start index: %zu\n"
                "Start Time: %.3f, Position: %.2f %.2f %.2f, Velocity: %.2f %.2f %.2f\n"
                "End   Time: %.3f, Position: %.2f %.2f %.2f, Velocity: %.2f %.2f %.2f",
+               trajectory_to_publish.size(), path_queue_.size(), starting_index,
                trajectory_to_publish.front().time_from_start_ns * 1.0e-9,
                trajectory_to_publish.front().position_W.x(),
                trajectory_to_publish.front().position_W.y(),
@@ -655,16 +657,29 @@ void MavLocalPlanner::visualizePath() {
   // TODO: Split trajectory into two chunks: before and after.
   visualization_msgs::MarkerArray marker_array;
   visualization_msgs::Marker path_marker;
+  path_marker.header.frame_id = local_frame_id_;
+  path_marker.frame_locked = true;
   {
     std::lock_guard<std::recursive_mutex> guard(path_mutex_);
 
-    path_marker = createMarkerForPath(path_queue_, local_frame_id_,
+    // Cut out the flown path queue to visualize
+    size_t path_index = std::min(path_queue_.size(), path_index_);
+    mav_msgs::EigenTrajectoryPointVector path_before;
+    std::copy(path_queue_.begin(), path_queue_.begin() + path_index - 1,
+              std::back_inserter(path_before));
+    path_marker = createMarkerForPath(path_before, local_frame_id_,
+                                      mav_visualization::Color::Gray(),
+                                      "local_path_before", 0.05);
+    marker_array.markers.push_back(path_marker);
+    // Cut out the upcoming path queue to visualize
+    mav_msgs::EigenTrajectoryPointVector path_after;
+    std::copy(path_queue_.begin() + path_index, path_queue_.end(),
+              std::back_inserter(path_after));
+    path_marker = createMarkerForPath(path_after, local_frame_id_,
                                       mav_visualization::Color::Black(),
-                                      "local_path", 0.05);
+                                      "local_path_after", 0.05);
+    marker_array.markers.push_back(path_marker);
   }
-  path_marker.header.frame_id = local_frame_id_;
-  path_marker.frame_locked = true;
-  marker_array.markers.push_back(path_marker);
   path_marker_pub_.publish(marker_array);
 }
 
@@ -673,6 +688,7 @@ double MavLocalPlanner::getMapDistance(const Eigen::Vector3d& position) const {
   const bool kInterpolate = false;
   if (!esdf_server_ptr_->getEsdfMapPtr()->getDistanceAtPosition(
           position, kInterpolate, &distance)) {
+    // optimistic behavior at odometry position
     if ((position - odometry_.position_W).norm() < constraints_.robot_radius) {
       return constraints_.robot_radius + 0.1;
     }
@@ -687,6 +703,7 @@ double MavLocalPlanner::getMapDistanceAndGradient(
   const bool kInterpolate = false;
   if (!esdf_server_ptr_->getEsdfMapPtr()->getDistanceAndGradientAtPosition(
           position, kInterpolate, &distance, gradient)) {
+    // optimistic behavior at odometry position
     if ((position - odometry_.position_W).norm() < constraints_.robot_radius) {
       *gradient =
           (constraints_.robot_radius - (position - odometry_.position_W).norm())
@@ -754,20 +771,20 @@ bool MavLocalPlanner::dealWithFailure() {
     if ((current_goal.position_W - waypoint.position_W).norm() < kCloseEnough) {
       // Goal is unchanged. :(
       temporary_goal_ = false;
-      ROS_INFO("[Mav Local Planning][Failed] goal is unchanged");
+      ROS_INFO("[Mav Local Planning][Failed] Goal is unchanged.");
       return false;
     } else if ((current_goal.position_W - goal.position_W).norm() <
                kCloseEnough) {
       // This is just the next waypoint that we're trying to go to.
       current_waypoint_++;
       temporary_goal_ = false;
-      ROS_INFO("[Mav Local Planning][Failed] we've reached a waypoint, all good");
+      ROS_INFO("[Mav Local Planning][Failed] We've reached a waypoint, all good.");
       return true;
     } else {
       // Then this is something different!
       temporary_goal_ = true;
       waypoints_.insert(waypoints_.begin() + current_waypoint_, current_goal);
-      ROS_INFO("[Mav Local Planning][Failed] inserting temporary waypoint");
+      ROS_INFO("[Mav Local Planning][Failed] Inserting temporary waypoint.");
       return true;
     }
   }

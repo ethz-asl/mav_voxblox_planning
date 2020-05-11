@@ -137,9 +137,8 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
         break;
       }
     }
-    if (verbose_) {
-      ROS_INFO("[SPLIT SMOOTHING] Added %d additional vertices.", num_added);
-    }
+    ROS_INFO_COND(verbose_, "[SPLIT SMOOTHING] Added %d additional vertices.",
+                  num_added);
 
     // If we had to do this, let's scale the times back to make sure we're
     // still within constraints.
@@ -152,10 +151,8 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
   double v_max, a_max;
   trajectory->computeMaxVelocityAndAcceleration(&v_max, &a_max);
 
-  if (verbose_) {
-    ROS_INFO("[SMOOTHING] V max/limit: %f/%f, A max/limit: %f/%f", v_max,
-             constraints_.v_max, a_max, constraints_.a_max);
-  }
+  ROS_INFO_COND(verbose_, "[SMOOTHING] V max/limit: %f/%f, A max/limit: %f/%f",
+                v_max, constraints_.v_max, a_max, constraints_.a_max);
 
   return true;
 }

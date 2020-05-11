@@ -47,7 +47,7 @@ bool LocoSmoother::getTrajectoryBetweenWaypoints(
     // into evenly spaced waypoints on the graph.
     mav_msgs::EigenTrajectoryPoint::Vector resampled_waypoints;
     resampleWaypointsFromVisibilityGraph(num_segments_, constraints_, waypoints,
-                                         &resampled_waypoints);
+                                         &resampled_waypoints, verbose_);
     PolynomialSmoother::getTrajectoryBetweenWaypoints(resampled_waypoints,
                                                       &traj_initial);
   } else {

@@ -52,7 +52,7 @@ class MavLocalPlanner {
                     std_srvs::Empty::Response& response);
 
   // Visualizations.
-  virtual void visualizePath();
+  void visualizePath();
 
   // TODO -- TO IMPLEMENT:
   void polynomialTrajectoryCallback(
@@ -84,7 +84,7 @@ class MavLocalPlanner {
 
   // What to do if we fail to find a suitable path, depending on the
   // intermediate goal selection settings.
-  virtual bool dealWithFailure();
+  bool dealWithFailure();
 
   // Functions to help out replanning.
   // Track a single waypoint, planning only in a short known horizon.
@@ -217,7 +217,7 @@ class MavLocalVoxbloxPlanner : public MavLocalPlanner {
     setupSmoothers();
   }
 
-  void setMapServerPtr() { esdf_server_ptr_ = &esdf_server_; }
+  void setMapServerPtr() override { esdf_server_ptr_ = &esdf_server_; }
 
  protected:
   // Map!
