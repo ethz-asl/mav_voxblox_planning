@@ -657,16 +657,29 @@ void MavLocalPlanner::visualizePath() {
   // TODO: Split trajectory into two chunks: before and after.
   visualization_msgs::MarkerArray marker_array;
   visualization_msgs::Marker path_marker;
+  path_marker.header.frame_id = local_frame_id_;
+  path_marker.frame_locked = true;
   {
     std::lock_guard<std::recursive_mutex> guard(path_mutex_);
 
-    path_marker = createMarkerForPath(path_queue_, local_frame_id_,
+    // Cut out the flown path queue to visualize
+    size_t path_index = std::min(path_queue_.size(), path_index_);
+    mav_msgs::EigenTrajectoryPointVector path_before;
+    std::copy(path_queue_.begin(), path_queue_.begin() + path_index - 1,
+              std::back_inserter(path_before));
+    path_marker = createMarkerForPath(path_before, local_frame_id_,
+                                      mav_visualization::Color::Gray(),
+                                      "local_path_before", 0.05);
+    marker_array.markers.push_back(path_marker);
+    // Cut out the upcoming path queue to visualize
+    mav_msgs::EigenTrajectoryPointVector path_after;
+    std::copy(path_queue_.begin() + path_index, path_queue_.end(),
+              std::back_inserter(path_after));
+    path_marker = createMarkerForPath(path_after, local_frame_id_,
                                       mav_visualization::Color::Black(),
-                                      "local_path", 0.05);
+                                      "local_path_after", 0.05);
+    marker_array.markers.push_back(path_marker);
   }
-  path_marker.header.frame_id = local_frame_id_;
-  path_marker.frame_locked = true;
-  marker_array.markers.push_back(path_marker);
   path_marker_pub_.publish(marker_array);
 }
 
