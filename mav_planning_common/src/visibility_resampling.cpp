@@ -52,7 +52,7 @@ void resampleWaypointsFromVisibilityGraph(
       point.position_W = waypoints[input_waypoint_index - 1].position_W +
                          magnitude * direction;
       waypoints_out->push_back(point);
-      ROS_INFO_COND(verbose, "Waypoint %Zd from waypoint %Zd at time: %f offset: %f",
+      ROS_INFO_COND(verbose, "Waypoint %zu from waypoint %zu at time: %f offset: %f",
                     output_waypoint_index, input_waypoint_index, time_so_far,
                     magnitude);
       output_waypoint_index++;
