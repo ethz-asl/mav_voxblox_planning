@@ -746,6 +746,7 @@ bool MavLocalPlanner::dealWithFailure() {
   if (current_waypoint_ < 0) {
     return false;
   }
+  should_replan_.notify();
 
   constexpr double kCloseEnough = 0.05;
   mav_msgs::EigenTrajectoryPoint waypoint = waypoints_[current_waypoint_];
