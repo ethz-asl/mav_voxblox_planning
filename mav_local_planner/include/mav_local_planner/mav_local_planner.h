@@ -33,7 +33,7 @@ class MavLocalPlanner {
   MavLocalPlanner(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
 
   // Input data.
-  virtual void odometryCallback(const nav_msgs::Odometry& msg);
+  void odometryCallback(const nav_msgs::Odometry& msg);
   virtual void waypointCallback(const geometry_msgs::PoseStamped& msg);
   virtual void waypointListCallback(const geometry_msgs::PoseArray& msg);
 
@@ -188,7 +188,7 @@ class MavLocalPlanner {
   int num_failures_;
 
   // Map!
-  voxblox::EsdfServer* esdf_server_ptr_;
+  voxblox::EsdfServer esdf_server_;
 
   // Planners -- yaw policy
   YawPolicy yaw_policy_;
@@ -204,24 +204,6 @@ class MavLocalPlanner {
   // Intermediate goal selection, optionally in case of path-planning failures:
   GoalPointSelector goal_selector_;
   bool temporary_goal_;
-};
-
-class MavLocalVoxbloxPlanner : public MavLocalPlanner {
- public:
-  MavLocalVoxbloxPlanner(const ros::NodeHandle& nh,
-                         const ros::NodeHandle& nh_private)
-      : MavLocalPlanner(nh, nh_private),
-        esdf_server_(nh, nh_private) {
-    setMapServerPtr();
-    setupMap();
-    setupSmoothers();
-  }
-
-  void setMapServerPtr() override { esdf_server_ptr_ = &esdf_server_; }
-
- protected:
-  // Map!
-  voxblox::EsdfServer esdf_server_;
 };
 
 }  // namespace mav_planning

@@ -30,6 +30,8 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
   getParamsFromRos();
   setupRosCommunication();
   startTimers();
+  setupMap();
+  setupSmoothers();
 }
 
 void MavLocalPlanner::getParamsFromRos() {
@@ -98,18 +100,16 @@ void MavLocalPlanner::startTimers() {
 }
 
 void MavLocalPlanner::setupMap() {
-  CHECK_NOTNULL(esdf_server_ptr_);
-
-  esdf_server_ptr_->setTraversabilityRadius(constraints_.robot_radius);
-  loco_planner_.setEsdfMap(esdf_server_ptr_->getEsdfMapPtr());
-  goal_selector_.setTsdfMap(esdf_server_ptr_->getTsdfMapPtr());
+  esdf_server_.setTraversabilityRadius(constraints_.robot_radius);
+  loco_planner_.setEsdfMap(esdf_server_.getEsdfMapPtr());
+  goal_selector_.setTsdfMap(esdf_server_.getTsdfMapPtr());
 
   // load map to esdf_server_
   std::string map_path;
   nh_private_.param("map_path", map_path, map_path);
   if (!map_path.empty()) {
     ROS_INFO_STREAM("[Mav Local Planner] Loading map from " << map_path);
-    bool success = esdf_server_ptr_->loadMap(map_path);
+    bool success = esdf_server_.loadMap(map_path);
     if (!success) {
       ROS_WARN("[Mav Local Planner] Could not load map!");
     } else {
@@ -124,7 +124,7 @@ void MavLocalPlanner::setupSmoothers() {
   yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kVelocityVector);
 
   // Set up smoothers.
-  const double voxel_size = esdf_server_ptr_->getEsdfMapPtr()->voxel_size();
+  const double voxel_size = esdf_server_.getEsdfMapPtr()->voxel_size();
 
   // Straight-line smoother.
   ramp_smoother_.setParametersFromRos(nh_private_);
@@ -688,7 +688,7 @@ void MavLocalPlanner::visualizePath() {
 double MavLocalPlanner::getMapDistance(const Eigen::Vector3d& position) const {
   double distance = 0.0;
   const bool kInterpolate = false;
-  if (!esdf_server_ptr_->getEsdfMapPtr()->getDistanceAtPosition(
+  if (!esdf_server_.getEsdfMapPtr()->getDistanceAtPosition(
           position, kInterpolate, &distance)) {
     // optimistic behavior at odometry position
     if ((position - odometry_.position_W).norm() < constraints_.robot_radius) {
@@ -703,7 +703,7 @@ double MavLocalPlanner::getMapDistanceAndGradient(
     const Eigen::Vector3d& position, Eigen::Vector3d* gradient) const {
   double distance = 0.0;
   const bool kInterpolate = false;
-  if (!esdf_server_ptr_->getEsdfMapPtr()->getDistanceAndGradientAtPosition(
+  if (!esdf_server_.getEsdfMapPtr()->getDistanceAndGradientAtPosition(
           position, kInterpolate, &distance, gradient)) {
     // optimistic behavior at odometry position
     if ((position - odometry_.position_W).norm() < constraints_.robot_radius) {
@@ -746,6 +746,7 @@ bool MavLocalPlanner::dealWithFailure() {
   if (current_waypoint_ < 0) {
     return false;
   }
+  should_replan_.notify();
 
   constexpr double kCloseEnough = 0.05;
   mav_msgs::EigenTrajectoryPoint waypoint = waypoints_[current_waypoint_];
