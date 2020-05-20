@@ -215,22 +215,23 @@ void SkeletonEvalNode::generateMapFromRobotPoses(int num_poses, int seed) {
         Eigen::Quaternionf::FromTwoVectors(Eigen::Vector3f(0.0, 0.0, 1.0),
                                            view_direction));
     // Step 2: actually get the pointcloud.
-    voxblox::Pointcloud ptcloud, ptcloud_C;
-    voxblox::Colors colors;
+    voxblox::Pointcloud ptcloud;
+    auto ptcloud_C = std::make_shared<Pointcloud>();
+    auto colors = std::make_shared<Colors>();
     if (!apply_noise_) {
       world_.getPointcloudFromViewpoint(view_origin, view_direction,
                                         camera_resolution_, camera_fov_h_rad_,
-                                        camera_max_dist_, &ptcloud, &colors);
+                                        camera_max_dist_, &ptcloud, colors.get());
     } else {
       world_.getNoisyPointcloudFromViewpoint(
           view_origin, view_direction, camera_resolution_, camera_fov_h_rad_,
-          camera_max_dist_, noise_sigma_, &ptcloud, &colors);
+          camera_max_dist_, noise_sigma_, &ptcloud, colors.get());
     }
 
     // Step 3: integrate into the map.
     // Transform back into camera frame.
-    transformPointcloud(T_G_C.inverse(), ptcloud, &ptcloud_C);
-    voxblox_server_.integratePointcloud(T_G_C, ptcloud_C, colors);
+    transformPointcloud(T_G_C.inverse(), ptcloud, ptcloud_C.get());
+    voxblox_server_.integratePointcloud(ros::Time::now(), T_G_C, ptcloud_C, colors);
   }
 
   voxblox_server_.updateEsdfBatch(full_euclidean_distance_);
