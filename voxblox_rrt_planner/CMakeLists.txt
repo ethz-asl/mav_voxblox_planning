@@ -9,6 +9,7 @@ add_definitions(-std=c++11)
 #############
 # LIBRARIES #
 #############
+include_directories(${OMPL_INCLUDE_DIRS})
 cs_add_library(${PROJECT_NAME}
   src/voxblox_ompl_rrt.cpp
   src/voxblox_rrt_planner.cpp
@@ -27,4 +28,4 @@ target_link_libraries(voxblox_rrt_planner_node ${PROJECT_NAME})
 # EXPORT #
 ##########
 cs_install()
-cs_export(LIBRARIES ${OMPL_LIBRARIES})
+cs_export()
