@@ -444,7 +444,7 @@ bool MavLocalPlanner::findPathThroughCurrentWaypointList(
 
   // Resample segments between waypoints for better results
   mav_msgs::EigenTrajectoryPointVector sampled_waypoints;
-  ROS_INFO_COND(true, "[Mav Local Planner] Sampling %lu waypoints.",
+  ROS_INFO_COND(verbose_, "[Mav Local Planner] Sampling %lu waypoints.",
                 free_waypoints.size());
   constexpr double sampling_interval = 2.0;
   for (ulong i = 0; i < free_waypoints.size() - 1; ++i) {
@@ -460,8 +460,7 @@ bool MavLocalPlanner::findPathThroughCurrentWaypointList(
     }
   }
   sampled_waypoints.emplace_back(free_waypoints[free_waypoints.size() - 1]);
-  ROS_INFO_COND(sampled_waypoints.size() > free_waypoints.size() && verbose_,
-                "[Mav Local Planner] Sampled %lu extra waypoints",
+  ROS_INFO_COND(verbose_, "[Mav Local Planner] Sampled %lu extra waypoints",
                 sampled_waypoints.size() - free_waypoints.size());
 
   // Visualize waypoints
@@ -473,7 +472,8 @@ bool MavLocalPlanner::findPathThroughCurrentWaypointList(
   if (success) {
     success = isPathCollisionFree(*path);
     if (!success) {
-      ROS_WARN("[Mav Local Planner][Plan List] Path was not collision free. :(");
+      ROS_WARN("[Mav Local Planner][Plan List] "
+               "Path was not collision free. :(");
     }
   }
   return success;
@@ -523,7 +523,7 @@ void MavLocalPlanner::getPlanningStart() {
               std::back_inserter(current_path_chunk));
   }
 
-  // Collision check path until replanning
+  // Collision check path until replanning.
   if (!isPathCollisionFree(current_path_chunk)) {
     // abort and plan from scratch
     abort();
@@ -559,9 +559,8 @@ void MavLocalPlanner::getPlanningStart() {
 void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
   if (num_tracking_ >= max_failures_) {
     // Maximum tracking attempts reached, aborting
-    ROS_WARN(
-        "[Mav Local Planner][Next Waypoint] ABORTING! Waypoint has been "
-        "unsuccessfully tracked too many times.");
+    ROS_WARN("[Mav Local Planner][Next Waypoint] ABORTING! Waypoint has been "
+             "unsuccessfully tracked too many times.");
     num_failures_ = max_failures_;
     abort();
     dealWithFailure();
