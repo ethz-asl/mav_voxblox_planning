@@ -34,8 +34,8 @@ class MavLocalPlanner {
 
   // Input data.
   void odometryCallback(const nav_msgs::Odometry& msg);
-  virtual void waypointCallback(const geometry_msgs::PoseStamped& msg);
-  virtual void waypointListCallback(const geometry_msgs::PoseArray& msg);
+  void waypointCallback(const geometry_msgs::PoseStamped& msg);
+  void waypointListCallback(const geometry_msgs::PoseArray& msg);
 
   // Stops path publishing and clears all recent trajectories.
   void clearTrajectory();
@@ -72,10 +72,10 @@ class MavLocalPlanner {
 
   // Control for planning.
   void planningTimerCallback(const ros::TimerEvent& event);
-  virtual void planningStep();
+  void planningStep();
 
   // Returns if the next waypoint is a valid waypoint.
-  virtual bool nextWaypoint();
+  bool nextWaypoint();
   void finishWaypoints();
 
   void insertPath(const mav_msgs::EigenTrajectoryPointVector& path);

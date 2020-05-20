@@ -335,150 +335,6 @@ void MavLocalPlanner::planningStep() {
   visualizePath();
 }
 
-bool MavLocalPlanner::findPathThroughCurrentWaypointList(
-    mav_msgs::EigenTrajectoryPointVector* path,
-    size_t* waypoint_index) {
-  CHECK_NOTNULL(path);
-  CHECK_NOTNULL(waypoint_index);
-
-  // init returned index
-  *waypoint_index = current_waypoint_;
-
-  constexpr double kCloseToOdometry = 0.1;
-
-  // Find list of waypoints to plan through
-  mav_msgs::EigenTrajectoryPointVector free_waypoints;
-
-  // Check temporary waypoint list for collisions
-  for (const mav_msgs::EigenTrajectoryPoint& waypoint : temporary_waypoints_) {
-    // skip occupied temporary waypoints
-    if (getMapDistance(waypoint.position_W) < constraints_.robot_radius) {
-      if (verbose_) {
-        ROS_INFO("[Mav Local Planner][Plan List] "
-                 "Temporary waypoint at (%.2f %.2f %.2f) in collision"
-                 " - %.3f/%.3f",
-                 waypoint.position_W.x(), waypoint.position_W.y(),
-                 waypoint.position_W.z(), getMapDistance(waypoint.position_W),
-                 constraints_.robot_radius);
-      }
-      continue;
-    }
-    free_waypoints.emplace_back(waypoint);
-  }
-
-  // Check waypoint list for collisions
-  for (size_t idx = current_waypoint_; idx < waypoints_.size(); ++idx) {
-    const mav_msgs::EigenTrajectoryPoint& waypoint = waypoints_[idx];
-    // plan only through free waypoints
-    if (getMapDistance(waypoint.position_W) < constraints_.robot_radius) {
-      if (verbose_) {
-        ROS_INFO("[Mav Local Planner][Plan List] "
-                 "Waypoint %ld at (%.2f %.2f %.2f) in collision - %.3f/%.3f",
-                 idx, waypoint.position_W.x(), waypoint.position_W.y(),
-                 waypoint.position_W.z(),
-                 getMapDistance(waypoint.position_W),
-                 constraints_.robot_radius);
-      }
-      break;
-    }
-    free_waypoints.emplace_back(waypoint);
-    *waypoint_index = idx;
-  }
-
-  if (free_waypoints.empty()) {
-    ROS_WARN("[Mav Local Planner][Plan List] No free waypoints.");
-    return false;
-  }
-
-  // If the path doesn't ALREADY start near the start, the first waypoint
-  // should be the current pose.
-  if (plan_to_start_ && (planning_start_pose_.position_W
-      - free_waypoints.front().position_W).norm() >
-      kCloseToOdometry) {
-    // Check, if planning position is on the way from the first
-    // to the second waypoint
-    if (free_waypoints.size() > 1) {
-      Eigen::Vector3d segment =
-          free_waypoints[1].position_W - free_waypoints[0].position_W;
-      double t = segment.dot(free_waypoints[0].position_W
-                                 - planning_start_pose_.position_W);
-      t = std::min(1.0, std::max(0.0, t));
-      Eigen::Vector3d closest_point =
-          free_waypoints[0].position_W + t * segment;
-      if ((planning_start_pose_.position_W - closest_point).norm()
-          < constraints_.robot_radius) {
-        free_waypoints.erase(free_waypoints.begin());
-        ROS_WARN("[Mav Local Planner][Plan List] "
-                 "Distance from odometry to first path segment: %.3f, "
-                 "Removed the first waypoint as redundant!",
-                 (planning_start_pose_.position_W - closest_point).norm());
-      } else {
-        ROS_INFO("[Mav Local Planner][Plan List] "
-                 "Distance from odometry to first path segment: %.3f",
-                 (planning_start_pose_.position_W - closest_point).norm());
-      }
-    }
-
-    free_waypoints.insert(free_waypoints.begin(), planning_start_pose_);
-    if (getMapDistance(planning_start_pose_.position_W)
-        < constraints_.robot_radius) {
-      // collision detected
-      ROS_INFO_COND(verbose_, "[Mav Local Planner][Plan List] "
-                              "Start position at (%.2f %.2f %.2f) in collision"
-                              " - %.3f/%.3f",
-                    planning_start_pose_.position_W.x(),
-                    planning_start_pose_.position_W.y(),
-                    planning_start_pose_.position_W.z(),
-                    getMapDistance(planning_start_pose_.position_W),
-                    constraints_.robot_radius);
-      return false;
-    }
-  }
-
-  // check, if enough waypoints to warrant planning
-  if (free_waypoints.size() < 2) {
-    ROS_WARN("[Mav Local Planner][Plan List] Too few free waypoints (%zu).",
-             free_waypoints.size());
-    return false;
-  }
-
-  // Resample segments between waypoints for better results
-  mav_msgs::EigenTrajectoryPointVector sampled_waypoints;
-  ROS_INFO_COND(verbose_, "[Mav Local Planner] Sampling %lu waypoints.",
-                free_waypoints.size());
-  constexpr double sampling_interval = 2.0;
-  for (ulong i = 0; i < free_waypoints.size() - 1; ++i) {
-    Eigen::Vector3d segment = free_waypoints[i + 1].position_W
-        - free_waypoints[i].position_W;
-    int num_points = std::ceil(segment.norm() / sampling_interval);
-    Eigen::Vector3d new_segment = segment / num_points;
-    mav_msgs::EigenTrajectoryPoint new_waypoint = free_waypoints[i];
-    sampled_waypoints.emplace_back(new_waypoint);
-    for (int j = 1; j < num_points; ++j) {
-      new_waypoint.position_W += new_segment;
-      sampled_waypoints.emplace_back(new_waypoint);
-    }
-  }
-  sampled_waypoints.emplace_back(free_waypoints[free_waypoints.size() - 1]);
-  ROS_INFO_COND(verbose_, "[Mav Local Planner] Sampled %lu extra waypoints",
-                sampled_waypoints.size() - free_waypoints.size());
-
-  // Visualize waypoints
-  visualizeWaypoints(sampled_waypoints);
-
-  // Plan through waypoints
-  // There is some hope! Maybe we can do path smoothing on these guys.
-  bool success = planPathThroughWaypoints(sampled_waypoints, path);
-  if (success) {
-    success = isPathCollisionFree(*path);
-    if (!success) {
-      ROS_WARN("[Mav Local Planner][Plan List] "
-               "Path was not collision free. :(");
-    }
-  }
-  return success;
-}
-
 void MavLocalPlanner::getPlanningStart() {
   // Init
   existing_path_chunk_.clear();
@@ -632,6 +488,150 @@ void MavLocalPlanner::avoidCollisionsTowardWaypoint() {
   num_failures_ = 0;
   valid_existing_plan_ = false;
   insertPath(path);
+}
+
+bool MavLocalPlanner::findPathThroughCurrentWaypointList(
+    mav_msgs::EigenTrajectoryPointVector* path,
+    size_t* waypoint_index) {
+  CHECK_NOTNULL(path);
+  CHECK_NOTNULL(waypoint_index);
+
+  // init returned index
+  *waypoint_index = current_waypoint_;
+
+  constexpr double kCloseToOdometry = 0.1;
+
+  // Find list of waypoints to plan through
+  mav_msgs::EigenTrajectoryPointVector free_waypoints;
+
+  // Check temporary waypoint list for collisions
+  for (const mav_msgs::EigenTrajectoryPoint& waypoint : temporary_waypoints_) {
+    // skip occupied temporary waypoints
+    if (getMapDistance(waypoint.position_W) < constraints_.robot_radius) {
+      if (verbose_) {
+        ROS_INFO("[Mav Local Planner][Plan List] "
+                 "Temporary waypoint at (%.2f %.2f %.2f) in collision"
+                 " - %.3f/%.3f",
+                 waypoint.position_W.x(), waypoint.position_W.y(),
+                 waypoint.position_W.z(), getMapDistance(waypoint.position_W),
+                 constraints_.robot_radius);
+      }
+      continue;
+    }
+    free_waypoints.emplace_back(waypoint);
+  }
+
+  // Check waypoint list for collisions
+  for (size_t idx = current_waypoint_; idx < waypoints_.size(); ++idx) {
+    const mav_msgs::EigenTrajectoryPoint& waypoint = waypoints_[idx];
+    // plan only through free waypoints
+    if (getMapDistance(waypoint.position_W) < constraints_.robot_radius) {
+      if (verbose_) {
+        ROS_INFO("[Mav Local Planner][Plan List] "
+                 "Waypoint %ld at (%.2f %.2f %.2f) in collision - %.3f/%.3f",
+                 idx, waypoint.position_W.x(), waypoint.position_W.y(),
+                 waypoint.position_W.z(),
+                 getMapDistance(waypoint.position_W),
+                 constraints_.robot_radius);
+      }
+      break;
+    }
+    free_waypoints.emplace_back(waypoint);
+    *waypoint_index = idx;
+  }
+
+  if (free_waypoints.empty()) {
+    ROS_WARN("[Mav Local Planner][Plan List] No free waypoints.");
+    return false;
+  }
+
+  // If the path doesn't ALREADY start near the start, the first waypoint
+  // should be the current pose.
+  if (plan_to_start_ && (planning_start_pose_.position_W
+      - free_waypoints.front().position_W).norm() >
+      kCloseToOdometry) {
+    // Check, if planning position is on the way from the first
+    // to the second waypoint
+    if (free_waypoints.size() > 1) {
+      Eigen::Vector3d segment =
+          free_waypoints[1].position_W - free_waypoints[0].position_W;
+      double t = segment.dot(free_waypoints[0].position_W
+                                 - planning_start_pose_.position_W);
+      t = std::min(1.0, std::max(0.0, t));
+      Eigen::Vector3d closest_point =
+          free_waypoints[0].position_W + t * segment;
+      if ((planning_start_pose_.position_W - closest_point).norm()
+          < constraints_.robot_radius) {
+        free_waypoints.erase(free_waypoints.begin());
+        ROS_WARN("[Mav Local Planner][Plan List] "
+                 "Distance from odometry to first path segment: %.3f, "
+                 "Removed the first waypoint as redundant!",
+                 (planning_start_pose_.position_W - closest_point).norm());
+      } else {
+        ROS_INFO("[Mav Local Planner][Plan List] "
+                 "Distance from odometry to first path segment: %.3f",
+                 (planning_start_pose_.position_W - closest_point).norm());
+      }
+    }
+
+    free_waypoints.insert(free_waypoints.begin(), planning_start_pose_);
+    if (getMapDistance(planning_start_pose_.position_W)
+        < constraints_.robot_radius) {
+      // collision detected
+      ROS_INFO_COND(verbose_, "[Mav Local Planner][Plan List] "
+                              "Start position at (%.2f %.2f %.2f) in collision"
+                              " - %.3f/%.3f",
+                    planning_start_pose_.position_W.x(),
+                    planning_start_pose_.position_W.y(),
+                    planning_start_pose_.position_W.z(),
+                    getMapDistance(planning_start_pose_.position_W),
+                    constraints_.robot_radius);
+      return false;
+    }
+  }
+
+  // check, if enough waypoints to warrant planning
+  if (free_waypoints.size() < 2) {
+    ROS_WARN("[Mav Local Planner][Plan List] Too few free waypoints (%zu).",
+             free_waypoints.size());
+    return false;
+  }
+
+  // Resample segments between waypoints for better results
+  mav_msgs::EigenTrajectoryPointVector sampled_waypoints;
+  ROS_INFO_COND(verbose_, "[Mav Local Planner] Sampling %lu waypoints.",
+                free_waypoints.size());
+  constexpr double sampling_interval = 2.0;
+  for (ulong i = 0; i < free_waypoints.size() - 1; ++i) {
+    Eigen::Vector3d segment = free_waypoints[i + 1].position_W
+        - free_waypoints[i].position_W;
+    int num_points = std::ceil(segment.norm() / sampling_interval);
+    Eigen::Vector3d new_segment = segment / num_points;
+    mav_msgs::EigenTrajectoryPoint new_waypoint = free_waypoints[i];
+    sampled_waypoints.emplace_back(new_waypoint);
+    for (int j = 1; j < num_points; ++j) {
+      new_waypoint.position_W += new_segment;
+      sampled_waypoints.emplace_back(new_waypoint);
+    }
+  }
+  sampled_waypoints.emplace_back(free_waypoints[free_waypoints.size() - 1]);
+  ROS_INFO_COND(verbose_, "[Mav Local Planner] Sampled %lu extra waypoints",
+                sampled_waypoints.size() - free_waypoints.size());
+
+  // Visualize waypoints
+  visualizeWaypoints(sampled_waypoints);
+
+  // Plan through waypoints
+  // There is some hope! Maybe we can do path smoothing on these guys.
+  bool success = planPathThroughWaypoints(sampled_waypoints, path);
+  if (success) {
+    success = isPathCollisionFree(*path);
+    if (!success) {
+      ROS_WARN("[Mav Local Planner][Plan List] "
+               "Path was not collision free. :(");
+    }
+  }
+  return success;
 }
 
 bool MavLocalPlanner::planPathThroughWaypoints(
@@ -1006,9 +1006,7 @@ double MavLocalPlanner::getMapDistance(const Eigen::Vector3d& position) const {
   double weight = 0.0;
   double distance = 0.0;
   const bool kInterpolate = false;
-  if (!esdf_server_.getTsdfMapPtr()->getWeightAtPosition(
-          position, kInterpolate, &weight) || weight < voxblox::kFloatEpsilon
-      || !esdf_server_.getEsdfMapPtr()->getDistanceAtPosition(
+  if (!esdf_server_.getEsdfMapPtr()->getDistanceAtPosition(
           position, kInterpolate, &distance)) {
     // optimistic behavior at odometry position
     if ((position - odometry_.position_W).norm() < constraints_.robot_radius) {
@@ -1024,9 +1022,7 @@ double MavLocalPlanner::getMapDistanceAndGradient(
   double weight = 0.0;
   double distance = 0.0;
   const bool kInterpolate = false;
-  if (!esdf_server_.getTsdfMapPtr()->getWeightAtPosition(
-          position, kInterpolate, &weight) || weight < voxblox::kFloatEpsilon
-      || !esdf_server_.getEsdfMapPtr()->getDistanceAndGradientAtPosition(
+  if (!esdf_server_.getEsdfMapPtr()->getDistanceAndGradientAtPosition(
           position, kInterpolate, &distance, gradient)) {
     // optimistic behavior at odometry position
     if ((position - odometry_.position_W).norm() < constraints_.robot_radius) {
