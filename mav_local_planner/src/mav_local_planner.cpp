@@ -26,6 +26,7 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       path_index_(0),
       max_failures_(5),
       num_failures_(0),
+      esdf_server_(nh_, nh_private_),
       loco_planner_(nh_, nh_private_) {
   getParamsFromRos();
   setupRosCommunication();

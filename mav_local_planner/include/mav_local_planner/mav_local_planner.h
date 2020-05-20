@@ -63,8 +63,6 @@ class MavLocalPlanner {
   void getParamsFromRos();
   void setupRosCommunication();
   void startTimers();
-  // Initializing functions, need to be called in inheriting constructor!!
-  virtual void setMapServerPtr() = 0;
   void setupMap();
   void setupSmoothers();
 
