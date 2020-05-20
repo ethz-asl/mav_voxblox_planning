@@ -78,6 +78,7 @@ class MavLocalPlanner {
   virtual bool nextWaypoint();
   void finishWaypoints();
 
+  void insertPath(const mav_msgs::EigenTrajectoryPointVector& path);
   void replacePath(const mav_msgs::EigenTrajectoryPointVector& path);
 
   // What to do if we fail to find a suitable path, depending on the
@@ -91,6 +92,14 @@ class MavLocalPlanner {
   bool planPathThroughWaypoints(
       const mav_msgs::EigenTrajectoryPointVector& waypoints,
       mav_msgs::EigenTrajectoryPointVector* path);
+  // Determine start of (re)planning.
+  void getPlanningStart();
+  // Determine and get a path through waypoints.
+  bool findPathThroughCurrentWaypointList(
+      mav_msgs::EigenTrajectoryPointVector* path,
+      size_t* waypoint_index);
+  // Sample existing path for temporary auxilary waypoints.
+  void sampleExistingPath();
 
   // Map access.
   double getMapDistance(const Eigen::Vector3d& position) const;
@@ -104,6 +113,11 @@ class MavLocalPlanner {
 
   // Other internal stuff.
   void sendCurrentPose();
+
+  // Visualizations.
+  void visualizePlanningStart() const;
+  void visualizeWaypoints(
+      const mav_msgs::EigenTrajectoryPointVector& waypoints) const;
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
@@ -184,6 +198,14 @@ class MavLocalPlanner {
   // State -- planning.
   int max_failures_;
   int num_failures_;
+  int num_tracking_;
+  // Existing path
+  bool valid_existing_plan_;
+  mav_msgs::EigenTrajectoryPointVector temporary_waypoints_;
+  // Replanning
+  mav_msgs::EigenTrajectoryPoint planning_start_pose_;
+  size_t planning_index_;
+  mav_msgs::EigenTrajectoryPointVector existing_path_chunk_;
 
   // Map!
   voxblox::EsdfServer esdf_server_;
