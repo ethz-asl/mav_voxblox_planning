@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>mav_planning_rviz</name>
+  <version>0.0.0</version>
+  <description>
+    Planning plugin for RVIZ.
+  </description>
+
+  <author email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</author>
+
+  <maintainer email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+
+  <depend>mav_msgs</depend>
+  <depend>mav_planning_common</depend>
+  <depend>mav_planning_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>tf</depend>
+  <depend>visualization_msgs</depend>
+  <depend>rviz</depend>
+  <depend>mav_visualization</depend>
+
+  <export>
+      <rviz plugin="${prefix}/plugin_description.xml"/>
+  </export>
+</package>

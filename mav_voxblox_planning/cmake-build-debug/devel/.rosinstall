@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/davide/catkin_ws/src/mav_voxblox_planning/mav_voxblox_planning/cmake-build-debug/devel/setup.sh

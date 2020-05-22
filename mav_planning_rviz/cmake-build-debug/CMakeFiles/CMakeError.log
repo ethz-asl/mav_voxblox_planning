@@ -1,0 +1,63 @@
+Performing C SOURCE FILE Test CMAKE_HAVE_LIBC_PTHREAD failed with the following output:
+Change Dir: /home/davide/catkin_ws/src/mav_voxblox_planning/mav_planning_rviz/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_0bbf9/fast && /usr/bin/make -f CMakeFiles/cmTC_0bbf9.dir/build.make CMakeFiles/cmTC_0bbf9.dir/build
+make[1]: Entering directory '/home/davide/catkin_ws/src/mav_voxblox_planning/mav_planning_rviz/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_0bbf9.dir/src.c.o
+/usr/bin/cc   -DCMAKE_HAVE_LIBC_PTHREAD   -o CMakeFiles/cmTC_0bbf9.dir/src.c.o   -c /home/davide/catkin_ws/src/mav_voxblox_planning/mav_planning_rviz/cmake-build-debug/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTC_0bbf9
+/opt/clion/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0bbf9.dir/link.txt --verbose=1
+/usr/bin/cc  -DCMAKE_HAVE_LIBC_PTHREAD    -rdynamic CMakeFiles/cmTC_0bbf9.dir/src.c.o  -o cmTC_0bbf9 
+CMakeFiles/cmTC_0bbf9.dir/src.c.o: In function `main':
+src.c:(.text+0x3e): undefined reference to `pthread_create'
+src.c:(.text+0x4a): undefined reference to `pthread_detach'
+src.c:(.text+0x5b): undefined reference to `pthread_join'
+src.c:(.text+0x6f): undefined reference to `pthread_atfork'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_0bbf9.dir/build.make:86: recipe for target 'cmTC_0bbf9' failed
+make[1]: *** [cmTC_0bbf9] Error 1
+make[1]: Leaving directory '/home/davide/catkin_ws/src/mav_voxblox_planning/mav_planning_rviz/cmake-build-debug/CMakeFiles/CMakeTmp'
+Makefile:121: recipe for target 'cmTC_0bbf9/fast' failed
+make: *** [cmTC_0bbf9/fast] Error 2
+
+
+Source file was:
+#include <pthread.h>
+
+void* test_func(void* data)
+{
+  return data;
+}
+
+int main(void)
+{
+  pthread_t thread;
+  pthread_create(&thread, NULL, test_func, NULL);
+  pthread_detach(thread);
+  pthread_join(thread, NULL);
+  pthread_atfork(NULL, NULL, NULL);
+  pthread_exit(NULL);
+
+  return 0;
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/davide/catkin_ws/src/mav_voxblox_planning/mav_planning_rviz/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_06f33/fast && /usr/bin/make -f CMakeFiles/cmTC_06f33.dir/build.make CMakeFiles/cmTC_06f33.dir/build
+make[1]: Entering directory '/home/davide/catkin_ws/src/mav_voxblox_planning/mav_planning_rviz/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_06f33.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_06f33.dir/CheckFunctionExists.c.o   -c /opt/clion/bin/cmake/linux/share/cmake-3.15/Modules/CheckFunctionExists.c
+Linking C executable cmTC_06f33
+/opt/clion/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_06f33.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_06f33.dir/CheckFunctionExists.c.o  -o cmTC_06f33 -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_06f33.dir/build.make:86: recipe for target 'cmTC_06f33' failed
+make[1]: *** [cmTC_06f33] Error 1
+make[1]: Leaving directory '/home/davide/catkin_ws/src/mav_voxblox_planning/mav_planning_rviz/cmake-build-debug/CMakeFiles/CMakeTmp'
+Makefile:121: recipe for target 'cmTC_06f33/fast' failed
+make: *** [cmTC_06f33/fast] Error 2
+
+
+

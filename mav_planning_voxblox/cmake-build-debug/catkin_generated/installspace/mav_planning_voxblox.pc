@@ -1,0 +1,8 @@
+prefix=/usr/local
+
+Name: mav_planning_voxblox
+Description: Description of mav_planning_voxblox
+Version: 0.0.0
+Cflags: -I${prefix}/include
+Libs: -L${prefix}/lib -lmav_planning_voxblox
+Requires: voxblox voxblox_ros

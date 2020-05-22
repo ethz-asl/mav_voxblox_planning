@@ -1,0 +1,900 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="gtest"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\..\;CMake Files\..\..\..\..\;CMake Files\..\..\..\..\..\;CMake Files\..\..\..\..\..\..\;CMake Files\..\..\..\..\..\..\usr\;CMake Files\..\..\..\..\..\..\usr\src\;CMake Files\..\..\..\..\..\..\usr\src\gmock\;CMake Files\..\..\..\..\..\..\usr\src\gtest\;CMake Files\..\..\..\..\..\..\usr\src\gtest\cmake\;CMake Files\..\..\..\..\..\..\opt\;CMake Files\..\..\..\..\..\..\opt\ros\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\platform\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\test\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\tools\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\em\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\cv_bridge\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\cv_bridge\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosconsole\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosconsole\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\cpp_common\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\cpp_common\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rostime\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rostime\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\sensor_msgs\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\sensor_msgs\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\geometry_msgs\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\geometry_msgs\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\message_runtime\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\message_runtime\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roscpp_serialization\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roscpp_serialization\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roscpp_traits\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roscpp_traits\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\std_msgs\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\std_msgs\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\interactive_markers\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\interactive_markers\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roscpp\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roscpp\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosgraph_msgs\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosgraph_msgs\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\xmlrpcpp\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\xmlrpcpp\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rospy\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rospy\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\message_filters\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\message_filters\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_ros\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_ros\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\actionlib\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\actionlib\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\actionlib_msgs\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\actionlib_msgs\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genmsg\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genmsg\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\gencpp\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\gencpp\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\geneus\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\geneus\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genlisp\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genlisp\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\gennodejs\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\gennodejs\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genpy\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genpy\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosgraph\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosgraph\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_msgs\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_msgs\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\message_generation\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\message_generation\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_py\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_py\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\visualization_msgs\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\visualization_msgs\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\eigen_conversions\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\eigen_conversions\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf_conversions\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf_conversions\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\kdl_conversions\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\kdl_conversions\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pcl_conversions\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pcl_conversions\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pcl_msgs\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pcl_msgs\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pcl_ros\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pcl_ros\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\dynamic_reconfigure\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\dynamic_reconfigure\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nodelet\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nodelet\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\bondcpp\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\bondcpp\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\bond\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\bond\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\smclib\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\smclib\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pluginlib\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pluginlib\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\class_loader\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\class_loader\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roslib\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roslib\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rospack\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rospack\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nodelet_topic_tools\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nodelet_topic_tools\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosbag\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosbag\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosbag_storage\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosbag_storage\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roslz4\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roslz4\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\std_srvs\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\std_srvs\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\topic_tools\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\topic_tools\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_eigen\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_eigen\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rviz\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rviz\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\image_transport\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\image_transport\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\laser_geometry\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\laser_geometry\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\map_msgs\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\map_msgs\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nav_msgs\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nav_msgs\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\resource_retriever\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\resource_retriever\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\urdf\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\urdf\cmake\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosconsole_bridge\;CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosconsole_bridge\cmake\;CMake Files\..\..\..\devel\;CMake Files\..\..\..\devel\share\;CMake Files\..\..\..\devel\share\catkin_simple\;CMake Files\..\..\..\devel\share\catkin_simple\cmake\;CMake Files\..\..\..\devel\share\voxblox\;CMake Files\..\..\..\devel\share\voxblox\cmake\;CMake Files\..\..\..\devel\share\eigen_catkin\;CMake Files\..\..\..\devel\share\eigen_catkin\cmake\;CMake Files\..\..\..\devel\share\eigen_checks\;CMake Files\..\..\..\devel\share\eigen_checks\cmake\;CMake Files\..\..\..\devel\share\gflags_catkin\;CMake Files\..\..\..\devel\share\gflags_catkin\cmake\;CMake Files\..\..\..\devel\share\glog_catkin\;CMake Files\..\..\..\devel\share\glog_catkin\cmake\;CMake Files\..\..\..\devel\share\minkindr\;CMake Files\..\..\..\devel\share\minkindr\cmake\;CMake Files\..\..\..\devel\share\protobuf_catkin\;CMake Files\..\..\..\devel\share\protobuf_catkin\cmake\;CMake Files\..\..\..\devel\share\voxblox_ros\;CMake Files\..\..\..\devel\share\voxblox_ros\cmake\;CMake Files\..\..\..\devel\share\minkindr_conversions\;CMake Files\..\..\..\devel\share\minkindr_conversions\cmake\;CMake Files\..\..\..\devel\share\voxblox_msgs\;CMake Files\..\..\..\devel\share\voxblox_msgs\cmake\;CMake Files\..\..\..\devel\share\voxblox_rviz_plugin\;CMake Files\..\..\..\devel\share\voxblox_rviz_plugin\cmake\;CMake Files\cmake-build-debug\;CMake Files\cmake-build-debug\catkin\;CMake Files\cmake-build-debug\catkin\catkin_generated\;CMake Files\cmake-build-debug\catkin\catkin_generated\version\;CMake Files\cmake-build-debug\catkin_generated\;CMake Files\cmake-build-debug\catkin_generated\installspace\;CMake Files\cmake\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="gtest_main">
+				<Option output="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/libgtest_main.so" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest"/>
+				<Option object_output="./"/>
+				<Option type="3"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DGTEST_CREATE_SHARED_LIBRARY=1"/>
+					<Add directory="/usr/src/gtest/include"/>
+					<Add directory="/usr/src/gtest"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 gtest_main"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="gtest_main/fast">
+				<Option output="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/libgtest_main.so" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest"/>
+				<Option object_output="./"/>
+				<Option type="3"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DGTEST_CREATE_SHARED_LIBRARY=1"/>
+					<Add directory="/usr/src/gtest/include"/>
+					<Add directory="/usr/src/gtest"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 gtest_main/fast"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="gtest">
+				<Option output="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/libgtest.so" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest"/>
+				<Option object_output="./"/>
+				<Option type="3"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DGTEST_CREATE_SHARED_LIBRARY=1"/>
+					<Add directory="/usr/src/gtest/include"/>
+					<Add directory="/usr/src/gtest"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 gtest"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="gtest/fast">
+				<Option output="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/libgtest.so" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest"/>
+				<Option object_output="./"/>
+				<Option type="3"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DGTEST_CREATE_SHARED_LIBRARY=1"/>
+					<Add directory="/usr/src/gtest/include"/>
+					<Add directory="/usr/src/gtest"/>
+					<Add directory="/usr/include/c++/7"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/7"/>
+					<Add directory="/usr/include/c++/7/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/7/include-fixed"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 gtest/fast"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/gtest/gtest/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/usr/src/gtest/src/gtest-all.cc">
+			<Option target="gtest"/>
+		</Unit>
+		<Unit filename="/usr/src/gtest/src/gtest_main.cc">
+			<Option target="gtest_main"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/package.xml">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../usr/src/gmock/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\usr\src\gmock\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../usr/src/gtest/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\usr\src\gtest\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../usr/src/gtest/cmake/internal_utils.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\usr\src\gtest\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/package.xml">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/all.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/assert.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/atomic_configure_file.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkinConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkinConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkin_add_env_hooks.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkin_destinations.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkin_download.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkin_generate_environment.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkin_install_python.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkin_libraries.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkin_metapackage.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkin_package.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkin_package_xml.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkin_python_setup.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkin_symlink_install.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/catkin_workspace.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/custom_install.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/debug_message.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/em_expand.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/empy.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/find_program_required.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/interrogate_setup_dot_py.py">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/legacy.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/list_append_deduplicate.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/list_append_unique.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/list_insert_in_workspace_order.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/python.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/safe_execute_process.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/stamp.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/string_starts_with.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/platform/lsb.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\platform\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/platform/ubuntu.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\platform\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/platform/windows.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\platform\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/test/catkin_download_test_data.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\test\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/test/gtest.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\test\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/test/nosetests.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\test\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/test/tests.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\test\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/tools/doxygen.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\tools\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/tools/libraries.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\tools\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/tools/rt.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\tools\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/templates/_setup_util.py.in">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/templates/env.sh.in">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/templates/generate_cached_setup.py.in">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/templates/local_setup.bash.in">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/templates/local_setup.sh.in">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/templates/local_setup.zsh.in">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/templates/pkg.context.pc.in">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/templates/pkgConfig-version.cmake.in">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/templates/pkgConfig.cmake.in">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/templates/rosinstall.in">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/templates/setup.bash.in">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/templates/setup.sh.in">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/templates/setup.zsh.in">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\templates\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/catkin/cmake/em/pkg.pc.em">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\catkin\cmake\em\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/cv_bridge/cmake/cv_bridge-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\cv_bridge\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/cv_bridge/cmake/cv_bridgeConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\cv_bridge\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/cv_bridge/cmake/cv_bridgeConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\cv_bridge\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosconsole/cmake/rosconsole-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosconsole\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosconsole/cmake/rosconsoleConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosconsole\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosconsole/cmake/rosconsoleConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosconsole\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/cpp_common/cmake/cpp_commonConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\cpp_common\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/cpp_common/cmake/cpp_commonConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\cpp_common\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rostime/cmake/rostimeConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rostime\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rostime/cmake/rostimeConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rostime\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/sensor_msgs/cmake/sensor_msgs-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\sensor_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/sensor_msgs/cmake/sensor_msgsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\sensor_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/sensor_msgs/cmake/sensor_msgsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\sensor_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/geometry_msgs/cmake/geometry_msgs-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\geometry_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/geometry_msgs/cmake/geometry_msgsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\geometry_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/geometry_msgs/cmake/geometry_msgsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\geometry_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/message_runtime/cmake/message_runtimeConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\message_runtime\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/message_runtime/cmake/message_runtimeConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\message_runtime\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/roscpp_serialization/cmake/roscpp_serializationConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roscpp_serialization\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/roscpp_serialization/cmake/roscpp_serializationConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roscpp_serialization\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/roscpp_traits/cmake/roscpp_traitsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roscpp_traits\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/roscpp_traits/cmake/roscpp_traitsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roscpp_traits\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/std_msgs/cmake/std_msgs-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\std_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/std_msgs/cmake/std_msgsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\std_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/std_msgs/cmake/std_msgsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\std_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/interactive_markers/cmake/interactive_markersConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\interactive_markers\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/interactive_markers/cmake/interactive_markersConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\interactive_markers\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/roscpp/cmake/roscpp-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roscpp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/roscpp/cmake/roscppConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roscpp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/roscpp/cmake/roscppConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roscpp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosgraph_msgs/cmake/rosgraph_msgs-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosgraph_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosgraph_msgs/cmake/rosgraph_msgsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosgraph_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosgraph_msgs/cmake/rosgraph_msgsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosgraph_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/xmlrpcpp/cmake/xmlrpcpp-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\xmlrpcpp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/xmlrpcpp/cmake/xmlrpcppConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\xmlrpcpp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/xmlrpcpp/cmake/xmlrpcppConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\xmlrpcpp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rospy/cmake/rospyConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rospy\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rospy/cmake/rospyConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rospy\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf/cmake/tf-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf/cmake/tfConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf/cmake/tfConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/message_filters/cmake/message_filtersConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\message_filters\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/message_filters/cmake/message_filtersConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\message_filters\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf2_ros/cmake/tf2_rosConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_ros\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf2_ros/cmake/tf2_rosConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_ros\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/actionlib/cmake/actionlib-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\actionlib\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/actionlib/cmake/actionlibConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\actionlib\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/actionlib/cmake/actionlibConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\actionlib\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/actionlib_msgs/cmake/actionlib_msgs-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\actionlib_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/actionlib_msgs/cmake/actionlib_msgs-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\actionlib_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/actionlib_msgs/cmake/actionlib_msgsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\actionlib_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/actionlib_msgs/cmake/actionlib_msgsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\actionlib_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/genmsg/cmake/genmsg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genmsg\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/genmsg/cmake/genmsgConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genmsg\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/genmsg/cmake/genmsgConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genmsg\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/gencpp/cmake/gencpp-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\gencpp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/gencpp/cmake/gencppConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\gencpp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/gencpp/cmake/gencppConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\gencpp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/geneus/cmake/geneus-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\geneus\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/geneus/cmake/geneusConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\geneus\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/geneus/cmake/geneusConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\geneus\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/genlisp/cmake/genlisp-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genlisp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/genlisp/cmake/genlispConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genlisp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/genlisp/cmake/genlispConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genlisp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/gennodejs/cmake/gennodejs-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\gennodejs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/gennodejs/cmake/gennodejsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\gennodejs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/gennodejs/cmake/gennodejsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\gennodejs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/genpy/cmake/genpy-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genpy\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/genpy/cmake/genpyConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genpy\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/genpy/cmake/genpyConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\genpy\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosgraph/cmake/rosgraphConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosgraph\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosgraph/cmake/rosgraphConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosgraph\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf2/cmake/tf2Config-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf2/cmake/tf2Config.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf2_msgs/cmake/tf2_msgs-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf2_msgs/cmake/tf2_msgsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf2_msgs/cmake/tf2_msgsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/message_generation/cmake/message_generationConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\message_generation\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/message_generation/cmake/message_generationConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\message_generation\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf2_py/cmake/tf2_pyConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_py\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf2_py/cmake/tf2_pyConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_py\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/visualization_msgs/cmake/visualization_msgs-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\visualization_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/visualization_msgs/cmake/visualization_msgsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\visualization_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/visualization_msgs/cmake/visualization_msgsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\visualization_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/eigen_conversions/cmake/eigen_conversionsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\eigen_conversions\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/eigen_conversions/cmake/eigen_conversionsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\eigen_conversions\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf_conversions/cmake/tf_conversionsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf_conversions\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf_conversions/cmake/tf_conversionsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf_conversions\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/kdl_conversions/cmake/kdl_conversionsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\kdl_conversions\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/kdl_conversions/cmake/kdl_conversionsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\kdl_conversions\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/pcl_conversions/cmake/pcl_conversionsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pcl_conversions\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/pcl_conversions/cmake/pcl_conversionsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pcl_conversions\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/pcl_msgs/cmake/pcl_msgs-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pcl_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/pcl_msgs/cmake/pcl_msgsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pcl_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/pcl_msgs/cmake/pcl_msgsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pcl_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/pcl_ros/cmake/pcl_rosConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pcl_ros\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/pcl_ros/cmake/pcl_rosConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pcl_ros\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/dynamic_reconfigure/cmake/dynamic_reconfigure-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\dynamic_reconfigure\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/dynamic_reconfigure/cmake/dynamic_reconfigure-macros.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\dynamic_reconfigure\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/dynamic_reconfigure/cmake/dynamic_reconfigure-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\dynamic_reconfigure\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/dynamic_reconfigure/cmake/dynamic_reconfigureConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\dynamic_reconfigure\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/dynamic_reconfigure/cmake/dynamic_reconfigureConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\dynamic_reconfigure\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/nodelet/cmake/nodelet-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nodelet\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/nodelet/cmake/nodeletConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nodelet\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/nodelet/cmake/nodeletConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nodelet\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/bondcpp/cmake/bondcppConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\bondcpp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/bondcpp/cmake/bondcppConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\bondcpp\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/bond/cmake/bond-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\bond\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/bond/cmake/bondConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\bond\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/bond/cmake/bondConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\bond\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/smclib/cmake/smclibConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\smclib\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/smclib/cmake/smclibConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\smclib\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/pluginlib/cmake/pluginlibConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pluginlib\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/pluginlib/cmake/pluginlibConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\pluginlib\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/class_loader/cmake/class_loader-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\class_loader\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/class_loader/cmake/class_loaderConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\class_loader\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/class_loader/cmake/class_loaderConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\class_loader\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/roslib/cmake/roslib-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roslib\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/roslib/cmake/roslibConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roslib\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/roslib/cmake/roslibConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roslib\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rospack/cmake/rospackConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rospack\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rospack/cmake/rospackConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rospack\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/nodelet_topic_tools/cmake/nodelet_topic_toolsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nodelet_topic_tools\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/nodelet_topic_tools/cmake/nodelet_topic_toolsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nodelet_topic_tools\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosbag/cmake/rosbagConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosbag\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosbag/cmake/rosbagConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosbag\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosbag_storage/cmake/rosbag_storage-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosbag_storage\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosbag_storage/cmake/rosbag_storageConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosbag_storage\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosbag_storage/cmake/rosbag_storageConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosbag_storage\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/roslz4/cmake/roslz4Config-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roslz4\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/roslz4/cmake/roslz4Config.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\roslz4\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/std_srvs/cmake/std_srvs-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\std_srvs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/std_srvs/cmake/std_srvsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\std_srvs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/std_srvs/cmake/std_srvsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\std_srvs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/topic_tools/cmake/topic_tools-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\topic_tools\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/topic_tools/cmake/topic_toolsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\topic_tools\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/topic_tools/cmake/topic_toolsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\topic_tools\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf2_eigen/cmake/tf2_eigenConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_eigen\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/tf2_eigen/cmake/tf2_eigenConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\tf2_eigen\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rviz/cmake/default_plugin_location.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rviz\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rviz/cmake/rviz-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rviz\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rviz/cmake/rvizConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rviz\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rviz/cmake/rvizConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rviz\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/image_transport/cmake/image_transportConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\image_transport\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/image_transport/cmake/image_transportConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\image_transport\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/laser_geometry/cmake/laser_geometryConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\laser_geometry\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/laser_geometry/cmake/laser_geometryConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\laser_geometry\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/map_msgs/cmake/map_msgs-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\map_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/map_msgs/cmake/map_msgsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\map_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/map_msgs/cmake/map_msgsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\map_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/nav_msgs/cmake/nav_msgs-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nav_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/nav_msgs/cmake/nav_msgsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nav_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/nav_msgs/cmake/nav_msgsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\nav_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/resource_retriever/cmake/resource_retrieverConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\resource_retriever\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/resource_retriever/cmake/resource_retrieverConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\resource_retriever\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/urdf/cmake/urdfConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\urdf\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/urdf/cmake/urdfConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\urdf\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosconsole_bridge/cmake/rosconsole_bridgeConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosconsole_bridge\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../../../../opt/ros/melodic/share/rosconsole_bridge/cmake/rosconsole_bridgeConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\..\..\opt\ros\melodic\share\rosconsole_bridge\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/catkin_simple/cmake/catkin_simple-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\catkin_simple\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/catkin_simple/cmake/catkin_simpleConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\catkin_simple\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/catkin_simple/cmake/catkin_simpleConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\catkin_simple\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/voxblox/cmake/voxblox-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\voxblox\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/voxblox/cmake/voxbloxConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\voxblox\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/voxblox/cmake/voxbloxConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\voxblox\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/eigen_catkin/cmake/eigen-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\eigen_catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/eigen_catkin/cmake/eigen_catkinConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\eigen_catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/eigen_catkin/cmake/eigen_catkinConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\eigen_catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/eigen_checks/cmake/eigen_checks-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\eigen_checks\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/eigen_checks/cmake/eigen_checksConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\eigen_checks\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/eigen_checks/cmake/eigen_checksConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\eigen_checks\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/gflags_catkin/cmake/gflags_catkinConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\gflags_catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/gflags_catkin/cmake/gflags_catkinConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\gflags_catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/glog_catkin/cmake/glog_catkinConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\glog_catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/glog_catkin/cmake/glog_catkinConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\glog_catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/minkindr/cmake/minkindrConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\minkindr\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/minkindr/cmake/minkindrConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\minkindr\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/protobuf_catkin/cmake/protobuf-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\protobuf_catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/protobuf_catkin/cmake/protobuf-generate-cpp.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\protobuf_catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/protobuf_catkin/cmake/protobuf_catkinConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\protobuf_catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/protobuf_catkin/cmake/protobuf_catkinConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\protobuf_catkin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/voxblox_ros/cmake/voxblox_rosConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\voxblox_ros\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/voxblox_ros/cmake/voxblox_rosConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\voxblox_ros\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/minkindr_conversions/cmake/minkindr_conversionsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\minkindr_conversions\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/minkindr_conversions/cmake/minkindr_conversionsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\minkindr_conversions\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/voxblox_msgs/cmake/voxblox_msgs-msg-extras.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\voxblox_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/voxblox_msgs/cmake/voxblox_msgsConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\voxblox_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/voxblox_msgs/cmake/voxblox_msgsConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\voxblox_msgs\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/voxblox_rviz_plugin/cmake/voxblox_rviz_pluginConfig-version.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\voxblox_rviz_plugin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/../../../devel/share/voxblox_rviz_plugin/cmake/voxblox_rviz_pluginConfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\devel\share\voxblox_rviz_plugin\cmake\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/catkin/catkin_generated/version/package.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-debug\catkin\catkin_generated\version\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/catkin_generated/ordered_paths.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-debug\catkin_generated\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/catkin_generated/package.cmake">
+			<Option virtualFolder="CMake Files\cmake-build-debug\catkin_generated\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/catkin_generated/installspace/_setup_util.py">
+			<Option virtualFolder="CMake Files\cmake-build-debug\catkin_generated\installspace\"/>
+		</Unit>
+		<Unit filename="/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake/voxblox_skeleton-extras.cmake.in">
+			<Option virtualFolder="CMake Files\cmake\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

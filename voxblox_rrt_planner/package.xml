@@ -24,5 +24,6 @@
   <depend>std_msgs</depend>
   <depend>tf</depend>
   <depend>visualization_msgs</depend>
+  <depend>mav_planning_voxblox</depend>
   <depend>voxblox_ros</depend>
 </package>

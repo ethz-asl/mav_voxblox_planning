@@ -1,0 +1,8 @@
+prefix=/home/davide/catkin_ws/src/mav_voxblox_planning/mav_planning_voxblox/cmake-build-debug/devel
+
+Name: mav_planning_voxblox
+Description: Description of mav_planning_voxblox
+Version: 0.0.0
+Cflags: -I/home/davide/catkin_ws/src/mav_voxblox_planning/mav_planning_voxblox/include
+Libs: -L${prefix}/lib -lmav_planning_voxblox
+Requires: voxblox voxblox_ros

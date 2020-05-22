@@ -1,0 +1,8 @@
+prefix=/home/davide/catkin_ws/src/mav_voxblox_planning/mav_path_smoothing/cmake-build-debug/devel
+
+Name: mav_path_smoothing
+Description: Description of mav_path_smoothing
+Version: 0.0.0
+Cflags: -I/home/davide/catkin_ws/src/mav_voxblox_planning/mav_path_smoothing/include
+Libs: -L${prefix}/lib -lmav_path_smoothing
+Requires: loco_planner mav_msgs mav_planning_common mav_trajectory_generation_ros roscpp std_msgs tf visualization_msgs

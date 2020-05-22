@@ -1,0 +1,8 @@
+prefix=/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug/devel
+
+Name: voxblox_skeleton
+Description: Description of voxblox_skeleton
+Version: 0.0.0
+Cflags: -I/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/include -I/home/davide/catkin_ws/src/mav_voxblox_planning/voxblox_skeleton/cmake-build-debug
+Libs: -L${prefix}/lib -lvoxblox_skeleton_proto -lvoxblox_skeleton /usr/lib/x86_64-linux-gnu/libprotobuf-lite.so /usr/lib/x86_64-linux-gnu/libprotoc.so /usr/lib/x86_64-linux-gnu/libprotobuf.so
+Requires: voxblox voxblox_ros

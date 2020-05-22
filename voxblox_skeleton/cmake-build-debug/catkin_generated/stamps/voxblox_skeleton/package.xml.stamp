@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>voxblox_skeleton</name>
+  <version>0.0.0</version>
+  <description>
+    Skeletonization (Generalized Voronoi Diagrams + Graphs) of an ESDF for global planning.
+  </description>
+
+  <author email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</author>
+
+  <maintainer email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+
+  <depend>voxblox</depend>
+  <depend>voxblox_ros</depend>
+</package>

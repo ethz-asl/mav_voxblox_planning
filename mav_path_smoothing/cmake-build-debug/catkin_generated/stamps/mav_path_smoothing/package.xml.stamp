@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>mav_path_smoothing</name>
+  <version>0.0.0</version>
+  <description>
+    Path smoothing and trajectory generation between waypoints for MAVs.
+  </description>
+
+  <author email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</author>
+
+  <maintainer email="helen.oleynikova@mavt.ethz.ch">Helen Oleynikova</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+
+  <depend>loco_planner</depend>
+  <depend>mav_msgs</depend>
+  <depend>mav_planning_common</depend>
+  <depend>mav_trajectory_generation_ros</depend>
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>tf</depend>
+  <depend>visualization_msgs</depend>
+</package>

@@ -1,0 +1,8 @@
+prefix=/usr/local
+
+Name: mav_planning_rviz
+Description: Description of mav_planning_rviz
+Version: 0.0.0
+Cflags: -I/usr/local/include
+Libs: -L/usr/local/lib -lmav_planning_rviz
+Requires: mav_msgs mav_planning_common mav_planning_msgs roscpp std_msgs tf visualization_msgs rviz mav_visualization
