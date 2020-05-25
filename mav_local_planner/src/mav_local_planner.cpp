@@ -270,7 +270,7 @@ void MavLocalPlanner::planningStep() {
     // empty sphere of robot position to be observed and free
     mav_trajectory_generation::timing::Timer clear_map_timer("plan/clear_map");
     voxblox::utils::emptySphereAroundPoint<voxblox::EsdfVoxel>(
-        odometry_.position_W.cast<float>(), constraints_.robot_radius + 0.01,
+        odometry_.position_W.cast<float>(), constraints_.robot_radius + 0.1,
         constraints_.robot_radius * 2,
         esdf_server_.getEsdfMapPtr()->getEsdfLayerPtr());
     clear_map_timer.Stop();
@@ -403,6 +403,8 @@ void MavLocalPlanner::getPlanningStart() {
   // Collision check path until replanning.
   if (!isPathCollisionFree(current_path_chunk)) {
     // abort and plan from scratch
+    ROS_WARN("[Mav Local Planner] ABORTING! "
+             "Current trajectory is in collision.");
     abort();
     existing_path_chunk_.clear();
     planning_index_ = path_index_;
@@ -949,7 +951,7 @@ void MavLocalPlanner::visualizeWaypoints(
   path_marker.frame_locked = true;
   path_marker.header.stamp = ros::Time::now();
   path_marker.type = visualization_msgs::Marker::CUBE_LIST;
-  path_marker.ns = "local_waypoints";
+  path_marker.ns = "sampled_local_waypoints";
   path_marker.scale.x = 0.1;
   path_marker.scale.y = path_marker.scale.x;
   path_marker.scale.z = path_marker.scale.x;
@@ -960,6 +962,24 @@ void MavLocalPlanner::visualizeWaypoints(
 
   // visualize sampled waypoint
   for (const mav_msgs::EigenTrajectoryPoint& waypoint : waypoints) {
+    mav_msgs::pointEigenToMsg(waypoint.position_W, &point_msg);
+    path_marker.points.push_back(point_msg);
+    path_marker.colors.push_back(color_msg);
+  }
+  marker_array.markers.push_back(path_marker);
+
+  // Visualize all waypoints
+  path_marker.ns = "all_local_waypoints";
+  path_marker.scale.x = 0.15;
+  path_marker.scale.y = path_marker.scale.x;
+  path_marker.scale.z = path_marker.scale.x;
+  color_msg = mav_visualization::Color::Black();
+  color_msg.a = 0.75;
+  path_marker.points.clear();
+  path_marker.colors.clear();
+
+  // visualize sampled waypoint
+  for (const mav_msgs::EigenTrajectoryPoint& waypoint : waypoints_) {
     mav_msgs::pointEigenToMsg(waypoint.position_W, &point_msg);
     path_marker.points.push_back(point_msg);
     path_marker.colors.push_back(color_msg);
@@ -1035,10 +1055,6 @@ double MavLocalPlanner::getMapDistance(const Eigen::Vector3d& position) const {
   const bool kInterpolate = false;
   if (!esdf_server_.getEsdfMapPtr()->getDistanceAtPosition(
           position, kInterpolate, &distance)) {
-    // optimistic behavior at odometry position
-    if ((position - odometry_.position_W).norm() < constraints_.robot_radius) {
-      return constraints_.robot_radius + 0.1;
-    }
     return 0.0;
   }
   return distance;
@@ -1051,13 +1067,6 @@ double MavLocalPlanner::getMapDistanceAndGradient(
   const bool kInterpolate = false;
   if (!esdf_server_.getEsdfMapPtr()->getDistanceAndGradientAtPosition(
           position, kInterpolate, &distance, gradient)) {
-    // optimistic behavior at odometry position
-    if ((position - odometry_.position_W).norm() < constraints_.robot_radius) {
-      *gradient =
-          (constraints_.robot_radius - (position - odometry_.position_W).norm())
-              * (position - odometry_.position_W).normalized();
-      return constraints_.robot_radius + 0.1;
-    }
     return 0.0;
   }
   return distance;
