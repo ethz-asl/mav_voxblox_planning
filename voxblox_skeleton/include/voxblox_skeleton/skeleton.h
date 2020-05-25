@@ -105,9 +105,6 @@ class SparseSkeletonGraph {
   const SkeletonVertex& getVertex(int64_t id) const;
   const SkeletonEdge& getEdge(int64_t id) const;
 
-  SkeletonVertex* getVertexPtr(int64_t id);
-  SkeletonEdge* getEdgePtr(int64_t id);
-
   SkeletonVertex& getVertex(int64_t id);
   SkeletonEdge& getEdge(int64_t id);
 
