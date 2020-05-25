@@ -38,6 +38,11 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
   setupSmoothers();
 }
 
+MavLocalPlanner::~MavLocalPlanner() {
+  ROS_INFO_STREAM("[Mav Local Planner] Timings: \n"
+                      << mav_trajectory_generation::timing::Timing::Print());
+}
+
 void MavLocalPlanner::getParamsFromRos() {
   // Set up some settings.
   constraints_.setParametersFromRos(nh_private_);
@@ -234,6 +239,7 @@ void MavLocalPlanner::planningStep() {
     return;
   }
   mav_trajectory_generation::timing::MiniTimer timer;
+  mav_trajectory_generation::timing::Timer planning_step_timer("plan");
 
   // First, easiest case: if we're not avoiding collisions, just use the
   // favorite path smoother. We only do this on the first planning call then
@@ -262,14 +268,18 @@ void MavLocalPlanner::planningStep() {
 
   } else {
     // empty sphere of robot position to be observed and free
+    mav_trajectory_generation::timing::Timer clear_map_timer("plan/clear_map");
     voxblox::utils::emptySphereAroundPoint<voxblox::EsdfVoxel>(
         odometry_.position_W.cast<float>(), constraints_.robot_radius + 0.01,
         constraints_.robot_radius * 2,
         esdf_server_.getEsdfMapPtr()->getEsdfLayerPtr());
+    clear_map_timer.Stop();
 
     // Get planning position
+    mav_trajectory_generation::timing::Timer get_planning_start_timer("plan/get_planning_start");
     getPlanningStart();
     visualizePlanningStart();
+    get_planning_start_timer.Stop();
     if (verbose_) {
       ROS_INFO("[Mav Local Planner][Plan Step] Replanning at path index %ld with "
                "pose(%.2f %.2f %.2f), velocity %.3f m/s, and "
@@ -285,23 +295,29 @@ void MavLocalPlanner::planningStep() {
     mav_msgs::EigenTrajectoryPointVector path;
     size_t waypoint_index;
     temporary_waypoints_.clear();
+    mav_trajectory_generation::timing::Timer plan_waypoint_list_timer("plan/plan_waypoint_list");
     bool success = findPathThroughCurrentWaypointList(&path, &waypoint_index);
     ROS_INFO("[Mav Local Planner][Plan Step] "
              "Planning of waypoint list successful? %d", success);
     if (success) {
       valid_existing_plan_ = true;
     }
+    plan_waypoint_list_timer.Stop();
 
     // In case replanning is not successful, we retry the planning with an
     // initial guess as the current trajectory
     if (!success && !existing_path_chunk_.empty() && valid_existing_plan_) {
       // sample the existing path chunk for temporary waypoints
+      mav_trajectory_generation::timing::Timer sample_existing_path_timer("plan/sample_existing_path");
       sampleExistingPath();
+      sample_existing_path_timer.Stop();
 
       // Replan
+      mav_trajectory_generation::timing::Timer replan_waypoints_timer("plan/replan_waypoint_list");
       success = findPathThroughCurrentWaypointList(&path, &waypoint_index);
       ROS_INFO("[Mav Local Planner][Plan Step] "
                "Replanning with existing path successful? %d", success);
+      replan_waypoints_timer.Stop();
     }
 
     // Use path
@@ -309,7 +325,9 @@ void MavLocalPlanner::planningStep() {
       num_failures_ = 0;
       num_tracking_ = 0;
       current_waypoint_ = waypoint_index;
+      mav_trajectory_generation::timing::Timer insert_path_timer("plan/insert_path");
       insertPath(path);
+      insert_path_timer.Stop();
     } else {
       // check existing path for collisions
       bool existing_path_collision_free = false;
@@ -325,7 +343,9 @@ void MavLocalPlanner::planningStep() {
                   existing_path_chunk_.size());
       } else {
         // Give up!
+        mav_trajectory_generation::timing::Timer avoid_collisions_timer("plan/avoid_collisions");
         avoidCollisionsTowardWaypoint();
+        avoid_collisions_timer.Stop();
       }
     }
   }
@@ -333,6 +353,7 @@ void MavLocalPlanner::planningStep() {
   ROS_INFO("[Mav Local Planner][Plan Step] Planning finished. Time taken: %f",
            timer.stop());
   visualizePath();
+  planning_step_timer.Stop();
 }
 
 void MavLocalPlanner::getPlanningStart() {
@@ -504,6 +525,7 @@ bool MavLocalPlanner::findPathThroughCurrentWaypointList(
   // Find list of waypoints to plan through
   mav_msgs::EigenTrajectoryPointVector free_waypoints;
 
+  mav_trajectory_generation::timing::Timer check_waypoints_timer("plan/plan_waypoint_list/check_waypoints");
   // Check temporary waypoint list for collisions
   for (const mav_msgs::EigenTrajectoryPoint& waypoint : temporary_waypoints_) {
     // skip occupied temporary waypoints
@@ -539,6 +561,7 @@ bool MavLocalPlanner::findPathThroughCurrentWaypointList(
     free_waypoints.emplace_back(waypoint);
     *waypoint_index = idx;
   }
+  check_waypoints_timer.Stop();
 
   if (free_waypoints.empty()) {
     ROS_WARN("[Mav Local Planner][Plan List] No free waypoints.");
@@ -598,6 +621,7 @@ bool MavLocalPlanner::findPathThroughCurrentWaypointList(
   }
 
   // Resample segments between waypoints for better results
+  mav_trajectory_generation::timing::Timer sample_segments_timer("plan/plan_waypoint_list/sample_waypoints");
   mav_msgs::EigenTrajectoryPointVector sampled_waypoints;
   ROS_INFO_COND(verbose_, "[Mav Local Planner] Sampling %lu waypoints.",
                 free_waypoints.size());
@@ -617,12 +641,14 @@ bool MavLocalPlanner::findPathThroughCurrentWaypointList(
   sampled_waypoints.emplace_back(free_waypoints[free_waypoints.size() - 1]);
   ROS_INFO_COND(verbose_, "[Mav Local Planner] Sampled %lu extra waypoints",
                 sampled_waypoints.size() - free_waypoints.size());
+  sample_segments_timer.Stop();
 
   // Visualize waypoints
   visualizeWaypoints(sampled_waypoints);
 
   // Plan through waypoints
   // There is some hope! Maybe we can do path smoothing on these guys.
+  mav_trajectory_generation::timing::Timer plan_timer("plan/plan_waypoint_list/plan");
   bool success = planPathThroughWaypoints(sampled_waypoints, path);
   if (success) {
     success = isPathCollisionFree(*path);
@@ -631,6 +657,7 @@ bool MavLocalPlanner::findPathThroughCurrentWaypointList(
                "Path was not collision free. :(");
     }
   }
+  plan_timer.Stop();
   return success;
 }
 
