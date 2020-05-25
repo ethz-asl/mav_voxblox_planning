@@ -299,13 +299,15 @@ void MavLocalPlanner::planningStep() {
     bool success = findPathThroughCurrentWaypointList(&path, &waypoint_index);
     ROS_INFO("[Mav Local Planner][Plan Step] "
              "Planning of waypoint list successful? %d", success);
-    if (success) {
-      valid_existing_plan_ = true;
-    }
     plan_waypoint_list_timer.Stop();
 
     // In case replanning is not successful, we retry the planning with an
     // initial guess as the current trajectory
+    if (!success) {
+      ROS_INFO_COND(verbose_, "[Mav Local Planner][Plan Step] "
+                              "Valid existing path exists? %d",
+                    valid_existing_plan_);
+    }
     if (!success && !existing_path_chunk_.empty() && valid_existing_plan_) {
       // sample the existing path chunk for temporary waypoints
       mav_trajectory_generation::timing::Timer sample_existing_path_timer("plan/sample_existing_path");
@@ -322,6 +324,7 @@ void MavLocalPlanner::planningStep() {
 
     // Use path
     if (success) {
+      valid_existing_plan_ = true;
       num_failures_ = 0;
       num_tracking_ = 0;
       current_waypoint_ = waypoint_index;
@@ -951,17 +954,39 @@ void MavLocalPlanner::visualizeWaypoints(
   path_marker.frame_locked = true;
   path_marker.header.stamp = ros::Time::now();
   path_marker.type = visualization_msgs::Marker::CUBE_LIST;
+  geometry_msgs::Point point_msg;
+  float opacity = 0.75;
+  path_marker.color.a = opacity;
+
+  // visualize sampled waypoint
   path_marker.ns = "sampled_local_waypoints";
   path_marker.scale.x = 0.1;
   path_marker.scale.y = path_marker.scale.x;
   path_marker.scale.z = path_marker.scale.x;
-  geometry_msgs::Point point_msg;
   mav_visualization::Color color_msg = mav_visualization::Color::Gray();
-  color_msg.a = 0.75;
-  path_marker.color.a = color_msg.a;
+  color_msg.a = opacity;
 
-  // visualize sampled waypoint
   for (const mav_msgs::EigenTrajectoryPoint& waypoint : waypoints) {
+    mav_msgs::pointEigenToMsg(waypoint.position_W, &point_msg);
+    path_marker.points.push_back(point_msg);
+    path_marker.colors.push_back(color_msg);
+  }
+  marker_array.markers.push_back(path_marker);
+
+  // visualize temporary waypoints
+  path_marker.ns = "temporary_local_waypoints";
+  path_marker.scale.x = 0.15;
+  path_marker.scale.y = path_marker.scale.x;
+  path_marker.scale.z = path_marker.scale.x;
+  color_msg = mav_visualization::Color::Gray();
+  color_msg.r *= 0.5;
+  color_msg.g *= 0.5;
+  color_msg.b *= 0.5;
+  color_msg.a = opacity;
+
+  path_marker.points.clear();
+  path_marker.colors.clear();
+  for (const mav_msgs::EigenTrajectoryPoint& waypoint : temporary_waypoints_) {
     mav_msgs::pointEigenToMsg(waypoint.position_W, &point_msg);
     path_marker.points.push_back(point_msg);
     path_marker.colors.push_back(color_msg);
@@ -974,19 +999,18 @@ void MavLocalPlanner::visualizeWaypoints(
   path_marker.scale.y = path_marker.scale.x;
   path_marker.scale.z = path_marker.scale.x;
   color_msg = mav_visualization::Color::Black();
-  color_msg.a = 0.75;
+  color_msg.a = opacity;
+
   path_marker.points.clear();
   path_marker.colors.clear();
-
-  // visualize sampled waypoint
   for (const mav_msgs::EigenTrajectoryPoint& waypoint : waypoints_) {
     mav_msgs::pointEigenToMsg(waypoint.position_W, &point_msg);
     path_marker.points.push_back(point_msg);
     path_marker.colors.push_back(color_msg);
   }
+  marker_array.markers.push_back(path_marker);
 
   // publish visualization
-  marker_array.markers.push_back(path_marker);
   path_marker_pub_.publish(marker_array);
   ROS_INFO_COND(verbose_, "[Mav Local Planner] Visualized waypoints.");
 }
