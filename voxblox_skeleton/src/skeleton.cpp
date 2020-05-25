@@ -123,13 +123,6 @@ SkeletonEdge& SparseSkeletonGraph::getEdge(int64_t id) {
   return edge_map_.find(id)->second;
 }
 
-SkeletonVertex* SparseSkeletonGraph::getVertexPtr(int64_t id) {
-  return &vertex_map_.at(id);
-}
-SkeletonEdge* SparseSkeletonGraph::getEdgePtr(int64_t id) {
-  return &edge_map_.at(id);
-}
-
 void SparseSkeletonGraph::clear() {
   next_vertex_id_ = 0;
   next_edge_id_ = 0;
