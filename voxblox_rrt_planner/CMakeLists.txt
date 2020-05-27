@@ -9,6 +9,7 @@ add_definitions(-std=c++11)
 #############
 # LIBRARIES #
 #############
+include_directories(${OMPL_INCLUDE_DIRS})
 cs_add_library(${PROJECT_NAME}
   src/voxblox_ompl_rrt.cpp
   src/voxblox_rrt_planner.cpp
