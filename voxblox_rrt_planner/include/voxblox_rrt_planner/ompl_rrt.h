@@ -1,5 +1,5 @@
-#ifndef VOXBLOX_RRT_PLANNER_VOXBLOX_OMPL_RRT_H_
-#define VOXBLOX_RRT_PLANNER_VOXBLOX_OMPL_RRT_H_
+#ifndef VOXBLOX_RRT_PLANNER_OMPL_RRT_H_
+#define VOXBLOX_RRT_PLANNER_OMPL_RRT_H_
 
 #include <mav_msgs/conversions.h>
 #include <mav_msgs/eigen_mav_msgs.h>
@@ -9,7 +9,7 @@
 
 namespace mav_planning {
 
-class VoxbloxOmplRrt {
+class BloxOmplRrt {
  public:
   enum RrtPlannerType {
     kRrtConnect = 0,
@@ -19,19 +19,14 @@ class VoxbloxOmplRrt {
     kPrm
   };
 
-  VoxbloxOmplRrt(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
-  virtual ~VoxbloxOmplRrt() {}
+  BloxOmplRrt(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private);
+  virtual ~BloxOmplRrt() {}
 
   inline void setRobotRadius(double robot_radius) {
     robot_radius_ = robot_radius;
   }
   void setBounds(const Eigen::Vector3d& lower_bound,
                  const Eigen::Vector3d& upper_bound);
-
-  // Both are expected to be OWNED BY ANOTHER OBJECT that shouldn't go out of
-  // scope while this object exists.
-  void setTsdfLayer(voxblox::Layer<voxblox::TsdfVoxel>* tsdf_layer);
-  void setEsdfLayer(voxblox::Layer<voxblox::EsdfVoxel>* esdf_layer);
 
   inline void setOptimistic(bool optimistic) { optimistic_ = optimistic; }
   bool getOptimistic() const { return optimistic_; }
@@ -45,7 +40,7 @@ class VoxbloxOmplRrt {
   void setPlanner(RrtPlannerType planner) { planner_type_ = planner; }
 
   // Only call this once, only call this after setting all settings correctly.
-  void setupProblem();
+  virtual void setupProblem();
 
   // Fixed start and end locations, returns list of waypoints between.
   bool getPathBetweenWaypoints(
@@ -65,8 +60,9 @@ class VoxbloxOmplRrt {
                              mav_msgs::EigenTrajectoryPoint::Vector* solution);
 
   void constructPrmRoadmap(double roadmap_construction_sec) {
-    problem_setup_.setup();
-    problem_setup_.constructPrmRoadmap(roadmap_construction_sec);
+    problem_setup_->clear();
+    problem_setup_->setup();
+    problem_setup_->constructPrmRoadmap(roadmap_construction_sec);
   }
 
  protected:
@@ -80,7 +76,7 @@ class VoxbloxOmplRrt {
   ros::NodeHandle nh_private_;
 
   // Setup the problem in OMPL.
-  ompl::mav::MavSetup problem_setup_;
+  ompl::mav::MavSetup* problem_setup_;
   RrtPlannerType planner_type_;
   double num_seconds_to_plan_;
   bool simplify_solution_;
@@ -101,14 +97,9 @@ class VoxbloxOmplRrt {
   Eigen::Vector3d lower_bound_;
   Eigen::Vector3d upper_bound_;
 
-  // NON-OWNED pointers to the relevant layers. TSDF only used if optimistic,
-  // ESDF only used if pessimistic.
-  voxblox::Layer<voxblox::TsdfVoxel>* tsdf_layer_;
-  voxblox::Layer<voxblox::EsdfVoxel>* esdf_layer_;
-
   double voxel_size_;
 };
 
 }  // namespace mav_planning
 
-#endif  // VOXBLOX_RRT_PLANNER_VOXBLOX_OMPL_RRT_H_
+#endif  // VOXBLOX_RRT_PLANNER_OMPL_RRT_H_

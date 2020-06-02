@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>mav_planning_voxblox</name>
+  <version>0.0.0</version>
+  <description>
+    Package containing the general planner structure
+    to enable interfacing and inheritance.
+  </description>
+
+  <author email="laura.gasser@mavt.ethz.ch">Laura Gasser</author>
+
+  <maintainer email="laura.gasser@mavt.ethz.ch">Laura Gasser</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+
+  <depend>voxblox</depend>
+  <depend>voxblox_ros</depend>
+</package>

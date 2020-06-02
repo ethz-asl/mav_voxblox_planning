@@ -61,6 +61,7 @@ struct SkeletonVertex {
   float distance = 0.0f;
 
   std::vector<int64_t> edge_list;
+  std::vector<int64_t> link_list;
 
   int subgraph_id = 0;
 
@@ -76,10 +77,15 @@ struct SkeletonEdge {
   float start_distance = 0.0f;
   float end_distance = 0.0f;
 
+  int subgraph_id = 0;
+
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 class SparseSkeletonGraph {
+  typedef kindr::minimal::QuatTransformationTemplate<FloatingPoint>
+      Transformation;
+
  public:
   SparseSkeletonGraph();
 
@@ -128,6 +134,9 @@ class SparseSkeletonGraph {
   // already in the structure.
   void addSerializedVertex(const SkeletonVertex& vertex);
   void addSerializedEdge(const SkeletonEdge& edge);
+
+  // transforms vertex locations into different frame
+  void transformFrame(const Transformation& T_G_S);
 
  private:
   // Vertex and edge IDs are separate.

@@ -144,6 +144,8 @@ class SkeletonGenerator {
   void mergeSubgraphs(int subgraph_1, int subgraph_2,
                       std::map<int, int>* subgraph_map) const;
 
+  void setVerbose(bool verbose) {verbose_ = verbose;};
+
  private:
   // KD tree adapters.
   typedef nanoflann::KDTreeSingleIndexAdaptor<
@@ -201,6 +203,8 @@ class SkeletonGenerator {
   size_t voxels_per_side_;
 
   SparseSkeletonGraph graph_;
+
+  bool verbose_;
 };
 
 }  // namespace voxblox

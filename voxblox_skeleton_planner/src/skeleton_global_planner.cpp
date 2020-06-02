@@ -115,13 +115,13 @@ SkeletonGlobalPlanner::SkeletonGlobalPlanner(const ros::NodeHandle& nh,
 
 void SkeletonGlobalPlanner::generateSparseGraph() {
   ROS_INFO("About to generate skeleton graph.");
-  skeleton_generator_.updateSkeletonFromLayer();
-  ROS_INFO("Re-populated from layer.");
 
   if (!sparse_graph_path_.empty() &&
       skeleton_generator_.loadSparseGraphFromFile(sparse_graph_path_)) {
     ROS_INFO_STREAM("Loaded sparse graph from file: " << sparse_graph_path_);
   } else {
+    skeleton_generator_.updateSkeletonFromLayer();
+    ROS_INFO("Re-populated from layer.");
     skeleton_generator_.generateSparseGraph();
     ROS_INFO("Generated skeleton graph.");
   }
