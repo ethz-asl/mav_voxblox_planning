@@ -691,10 +691,6 @@ double MavLocalPlanner::getMapDistance(const Eigen::Vector3d& position) const {
   const bool kInterpolate = false;
   if (!esdf_server_.getEsdfMapPtr()->getDistanceAtPosition(
           position, kInterpolate, &distance)) {
-    // optimistic behavior at odometry position
-    if ((position - odometry_.position_W).norm() < constraints_.robot_radius) {
-      return constraints_.robot_radius + 0.1;
-    }
     return 0.0;
   }
   return distance;
@@ -706,13 +702,6 @@ double MavLocalPlanner::getMapDistanceAndGradient(
   const bool kInterpolate = false;
   if (!esdf_server_.getEsdfMapPtr()->getDistanceAndGradientAtPosition(
           position, kInterpolate, &distance, gradient)) {
-    // optimistic behavior at odometry position
-    if ((position - odometry_.position_W).norm() < constraints_.robot_radius) {
-      *gradient =
-          (constraints_.robot_radius - (position - odometry_.position_W).norm())
-              * (position - odometry_.position_W).normalized();
-      return constraints_.robot_radius + 0.1;
-    }
     return 0.0;
   }
   return distance;
