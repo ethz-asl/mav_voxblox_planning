@@ -49,12 +49,6 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
   vertices.front().addConstraint(
       mav_trajectory_generation::derivative_order::POSITION,
       waypoints.front().position_W);
-  vertices.front().addConstraint(
-      mav_trajectory_generation::derivative_order::VELOCITY,
-      waypoints.front().velocity_W);
-  vertices.front().addConstraint(
-      mav_trajectory_generation::derivative_order::ACCELERATION,
-      waypoints.front().acceleration_W);
   vertices.back().makeStartOrEnd(0, derivative_to_optimize);
   vertices.back().addConstraint(
       mav_trajectory_generation::derivative_order::POSITION,
@@ -135,9 +129,7 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
         break;
       }
     }
-    if (verbose_) {
-      ROS_INFO("[SPLIT SMOOTHING] Added %d additional vertices.", num_added);
-    }
+    ROS_INFO("[SPLIT SMOOTHING] Added %d additional vertices.", num_added);
 
     // If we had to do this, let's scale the times back to make sure we're
     // still within constraints.
@@ -150,10 +142,8 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
   double v_max, a_max;
   trajectory->computeMaxVelocityAndAcceleration(&v_max, &a_max);
 
-  if (verbose_) {
-    ROS_INFO("[SMOOTHING] V max/limit: %f/%f, A max/limit: %f/%f", v_max,
-             constraints_.v_max, a_max, constraints_.a_max);
-  }
+  ROS_INFO("[SMOOTHING] V max/limit: %f/%f, A max/limit: %f/%f", v_max,
+           constraints_.v_max, a_max, constraints_.a_max);
 
   return true;
 }
