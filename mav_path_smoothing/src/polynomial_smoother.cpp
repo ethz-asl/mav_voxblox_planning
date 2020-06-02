@@ -51,6 +51,12 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
   vertices.front().addConstraint(
       mav_trajectory_generation::derivative_order::POSITION,
       waypoints.front().position_W);
+  vertices.front().addConstraint(
+      mav_trajectory_generation::derivative_order::VELOCITY,
+      waypoints.front().velocity_W);
+  vertices.front().addConstraint(
+      mav_trajectory_generation::derivative_order::ACCELERATION,
+      waypoints.front().acceleration_W);
   vertices.back().makeStartOrEnd(0, derivative_to_optimize);
   vertices.back().addConstraint(
       mav_trajectory_generation::derivative_order::POSITION,
