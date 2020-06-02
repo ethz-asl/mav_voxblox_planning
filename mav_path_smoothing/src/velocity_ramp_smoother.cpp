@@ -73,7 +73,8 @@ bool VelocityRampSmoother::getPathBetweenTwoPoints(
     // Figure out if we're accelerating, deccelerating, or neither.
     // Handle Case 1 first:
     if (total_segment_time < min_acceleration_time * 2) {
-      if (current_time < total_segment_time / 2.0) {
+      // units: [current_time] = ns, [total_segment_time] = s
+      if (current_time / 1.0e9 < total_segment_time / 2.0) {
         velocity += constraints_.a_max * constraints_.sampling_dt;
       } else {
         velocity -= constraints_.a_max * constraints_.sampling_dt;
