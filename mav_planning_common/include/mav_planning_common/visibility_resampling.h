@@ -11,7 +11,7 @@ namespace mav_planning {
 void resampleWaypointsFromVisibilityGraph(
     int num_segments, const PhysicalConstraints& constraints,
     const mav_msgs::EigenTrajectoryPoint::Vector& waypoints,
-    mav_msgs::EigenTrajectoryPoint::Vector* waypoints_out);
+    mav_msgs::EigenTrajectoryPoint::Vector* waypoints_out, bool verbose = true);
 
 }  // namespace mav_planning
 

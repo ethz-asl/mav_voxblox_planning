@@ -34,8 +34,8 @@ class MavLocalPlanner {
 
   // Input data.
   void odometryCallback(const nav_msgs::Odometry& msg);
-  void waypointCallback(const geometry_msgs::PoseStamped& msg);
-  void waypointListCallback(const geometry_msgs::PoseArray& msg);
+  virtual void waypointCallback(const geometry_msgs::PoseStamped& msg);
+  virtual void waypointListCallback(const geometry_msgs::PoseArray& msg);
 
   // Stops path publishing and clears all recent trajectories.
   void clearTrajectory();
@@ -58,17 +58,24 @@ class MavLocalPlanner {
   void polynomialTrajectoryCallback(
       const mav_planning_msgs::PolynomialTrajectory4D& msg) {}
 
- private:
+ protected:
+  // Initializing functions.
+  void getParamsFromRos();
+  void setupRosCommunication();
+  void startTimers();
+  void setupMap();
+  void setupSmoothers();
+
   // Control for publishing.
   void startPublishingCommands();
   void commandPublishTimerCallback(const ros::TimerEvent& event);
 
   // Control for planning.
   void planningTimerCallback(const ros::TimerEvent& event);
-  void planningStep();
+  virtual void planningStep();
 
   // Returns if the next waypoint is a valid waypoint.
-  bool nextWaypoint();
+  virtual bool nextWaypoint();
   void finishWaypoints();
 
   void replacePath(const mav_msgs::EigenTrajectoryPointVector& path);
@@ -79,7 +86,7 @@ class MavLocalPlanner {
 
   // Functions to help out replanning.
   // Track a single waypoint, planning only in a short known horizon.
-  void avoidCollisionsTowardWaypoint();
+  virtual void avoidCollisionsTowardWaypoint();
   // Get a path through a bunch of waypoints.
   bool planPathThroughWaypoints(
       const mav_msgs::EigenTrajectoryPointVector& waypoints,

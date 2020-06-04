@@ -66,7 +66,7 @@ bool loadSparseSkeletonGraphFromFile(const std::string& filename,
 
   // Byte offset result, used to keep track where we are in the file if
   // necessary.
-  uint32_t tmp_byte_offset = 0;
+  uint64_t tmp_byte_offset = 0;
 
   SkeletonGraphProto proto;
   if (!utils::readProtoMsgFromStream(&proto_file, &proto, &tmp_byte_offset)) {

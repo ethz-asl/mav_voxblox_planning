@@ -28,12 +28,17 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
       num_failures_(0),
       esdf_server_(nh_, nh_private_),
       loco_planner_(nh_, nh_private_) {
+  getParamsFromRos();
+  setupRosCommunication();
+  startTimers();
+  setupMap();
+  setupSmoothers();
+}
+
+void MavLocalPlanner::getParamsFromRos() {
   // Set up some settings.
   constraints_.setParametersFromRos(nh_private_);
-  esdf_server_.setTraversabilityRadius(constraints_.robot_radius);
-  loco_planner_.setEsdfMap(esdf_server_.getEsdfMapPtr());
   goal_selector_.setParametersFromRos(nh_private_);
-  goal_selector_.setTsdfMap(esdf_server_.getTsdfMapPtr());
 
   nh_private_.param("verbose", verbose_, verbose_);
   nh_private_.param("global_frame_id", global_frame_id_, global_frame_id_);
@@ -49,7 +54,9 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
   nh_private_.param("autostart", autostart_, autostart_);
   nh_private_.param("plan_to_start", plan_to_start_, plan_to_start_);
   nh_private_.param("smoother_name", smoother_name_, smoother_name_);
+}
 
+void MavLocalPlanner::setupRosCommunication() {
   // Publishers and subscribers.
   odometry_sub_ = nh_.subscribe(mav_msgs::default_topics::ODOMETRY, 1,
                                 &MavLocalPlanner::odometryCallback, this);
@@ -77,7 +84,9 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
 
   position_hold_client_ =
       nh_.serviceClient<std_srvs::Empty>("back_to_position_hold");
+}
 
+void MavLocalPlanner::startTimers() {
   // Start the planning timer. Will no-op most cycles.
   ros::TimerOptions timer_options(
       ros::Duration(replan_dt_),
@@ -89,7 +98,28 @@ MavLocalPlanner::MavLocalPlanner(const ros::NodeHandle& nh,
   // Start the command publishing spinner.
   command_publishing_spinner_.start();
   planning_spinner_.start();
+}
 
+void MavLocalPlanner::setupMap() {
+  esdf_server_.setTraversabilityRadius(constraints_.robot_radius);
+  loco_planner_.setEsdfMap(esdf_server_.getEsdfMapPtr());
+  goal_selector_.setTsdfMap(esdf_server_.getTsdfMapPtr());
+
+  // load map to esdf_server_
+  std::string map_path;
+  nh_private_.param("map_path", map_path, map_path);
+  if (!map_path.empty()) {
+    ROS_INFO_STREAM("[Mav Local Planner] Loading map from " << map_path);
+    bool success = esdf_server_.loadMap(map_path);
+    if (!success) {
+      ROS_WARN("[Mav Local Planner] Could not load map!");
+    } else {
+      ROS_INFO("[Mav Local Planner] Loaded map successfully.");
+    }
+  }
+}
+
+void MavLocalPlanner::setupSmoothers() {
   // Set up yaw policy.
   yaw_policy_.setPhysicalConstraints(constraints_);
   yaw_policy_.setYawPolicy(YawPolicy::PolicyType::kVelocityVector);
@@ -540,16 +570,27 @@ void MavLocalPlanner::commandPublishTimerCallback(
     msg.header.frame_id = local_frame_id_;
     msg.header.stamp = ros::Time::now();
 
-    ROS_INFO(
-        "[Mav Local Planner][Command Publish] Publishing %zu samples of %zu. "
-        "Start index: %zu Time: %f Start position: %f Start velocity: %f End "
-        "time: %f End position: %f",
-        trajectory_to_publish.size(), path_queue_.size(), starting_index,
-        trajectory_to_publish.front().time_from_start_ns * 1.0e-9,
-        trajectory_to_publish.front().position_W.x(),
-        trajectory_to_publish.front().velocity_W.x(),
-        trajectory_to_publish.back().time_from_start_ns * 1.0e-9,
-        trajectory_to_publish.back().position_W.x());
+    if (verbose_) {
+      ROS_INFO("[Mav Local Planner][Command Publish] Publishing %zu samples of %zu. "
+               "Start index: %zu\n"
+               "Start Time: %.3f, Position: %.2f %.2f %.2f, Velocity: %.2f %.2f %.2f\n"
+               "End   Time: %.3f, Position: %.2f %.2f %.2f, Velocity: %.2f %.2f %.2f",
+               trajectory_to_publish.size(), path_queue_.size(), starting_index,
+               trajectory_to_publish.front().time_from_start_ns * 1.0e-9,
+               trajectory_to_publish.front().position_W.x(),
+               trajectory_to_publish.front().position_W.y(),
+               trajectory_to_publish.front().position_W.z(),
+               trajectory_to_publish.front().velocity_W.x(),
+               trajectory_to_publish.front().velocity_W.y(),
+               trajectory_to_publish.front().velocity_W.z(),
+               trajectory_to_publish.back().time_from_start_ns * 1.0e-9,
+               trajectory_to_publish.back().position_W.x(),
+               trajectory_to_publish.back().position_W.y(),
+               trajectory_to_publish.back().position_W.z(),
+               trajectory_to_publish.back().velocity_W.x(),
+               trajectory_to_publish.back().velocity_W.y(),
+               trajectory_to_publish.back().velocity_W.z());
+    }
     mav_msgs::msgMultiDofJointTrajectoryFromEigen(trajectory_to_publish, &msg);
 
     command_pub_.publish(msg);
@@ -614,17 +655,34 @@ bool MavLocalPlanner::stopCallback(std_srvs::Empty::Request& request,
 }
 
 void MavLocalPlanner::visualizePath() {
-  // TODO: Split trajectory into two chunks: before and after.
   visualization_msgs::MarkerArray marker_array;
   visualization_msgs::Marker path_marker;
   {
     std::lock_guard<std::recursive_mutex> guard(path_mutex_);
 
-    path_marker = createMarkerForPath(path_queue_, local_frame_id_,
+    // Cut out the flown path queue to visualize
+    mav_msgs::EigenTrajectoryPointVector path_before;
+    std::copy(path_queue_.begin(), path_queue_.begin()
+                  + std::min(path_index_ + 1, path_queue_.size()),
+              std::back_inserter(path_before));
+    path_marker = createMarkerForPath(path_before, local_frame_id_,
+                                      mav_visualization::Color::Gray(),
+                                      "local_path_before", 0.05);
+    path_marker.header.frame_id = local_frame_id_;
+    path_marker.frame_locked = true;
+    marker_array.markers.push_back(path_marker);
+    // Cut out the upcoming path queue to visualize
+    mav_msgs::EigenTrajectoryPointVector path_after;
+    std::copy(path_queue_.begin() + std::max(path_index_, 0lu),
+              path_queue_.end(),
+              std::back_inserter(path_after));
+    path_marker = createMarkerForPath(path_after, local_frame_id_,
                                       mav_visualization::Color::Black(),
-                                      "local_path", 0.05);
+                                      "local_path_after", 0.05);
+    path_marker.header.frame_id = local_frame_id_;
+    path_marker.frame_locked = true;
+    marker_array.markers.push_back(path_marker);
   }
-  marker_array.markers.push_back(path_marker);
   path_marker_pub_.publish(marker_array);
 }
 
@@ -678,6 +736,7 @@ bool MavLocalPlanner::dealWithFailure() {
   if (current_waypoint_ < 0) {
     return false;
   }
+  should_replan_.notify();
 
   constexpr double kCloseEnough = 0.05;
   mav_msgs::EigenTrajectoryPoint waypoint = waypoints_[current_waypoint_];
@@ -694,25 +753,31 @@ bool MavLocalPlanner::dealWithFailure() {
   if (!goal_selector_.selectNextGoal(goal, waypoint, current_point,
                                      &current_goal)) {
     num_failures_++;
+    ROS_INFO("[Mav Local Planning][Failed] No next goal selected.");
     if (num_failures_ > max_failures_) {
       current_waypoint_ = -1;
+      ROS_ERROR("[Mav Local Planning][Failed] Max number of failures reached, "
+               "waypoint list abandoned.");
     }
     return false;
   } else {
     if ((current_goal.position_W - waypoint.position_W).norm() < kCloseEnough) {
       // Goal is unchanged. :(
       temporary_goal_ = false;
+      ROS_INFO("[Mav Local Planning][Failed] Goal is unchanged.");
       return false;
     } else if ((current_goal.position_W - goal.position_W).norm() <
                kCloseEnough) {
       // This is just the next waypoint that we're trying to go to.
       current_waypoint_++;
       temporary_goal_ = false;
+      ROS_INFO("[Mav Local Planning][Failed] We've reached a waypoint, all good.");
       return true;
     } else {
       // Then this is something different!
       temporary_goal_ = true;
       waypoints_.insert(waypoints_.begin() + current_waypoint_, current_goal);
+      ROS_INFO("[Mav Local Planning][Failed] Inserting temporary waypoint.");
       return true;
     }
   }

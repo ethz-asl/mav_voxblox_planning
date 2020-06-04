@@ -9,7 +9,8 @@ namespace mav_planning {
 void resampleWaypointsFromVisibilityGraph(
     int num_segments, const PhysicalConstraints& constraints,
     const mav_msgs::EigenTrajectoryPoint::Vector& waypoints,
-    mav_msgs::EigenTrajectoryPoint::Vector* waypoints_out) {
+    mav_msgs::EigenTrajectoryPoint::Vector* waypoints_out,
+    bool verbose) {
   // We will divide the trajectory into num_segments+1 waypoints.
   CHECK_NOTNULL(waypoints_out);
   CHECK_GT(waypoints.size(), 1u);
@@ -27,8 +28,8 @@ void resampleWaypointsFromVisibilityGraph(
 
   double total_time =
       std::accumulate(segment_times.begin(), segment_times.end(), 0.0);
-  ROS_INFO("Total time: %f Time per seg: %f", total_time,
-           total_time / num_segments);
+  ROS_INFO_COND(verbose, "Total time: %f Time per seg: %f",
+                total_time, total_time / num_segments);
   // Next we'll split the total time into num_segments sections and evaluate
   // where the waypoint falls.
   double time_so_far = 0.0;
@@ -51,9 +52,9 @@ void resampleWaypointsFromVisibilityGraph(
       point.position_W = waypoints[input_waypoint_index - 1].position_W +
                          magnitude * direction;
       waypoints_out->push_back(point);
-      ROS_INFO("Waypoint %d from waypoint %d at time: %f offset: %f",
-               output_waypoint_index, input_waypoint_index, time_so_far,
-               magnitude);
+      ROS_INFO_COND(verbose, "Waypoint %zu from waypoint %zu at time: %f offset: %f",
+                    output_waypoint_index, input_waypoint_index, time_so_far,
+                    magnitude);
       output_waypoint_index++;
     } else {
       time_so_far += segment_times[input_waypoint_index];

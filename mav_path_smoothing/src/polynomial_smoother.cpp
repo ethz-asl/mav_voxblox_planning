@@ -11,7 +11,8 @@ PolynomialSmoother::PolynomialSmoother()
     : PathSmootherBase(),
       optimize_time_(true),
       split_at_collisions_(false),
-      min_col_check_resolution_(0.1) {}
+      min_col_check_resolution_(0.1),
+      verbose_(false) {}
 
 void PolynomialSmoother::setParametersFromRos(const ros::NodeHandle& nh) {
   PathSmootherBase::setParametersFromRos(nh);
@@ -19,6 +20,7 @@ void PolynomialSmoother::setParametersFromRos(const ros::NodeHandle& nh) {
   nh.param("split_at_collisions", split_at_collisions_, split_at_collisions_);
   nh.param("min_col_check_resolution", min_col_check_resolution_,
            min_col_check_resolution_);
+  nh.param("verbose", verbose_, verbose_);
 }
 
 bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
@@ -49,6 +51,12 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
   vertices.front().addConstraint(
       mav_trajectory_generation::derivative_order::POSITION,
       waypoints.front().position_W);
+  vertices.front().addConstraint(
+      mav_trajectory_generation::derivative_order::VELOCITY,
+      waypoints.front().velocity_W);
+  vertices.front().addConstraint(
+      mav_trajectory_generation::derivative_order::ACCELERATION,
+      waypoints.front().acceleration_W);
   vertices.back().makeStartOrEnd(0, derivative_to_optimize);
   vertices.back().addConstraint(
       mav_trajectory_generation::derivative_order::POSITION,
@@ -82,7 +90,7 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
     nlopt_parameters.algorithm = nlopt::LD_LBFGS;
     nlopt_parameters.time_alloc_method = mav_trajectory_generation::
         NonlinearOptimizationParameters::kMellingerOuterLoop;
-    nlopt_parameters.print_debug_info_time_allocation = true;
+    nlopt_parameters.print_debug_info_time_allocation = verbose_;
     mav_trajectory_generation::PolynomialOptimizationNonLinear<N> nlopt(
         D, nlopt_parameters);
     nlopt.setupFromVertices(vertices, segment_times, derivative_to_optimize);
@@ -129,7 +137,8 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
         break;
       }
     }
-    ROS_INFO("[SPLIT SMOOTHING] Added %d additional vertices.", num_added);
+    ROS_INFO_COND(verbose_, "[SPLIT SMOOTHING] Added %d additional vertices.",
+                  num_added);
 
     // If we had to do this, let's scale the times back to make sure we're
     // still within constraints.
@@ -142,8 +151,8 @@ bool PolynomialSmoother::getTrajectoryBetweenWaypoints(
   double v_max, a_max;
   trajectory->computeMaxVelocityAndAcceleration(&v_max, &a_max);
 
-  ROS_INFO("[SMOOTHING] V max/limit: %f/%f, A max/limit: %f/%f", v_max,
-           constraints_.v_max, a_max, constraints_.a_max);
+  ROS_INFO_COND(verbose_, "[SMOOTHING] V max/limit: %f/%f, A max/limit: %f/%f",
+                v_max, constraints_.v_max, a_max, constraints_.a_max);
 
   return true;
 }
