@@ -4,7 +4,7 @@
 #include <ompl/base/objectives/PathLengthOptimizationObjective.h>
 #include <ompl/base/spaces/SE3StateSpace.h>
 #include <ompl/geometric/SimpleSetup.h>
-#include <ompl/geometric/planners/bitstar/BITstar.h>
+//#include <ompl/geometric/planners/bitstar/BITstar.h>
 #include <ompl/geometric/planners/prm/PRM.h>
 #include <ompl/geometric/planners/rrt/InformedRRTstar.h>
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
@@ -45,10 +45,10 @@ class MavSetup : public geometric::SimpleSetup {
         new ompl::geometric::InformedRRTstar(getSpaceInformation())));
   }
 
-  void setBitStar() {
-    setPlanner(ompl::base::PlannerPtr(
-        new ompl::geometric::BITstar(getSpaceInformation())));
-  }
+//  void setBitStar() {
+//    setPlanner(ompl::base::PlannerPtr(
+//        new ompl::geometric::BITstar(getSpaceInformation())));
+//  }
 
   void setPrm() {
     setPlanner(ompl::base::PlannerPtr(
