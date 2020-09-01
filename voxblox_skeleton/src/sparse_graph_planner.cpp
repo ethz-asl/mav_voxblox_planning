@@ -12,13 +12,16 @@ void SparseGraphPlanner::setup() {
 
   // Build the kD Tree of the vertices at the current moment.
   // Create the adapter.
-
-  // construct a kd-tree index:
-  const int kDim = 3;
-  const int kMaxLeaf = 10;
-
   kd_tree_adapter_.reset(
       new DirectSkeletonVertexMapAdapter(graph_->getVertexMap()));
+  // Setup the tree itself
+  setupKdTree();
+}
+
+void SparseGraphPlanner::setupKdTree() {
+  // Construct a kd-tree index:
+  const int kDim = 3;
+  const int kMaxLeaf = 10;
 
   kd_tree_.reset(new VertexGraphKdTree(
       kDim, *kd_tree_adapter_,
