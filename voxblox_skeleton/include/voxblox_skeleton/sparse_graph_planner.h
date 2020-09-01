@@ -17,7 +17,18 @@ class SparseGraphPlanner {
       DirectSkeletonVertexMapAdapter, 3>
       VertexGraphKdTree;
 
+  // Standard constructor
   SparseGraphPlanner();
+  // Deep copy constructor
+  SparseGraphPlanner(const SparseGraphPlanner& rhs)
+      : graph_(rhs.graph_),
+        kd_tree_adapter_(new DirectSkeletonVertexMapAdapter(
+            rhs.kd_tree_adapter_->derived())) {
+    // Rebuild the kd-tree since it doesn't seem to be safe to copy
+    setupKdTree();
+  }
+  // Move constructor
+  SparseGraphPlanner(SparseGraphPlanner&& rhs) = default;
 
   void setGraph(SparseSkeletonGraph* graph) {
     CHECK_NOTNULL(graph);
@@ -48,6 +59,8 @@ class SparseGraphPlanner {
   void getSolutionPath(int64_t end_vertex_id,
                        const std::map<int64_t, int64_t>& parent_map,
                        std::vector<int64_t>* vertex_path) const;
+
+  void setupKdTree();
 
   SparseSkeletonGraph* graph_;
 
