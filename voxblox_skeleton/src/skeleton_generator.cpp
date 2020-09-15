@@ -18,13 +18,13 @@ SkeletonGenerator::SkeletonGenerator()
   corner_template_matcher_.setCornerTemplates();
 }
 
-SkeletonGenerator::SkeletonGenerator(Layer<EsdfVoxel>* esdf_layer)
+SkeletonGenerator::SkeletonGenerator(const Layer<EsdfVoxel>* esdf_layer)
     : SkeletonGenerator() {
   setEsdfLayer(esdf_layer);
   CHECK_NOTNULL(esdf_layer);
 }
 
-void SkeletonGenerator::setEsdfLayer(Layer<EsdfVoxel>* esdf_layer) {
+void SkeletonGenerator::setEsdfLayer(const Layer<EsdfVoxel>* esdf_layer) {
   CHECK_NOTNULL(esdf_layer);
   esdf_layer_ = esdf_layer;
 
@@ -103,7 +103,7 @@ void SkeletonGenerator::generateSkeleton() {
   esdf_layer_->getAllAllocatedBlocks(&blocks);
 
   for (const BlockIndex& block_index : blocks) {
-    const Block<EsdfVoxel>::Ptr& esdf_block =
+    const Block<EsdfVoxel>::ConstPtr& esdf_block =
         esdf_layer_->getBlockPtrByIndex(block_index);
     Block<SkeletonVoxel>::Ptr skeleton_block =
         skeleton_layer_->allocateBlockPtrByIndex(block_index);
@@ -147,7 +147,7 @@ void SkeletonGenerator::generateSkeleton() {
         // Get the block for this voxel.
         BlockIndex neighbor_block_index = neighbors[i].first;
         VoxelIndex neighbor_voxel_index = neighbors[i].second;
-        Block<EsdfVoxel>::Ptr neighbor_block;
+        Block<EsdfVoxel>::ConstPtr neighbor_block;
         if (neighbor_block_index == block_index) {
           neighbor_block = esdf_block;
         } else {
@@ -160,7 +160,7 @@ void SkeletonGenerator::generateSkeleton() {
         CHECK(neighbor_block->isValidVoxelIndex(neighbor_voxel_index))
             << "Neigbor voxel index: " << neighbor_voxel_index.transpose();
 
-        EsdfVoxel& neighbor_voxel =
+        const EsdfVoxel& neighbor_voxel =
             neighbor_block->getVoxelByVoxelIndex(neighbor_voxel_index);
 
         if (!neighbor_voxel.observed ||
