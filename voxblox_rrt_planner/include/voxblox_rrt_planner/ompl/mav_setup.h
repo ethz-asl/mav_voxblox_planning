@@ -66,10 +66,11 @@ class MavSetup : public geometric::SimpleSetup {
   }
 
   void setTsdfVoxbloxCollisionChecking(
-      double robot_radius, voxblox::Layer<voxblox::TsdfVoxel>* tsdf_layer) {
+      double robot_radius, voxblox::Layer<voxblox::TsdfVoxel>* tsdf_layer, bool treat_unknown_as_occupied=false) {
     std::shared_ptr<TsdfVoxbloxValidityChecker> validity_checker(
         new TsdfVoxbloxValidityChecker(getSpaceInformation(), robot_radius,
                                        tsdf_layer));
+    validity_checker->setTreatUnknownAsOccupied(treat_unknown_as_occupied);
 
     setStateValidityChecker(base::StateValidityCheckerPtr(validity_checker));
     si_->setMotionValidator(
@@ -78,10 +79,11 @@ class MavSetup : public geometric::SimpleSetup {
   }
 
   void setEsdfVoxbloxCollisionChecking(
-      double robot_radius, voxblox::Layer<voxblox::EsdfVoxel>* esdf_layer) {
+      double robot_radius, voxblox::Layer<voxblox::EsdfVoxel>* esdf_layer, bool treat_unknown_as_occupied=false) {
     std::shared_ptr<EsdfVoxbloxValidityChecker> validity_checker(
         new EsdfVoxbloxValidityChecker(getSpaceInformation(), robot_radius,
                                        esdf_layer));
+    validity_checker->setTreatUnknownAsOccupied(treat_unknown_as_occupied);
 
     setStateValidityChecker(base::StateValidityCheckerPtr(validity_checker));
     si_->setMotionValidator(

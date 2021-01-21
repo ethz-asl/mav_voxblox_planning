@@ -82,6 +82,7 @@ class VoxbloxRrtPlanner {
   std::string frame_id_;
   bool visualize_;
   bool do_smoothing_;
+  double default_esdf_value_;
 
   // Robot parameters -- v max, a max, radius, etc.
   PhysicalConstraints constraints_;

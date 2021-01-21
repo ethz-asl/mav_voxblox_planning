@@ -10,12 +10,14 @@ VoxbloxOmplRrt::VoxbloxOmplRrt(const ros::NodeHandle& nh,
       num_seconds_to_plan_(2.5),
       simplify_solution_(true),
       robot_radius_(1.0),
+      treat_unkown_as_occupied_(true),
       verbose_(false),
       optimistic_(true),
       trust_approx_solution_(false),
       lower_bound_(Eigen::Vector3d::Zero()),
       upper_bound_(Eigen::Vector3d::Zero()) {
   nh_private_.param("robot_radius", robot_radius_, robot_radius_);
+  nh_private_.param("treat_unkown_as_occupied", treat_unkown_as_occupied_, treat_unkown_as_occupied_);
   nh_private_.param("num_seconds_to_plan", num_seconds_to_plan_,
                     num_seconds_to_plan_);
   nh_private_.param("simplify_solution", simplify_solution_,
@@ -47,10 +49,10 @@ void VoxbloxOmplRrt::setEsdfLayer(
 void VoxbloxOmplRrt::setupProblem() {
   if (optimistic_) {
     CHECK_NOTNULL(tsdf_layer_);
-    problem_setup_.setTsdfVoxbloxCollisionChecking(robot_radius_, tsdf_layer_);
+    problem_setup_.setTsdfVoxbloxCollisionChecking(robot_radius_, tsdf_layer_, treat_unkown_as_occupied_);
   } else {
     CHECK_NOTNULL(esdf_layer_);
-    problem_setup_.setEsdfVoxbloxCollisionChecking(robot_radius_, esdf_layer_);
+    problem_setup_.setEsdfVoxbloxCollisionChecking(robot_radius_, esdf_layer_, treat_unkown_as_occupied_);
   }
   problem_setup_.setDefaultObjective();
   if (planner_type_ == kRrtConnect) {

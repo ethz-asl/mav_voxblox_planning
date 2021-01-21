@@ -17,6 +17,7 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
       frame_id_("odom"),
       visualize_(true),
       do_smoothing_(true),
+      default_esdf_value_(0.0),
       last_trajectory_valid_(false),
       lower_bound_(Eigen::Vector3d::Zero()),
       upper_bound_(Eigen::Vector3d::Zero()),
@@ -29,6 +30,7 @@ VoxbloxRrtPlanner::VoxbloxRrtPlanner(const ros::NodeHandle& nh,
   nh_private_.param("visualize", visualize_, visualize_);
   nh_private_.param("frame_id", frame_id_, frame_id_);
   nh_private_.param("do_smoothing", do_smoothing_, do_smoothing_);
+  nh_private_.param("default_esdf_value", default_esdf_value_, default_esdf_value_);
 
   path_marker_pub_ =
       nh_private_.advertise<visualization_msgs::MarkerArray>("path", 1, true);
@@ -335,12 +337,12 @@ bool VoxbloxRrtPlanner::checkPathForCollisions(
 double VoxbloxRrtPlanner::getMapDistance(
     const Eigen::Vector3d& position) const {
   if (!voxblox_server_.getEsdfMapPtr()) {
-    return 0.0;
+    return default_esdf_value_;
   }
-  double distance = 0.0;
+  double distance = default_esdf_value_;
   if (!voxblox_server_.getEsdfMapPtr()->getDistanceAtPosition(position,
                                                               &distance)) {
-    return 0.0;
+    return default_esdf_value_;
   }
   return distance;
 }
