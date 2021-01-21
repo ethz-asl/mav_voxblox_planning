@@ -85,6 +85,7 @@ class VoxbloxOmplRrt {
   double num_seconds_to_plan_;
   bool simplify_solution_;
   double robot_radius_;
+  bool treat_unkown_as_occupied_;
   bool verbose_;
 
   // Whether the planner is optimistic (true) or pessimistic (false) about

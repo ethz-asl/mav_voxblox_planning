@@ -125,7 +125,13 @@ class EsdfVoxbloxValidityChecker
                              double robot_radius,
                              voxblox::Layer<voxblox::EsdfVoxel>* esdf_layer)
       : VoxbloxValidityChecker(space_info, robot_radius, esdf_layer),
-        interpolator_(esdf_layer) {}
+        interpolator_(esdf_layer),
+        treat_unknown_as_occupied_(false) {}
+
+  bool getTreatUnknownAsOccupied() const { return treat_unknown_as_occupied_; }
+  void setTreatUnknownAsOccupied(bool treat_unknown_as_occupied) {
+    treat_unknown_as_occupied_ = treat_unknown_as_occupied;
+  }
 
   virtual bool checkCollisionWithRobot(
       const Eigen::Vector3d& robot_position) const {
@@ -135,7 +141,7 @@ class EsdfVoxbloxValidityChecker
     bool success = interpolator_.getDistance(
         robot_position.cast<voxblox::FloatingPoint>(), &distance, interpolate);
     if (!success) {
-      return true;
+      return treat_unknown_as_occupied_;
     }
 
     return robot_radius_ >= distance;
@@ -146,7 +152,7 @@ class EsdfVoxbloxValidityChecker
     voxblox::EsdfVoxel* voxel = layer_->getVoxelPtrByGlobalIndex(global_index);
 
     if (voxel == nullptr) {
-      return true;
+      return treat_unknown_as_occupied_;
     }
     return robot_radius_ >= voxel->distance;
   }
@@ -154,6 +160,7 @@ class EsdfVoxbloxValidityChecker
  protected:
   // Interpolator for the layer.
   voxblox::Interpolator<voxblox::EsdfVoxel> interpolator_;
+  bool treat_unknown_as_occupied_;
 };
 
 // Motion validator that uses either of the validity checkers above to
