@@ -79,7 +79,7 @@ If using these, please cite:
 This package is intended to be used with Ubuntu 16.04 and [ROS kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu) or above.
 After installing ROS, install some extra dependencies, substituting kinetic for your ROS version as necessary:
 ```
-sudo apt-get install ros-kinetic-cmake-modules python-wstool python-catkin-tools libyaml-cpp-dev protobuf-compiler autoconf
+sudo apt-get install ros-kinetic-cmake-modules python-wstool python-catkin-tools libyaml-cpp-dev protobuf-compiler autoconf libompl-dev
 ```
 Then if not already done so, set up a new catkin workspace:
 ```
