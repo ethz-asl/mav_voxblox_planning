@@ -4,7 +4,7 @@ project(mav_local_planner)
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
-add_definitions(-std=c++11 -Wall)
+add_definitions(-std=c++14 -Wall)
 
 #############
 # LIBRARIES #

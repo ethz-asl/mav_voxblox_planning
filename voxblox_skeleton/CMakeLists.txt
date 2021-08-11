@@ -4,7 +4,7 @@ project(voxblox_skeleton)
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
-add_definitions(-std=c++11)
+add_definitions(-std=c++14)
 
 ############
 # PROTOBUF #

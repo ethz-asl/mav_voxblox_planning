@@ -4,7 +4,7 @@ project(mav_planning_rviz)
 find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
-add_definitions(-std=c++11)
+add_definitions(-std=c++14)
 
 # These settings all stolen from visualization_tutorials:
 # This setting causes Qt's "MOC" generation to happen automatically.

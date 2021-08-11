@@ -5,7 +5,7 @@ find_package(catkin_simple REQUIRED)
 find_package(ompl)
 catkin_simple(ALL_DEPS_REQUIRED)
 
-add_definitions(-std=c++11)
+add_definitions(-std=c++14)
 
 #############
 # LIBRARIES #
